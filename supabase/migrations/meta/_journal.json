@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792795782497,
+      "tag": "20261023224942_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792795784515,
+      "tag": "20261023224944_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792795824183,
+      "tag": "20261023225024_functions_and_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792796205208,
+      "tag": "20261023225645_goals_example",
+      "breakpoints": true
+    }
+  ]
+}

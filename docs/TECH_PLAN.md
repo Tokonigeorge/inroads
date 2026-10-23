@@ -1,7 +1,7 @@
 # Inroads: technical plan (P0)
 
 Status: **draft for review**. No app code until this is approved.
-Inputs: `docs/PRODUCT_BRIEF.md` (source of truth) and `index.html` (behavioural spec).
+Inputs: `docs/PRODUCT_BRIEF.md` (source of truth) and `prototype/index.html` (behavioural spec).
 Companion docs: `docs/DESIGN_SYSTEM.md`, `docs/DECISIONS.md`.
 
 ---
@@ -10,7 +10,7 @@ Companion docs: `docs/DESIGN_SYSTEM.md`, `docs/DECISIONS.md`.
 
 | Layer | Choice | Why |
 |---|---|---|
-| App | **Next.js 15 (App Router) + React 19 + TypeScript strict** | Server components keep the JS sent to mid-range Android phones small; route handlers host the API; one deploy target. |
+| App | **Next.js 16 (App Router, Cache Components) + React 19 + TypeScript strict** | Server components keep the JS sent to mid-range Android phones small; route handlers host the API; one deploy target. |
 | Styling | **Tailwind CSS v4** with design tokens as CSS variables (see DESIGN_SYSTEM.md) | Tokens drive light/dark themes. Utility classes stop one-off styles creeping in. |
 | UI primitives | **Radix UI** primitives (Dialog, Popover, Dropdown, Tabs, Tooltip) + **cmdk** for ⌘K | Accessible behaviour (focus traps, ARIA, keyboard) without importing anyone's visual style. |
 | Database | **Supabase Postgres** (+ `pg_trgm`, `citext`, `pgvector` installed but unused until P2) | Relational model from brief §6, RLS, Realtime and Storage from one provider. |
@@ -344,7 +344,7 @@ create policy "owner can delete" on people for delete using (user_id = (select a
 
 ## 3. Prototype → new architecture
 
-| Prototype (index.html) | New home | Notes |
+| Prototype (prototype/index.html) | New home | Notes |
 |---|---|---|
 | `initStore`, `goLocal`, `write`, `putContact`, `putEvent`, `saveMeta`, `retry`, `dbFail` | `server/repos/*` + `/api/v1/*` route handlers + TanStack Query mutations | Postgres replaces documents. Optimistic updates with rollback. Offline queue for capture. |
 | `normProfile`, `setProfile`, `openProfileForm` | `/settings/profile`, `repos/profile`, `contracts/profile` | Emails become `citext[]`. Adds timezone, default region and brief time. |

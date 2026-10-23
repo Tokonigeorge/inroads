@@ -2,6 +2,15 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-23: milestone 1
+
+21. **Next.js 16 instead of 15.** It's the current stable release. It brings Cache Components (static shell plus streamed per-user content, good on slow networks) and `proxy.ts` in place of middleware.
+22. **Migrations run through Drizzle's migrator (`pnpm db:migrate`), not the Supabase CLI.** One path for local, CI and production. Files still live in `supabase/migrations`.
+23. **Tests run on plain Postgres with a Supabase stand-in** (`supabase/tests/supabase-stub.sql`), and end-to-end tests use a fake auth server that signs real ES256 tokens. *Why:* no Docker or hosted project needed for CI, and the real token-verification code path still runs.
+24. **The browser never queries tables directly.** `anon` has no table access, and OAuth token columns aren't readable by `authenticated`. All data goes through server code.
+25. **Prototype moved to `prototype/index.html`.**
+26. **Service worker is hand-written and small for now** (static assets plus an offline page). Offline capture with a queued-writes store arrives with People (milestone 3).
+
 ## 2026-10-23: answers from Step 1 review
 
 14. **Google connections are built early**: milestone 5, right after People and Rooms.

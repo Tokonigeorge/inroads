@@ -1,0 +1,1 @@
+ALTER TABLE "goals" ADD COLUMN "example" boolean DEFAULT false NOT NULL;

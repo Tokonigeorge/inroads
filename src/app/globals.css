@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* Design tokens: docs/DESIGN_SYSTEM.md §2. One accent, warm neutrals. */
+:root {
+  color-scheme: light;
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --sunken: #f3f1ee;
+  --border: #e6e2dc;
+  --border-strong: #8f887e;
+  --text: #1c1a17;
+  --text-muted: #625c54;
+  --text-faint: #736d64;
+  --accent: #1e6b52;
+  --accent-hover: #175843;
+  --on-accent: #ffffff;
+  --accent-soft: #e6f0eb;
+  --danger: #b42318;
+  --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.08), 0 0 0 1px var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141311;
+    --surface: #1c1a18;
+    --sunken: #100f0e;
+    --border: #2e2b27;
+    --border-strong: #6b655d;
+    --text: #edeae5;
+    --text-muted: #a39c92;
+    --text-faint: #8a847b;
+    --accent: #5fbf98;
+    --accent-hover: #7fd0ae;
+    --on-accent: #0e1f18;
+    --accent-soft: #1d2e27;
+    --danger: #f97066;
+    --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.4), 0 0 0 1px var(--border);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141311;
+  --surface: #1c1a18;
+  --sunken: #100f0e;
+  --border: #2e2b27;
+  --border-strong: #6b655d;
+  --text: #edeae5;
+  --text-muted: #a39c92;
+  --text-faint: #8a847b;
+  --accent: #5fbf98;
+  --accent-hover: #7fd0ae;
+  --on-accent: #0e1f18;
+  --accent-soft: #1d2e27;
+  --danger: #f97066;
+  --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.4), 0 0 0 1px var(--border);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+
+  /* Type scale: size / line-height / weight */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.125rem;
+  --text-title: 1.125rem;
+  --text-title--line-height: 1.625rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.125rem;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1rem;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-pop: var(--shadow-pop);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  ::placeholder {
+    color: var(--text-faint);
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

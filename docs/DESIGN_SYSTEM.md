@@ -130,7 +130,7 @@ Lucide icons at 16px (desktop) / 20px (mobile nav), 1.5px stroke, `currentColor`
 
 The sidebar on the left shows the Space switcher ("All spaces ▾") at the top, then Today (selected: accent text with a `--accent-soft` background), People, Rooms and Goals, then Settings at the bottom with a faint "⌘K" hint. The main area has no list pane on this screen. Instead there are two columns inside a 1100px container.
 
-At the top, the page title in Newsreader 28px reads "Thursday 23 October", with "4 rooms today · 6 things to follow up" beneath it in muted small text. To the right sit one secondary button, "Write today's brief", and a ghost "…" menu.
+At the top, the page title in Newsreader 28px reads "Friday 23 October", with "4 rooms today · 6 things to follow up" beneath it in muted small text. To the right sit one secondary button, "Write today's brief", and a ghost "…" menu.
 
 The left column (60%) is headed "Today's rooms" (title style, sentence case). Each room is a row: the time in tabular figures on the left ("9:30am"), then the title ("Coffee with Ada Okafor") and the location in muted small text. Beneath, indented, are prep lines for each person: "Last spoke 3 weeks ago about the Paystack partnership", "Ask about: her talk at Lagos Startup Week", "You owe her: the pitch deck". If a person has no research, a ghost link reads "Research Ada". Rows are separated by space, with no dividing boxes.
 
