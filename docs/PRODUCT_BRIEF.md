@@ -8,7 +8,7 @@
 
 **One line:** Inroads turns the people you meet into outcomes. It remembers the context, catches the follow-ups you'd drop, and gets you ready for the rooms that matter to your goals.
 
-**Who it's for:** people whose income or progress depends on who they know, and who don't have a sales team or CRM admin. Founders raising or selling, freelancers and agencies winning clients, creatives building a scene, operators hiring, job-seekers. The first market is Lagos, then Africa's other relationship-driven economies, where deals start in rooms and continue on WhatsApp.
+**Who it's for:** primarily people whose income or progress depends on who they know (it also extends to friends, family and dating; see 4.0), and who don't have a sales team or CRM admin. Founders raising or selling, freelancers and agencies winning clients, creatives building a scene, operators hiring, job-seekers. The first market is Lagos, then Africa's other relationship-driven economies, where deals start in rooms and continue on WhatsApp.
 
 **The jobs, in the user's words:**
 
@@ -108,6 +108,24 @@ UpHabit reportedly shut down in April 2026 (per Dex, not independently confirmed
 
 **The critical path is capture.** If logging a meeting takes more than about 10 seconds, nothing else matters. Every major feature below is ranked by how much it cuts upkeep or how directly it gets the user to an outcome.
 
+### 4.0 Scope: relationships you're deliberately investing in, not just work contacts
+
+Inroads is not only a work CRM. The underlying idea is **any relationship where you have an intention**, and that includes people you haven't met yet. Two expansions:
+
+1. **Beyond work relationships.** The same engine (context, cadence, promises, rooms, goals) applies to:
+   - **Friends and community:** "make 3 close friends since moving to Lagos", or keeping up with old classmates.
+   - **Family:** birthdays, check-ins, what's going on in their lives.
+   - **Dating:** who you're talking to, where you met, what they told you (their sister's name, the job interview on Thursday), dates you've been on, what you said you'd do, and a nudge when you've gone quiet.
+
+   **How it works: Spaces.** Each person and goal belongs to a Space (Work, Personal, Dating; users can add more). A Space changes the defaults: goal templates, pipeline stages, cadence, copy, and which AI features are on. A dating pipeline might be *Matched → Talking → First date → Seeing each other → Exclusive / Ended*. Today and the briefs can show everything, or one Space at a time. Spaces are private from each other. Dating should never leak into a work brief or a shared workspace.
+
+2. **Beyond people you already know.** Goals should also produce *who to meet*, not just who to follow up with. Decode and Radar already lean this way (key people at an event, rooms worth going to). Make it explicit: for each goal, a "People to meet" list with how to reach them (warm path, event, or cold approach).
+
+**Guardrails (these are product decisions, not optional):**
+- **No web research on private individuals in Personal or Dating.** The research dossier and "Decode a person" are for professional, public-facing people. A date or a friend gets *your own notes*, not a compiled profile from the web. Anything else turns the product into a stalking tool, which is both an ethical and a reputational risk for a young brand.
+- Dating is a **space inside Inroads, not a dating app**. No matching and no profiles of other users. It helps you manage your own life.
+- Lead with Work in marketing. Personal and Dating are retention and word-of-mouth features ("I use it for everything"), not the pitch on day one.
+
 ### 4.1 Core loops to design around
 
 **Loop A: the room loop (before → during → after)**
@@ -126,7 +144,15 @@ Goal → a **pipeline** of people in stages (Identified → Warm path found → 
 **P0: Parity, done properly (ship first)**
 - Accounts and auth (email magic link + Google), multi-device sync, server-side storage.
 - People, events, goals, interactions, promises: everything the prototype does, keyboard- and mobile-friendly.
-- All existing importers, server-side, with a review step and a **duplicate-merge** UI (no silent name-only merges).
+- **One-tap connections, not file exports.** The prototype makes people download files from Google Takeout and upload them, which is the single biggest reason it feels like work. In the rebuild, connecting takes one tap during onboarding:
+  - **Google Contacts + Google Calendar** via OAuth ("Continue with Google" → tick both → done). Sync runs in the background and keeps running: new contacts and meetings appear on their own. Calendar attendees become people, past meetings become touches, and upcoming ones fill the agenda.
+  - **Outlook / Microsoft 365** calendar and contacts via Microsoft OAuth.
+  - **Phone contacts on Android** via the browser's Contact Picker API (Chrome on Android lets the user pick contacts in a native sheet with no file). Fall back to .vcf upload on iPhone, with a 3-step illustrated guide.
+  - **Apple Calendar:** a subscribe-by-URL option, or .ics upload as a fallback.
+  - Show live progress ("Found 842 contacts and 63 meetings…") and land straight in import triage.
+  - File imports (CSV, vCard, .ics, LinkedIn export, WhatsApp chat) stay available under Settings as a backup path, not the main one.
+- All importers run server-side with a review step and a **duplicate-merge** UI (no silent name-only merges).
+- **Spaces** (Work / Personal / Dating) on people, goals and events, with per-Space defaults and the guardrails in 4.0.
 - **Import triage:** a fast keep / priority / archive pass over newly imported contacts that sets cadence and circle.
 - User-set **cadence** per person or circle ("Inner circle: 2 weeks", "Investors: monthly", "Dormant: never").
 - Research dossier, Decode, Radar, Draft, daily and weekly brief, chat import, card scan, all via the Anthropic API server-side with the web search tool.
@@ -134,7 +160,6 @@ Goal → a **pipeline** of people in stages (Identified → Warm path found → 
 - Undo for deletes, plus archive. Full JSON/CSV export and account deletion.
 
 **P1: Remove capture friction**
-- **Google Contacts + Calendar OAuth sync** (incremental, two-way optional later) in place of Takeout uploads. Calendar attendees → people, past meetings → touches, upcoming → agenda.
 - **Quick capture bar** (⌘K on desktop, a floating button on mobile): one natural-language line parsed into person, touch, promise and follow-up date.
 - **Voice debrief:** record → transcribe → the same extraction as chat import → review → save.
 - **PWA with a share target:** share a LinkedIn profile URL, a WhatsApp message or a contact card into Inroads.
@@ -148,10 +173,10 @@ Goal → a **pipeline** of people in stages (Identified → Warm path found → 
 - Daily brief delivered by email (and later WhatsApp) at a set time.
 
 **P3: Growth and money**
-- Shared workspaces for small teams (agency BD, founding teams): shared contacts with private notes, "who on the team knows X".
-- WhatsApp bot (WhatsApp Business Platform): forward a message or voice note to log it.
-- Public API + MCP server so the user's own AI assistant can query and update their network.
-- Plans: Free (limited contacts and AI runs), Pro (unlimited, sync, voice, radar). Local pricing via Paystack (NGN) plus Stripe (USD).
+- **Team workspaces.** A small team (an agency, a founding team) shares one network. Everyone sees shared contacts and can ask "who on the team knows someone at Paystack?". Each person's own notes stay private. Personal and Dating Spaces are never shared.
+- **WhatsApp bot.** Inroads gets its own WhatsApp number. After a meeting, you forward a message or send a voice note to that number ("Met Tola at the Ikoyi mixer, she wants our deck by Friday") and it's logged against the right person, with the promise and the reminder. No app to open. This needs the official WhatsApp Business Platform, which has per-conversation costs and a Meta approval process.
+- **API + MCP server.** Lets the user's own AI assistant (Claude, ChatGPT and others) read and update their Inroads, e.g. "Claude, who should I follow up with this week?". Competitors are starting to do this.
+- **Charging money.** Free plan (enough contacts and AI runs to build the habit), then a Pro plan. Nigerian users pay in **naira by card or bank transfer through Paystack**. International users pay in **dollars through Stripe**. Competitors only charge in USD ($10–60/month), which is expensive in naira, so local pricing is an advantage.
 
 ### 4.3 What NOT to build (yet)
 - Automatic LinkedIn scraping or sync (against the ToS, and brittle). Accept pasted or shared profile URLs instead.
@@ -182,8 +207,10 @@ Goal → a **pipeline** of people in stages (Identified → Warm path found → 
 Relational (Postgres). Every row scoped by `user_id` (later `workspace_id`) with row-level security.
 
 - `profiles` (name, headline, location, background, offerings, industries[], emails[], timezone, brief_time)
-- `goals` (id, text, type, priority, weekly_target, active, stages config)
-- `people` (name, emails[], phones[] in E.164, company, position, city, where_met, met_on, birthday MM-DD, interests[], notes, socials jsonb, tags[], circle_id, cadence_days, starred, archived_at, source, created_at, updated_at)
+- `spaces` (name, kind: work|personal|dating|custom, defaults jsonb: cadence, stages, ai_research_allowed)
+- `goals` (id, space_id, text, type, priority, weekly_target, active, stages config)
+- `connections` (provider: google|microsoft|apple_ics, scopes, encrypted tokens, sync cursor, last_synced_at, status)
+- `people` (space_id, name, emails[], phones[] in E.164, company, position, city, where_met, met_on, birthday MM-DD, interests[], notes, socials jsonb, tags[], circle_id, cadence_days, starred, archived_at, source, created_at, updated_at)
 - `circles` (name, default_cadence_days)
 - `interactions` (person_id, date, type, summary, source: manual|calendar|chat|voice|whatsapp, event_id?)
 - `commitments` (person_id, text, owner: me|them, due, done_at, source)

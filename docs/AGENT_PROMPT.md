@@ -26,13 +26,15 @@ Write `docs/TECH_PLAN.md` covering:
 ## Step 2: build P0 (after approval)
 Build phase **P0** from the brief, one milestone at a time, committing after each with a clear message:
 1. Scaffold, auth (magic link + Google), schema and migrations, seed/example data.
-2. People (list, detail, create/edit, archive/undo, search, filters, circles, cadence), interactions, promises.
-3. Events with full recurrence (port `occurrences()` and `nthWeekday()` with unit tests), attendance, event ↔ people.
-4. Goals and the goal pipeline (`goal_links` with stages).
-5. Today: agenda with prep, the nudge feed (port `buildNudges()` rules, using the user-set cadence rather than score-derived cadence), snooze and dismiss with TTL.
-6. Importers, server-side: port the parsers with tests, a review step, **duplicate detection and merge UI** (email → phone E.164 → name only as a *suggestion*, never a silent merge), and import triage (keep / priority / archive + cadence).
-7. AI features: research dossier (versioned), Decode, Radar, draft (with **Open in WhatsApp** via `wa.me` and auto-log), daily and weekly brief, chat import extraction, business-card scan, batch fit scoring. Every AI result is shown as a reviewable suggestion with sources and why. Nothing writes to the user's data silently.
-8. Settings: profile, goals, imports, connected accounts, export (JSON + CSV), delete account.
+2. Spaces (Work / Personal / Dating + custom) with per-Space defaults. Enforce the guardrails in brief section 4.0: no web research on people in Personal or Dating, and Spaces never leak into each other's briefs.
+3. People (list, detail, create/edit, archive/undo, search, filters, circles, cadence), interactions, promises.
+4. Events with full recurrence (port `occurrences()` and `nthWeekday()` with unit tests), attendance, event ↔ people.
+5. Goals and the goal pipeline (`goal_links` with stages).
+6. Today: agenda with prep, the nudge feed (port `buildNudges()` rules, using the user-set cadence rather than score-derived cadence), snooze and dismiss with TTL.
+7. **One-tap connections:** Google Contacts and Calendar via OAuth with background incremental sync, Microsoft 365, the Android Contact Picker API, and Apple Calendar via ICS URL. Connecting is part of onboarding, with live progress, and lands in triage. Store tokens encrypted. Request the narrowest read-only scopes, and note in the plan what Google's OAuth verification needs.
+8. File importers as a fallback, server-side: port the parsers with tests, a review step, **duplicate detection and merge UI** (email → phone E.164 → name only as a *suggestion*, never a silent merge), and import triage (keep / priority / archive + cadence).
+9. AI features: research dossier (versioned), Decode, Radar, draft (with **Open in WhatsApp** via `wa.me` and auto-log), daily and weekly brief, chat import extraction, business-card scan, batch fit scoring. Every AI result is shown as a reviewable suggestion with sources and why. Nothing writes to the user's data silently.
+10. Settings: profile, goals, imports, connected accounts, export (JSON + CSV), delete account.
 
 Drop the prototype's claude.ai-only flows: the hand-off copy/paste, the permissions UI and the connector checks.
 
