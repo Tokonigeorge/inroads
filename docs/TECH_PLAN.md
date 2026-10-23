@@ -104,36 +104,65 @@ create table goals (
   due_on date, archived_at timestamptz
 );
 
+-- People are nodes in a graph. A person exists once (their identity), and appears in one or more
+-- Spaces through person_spaces (your relationship with them in that part of your life).
 create table people (
-  id uuid pk, user_id uuid not null, space_id uuid not null references spaces,
+  id uuid pk, user_id uuid not null,
+  -- identity: facts about the person, shared across their Spaces
   name text not null, emails citext[] not null default '{}', phones text[] not null default '{}', -- E.164
-  company text, position text, city text, where_met text, met_on date,
+  company text, position text, city text,
   birthday text check (birthday ~ '^\d{2}-\d{2}$'),     -- MM-DD
-  interests text[] not null default '{}', notes text, opportunities text,
   socials jsonb not null default '{}',                    -- {linkedin,x,instagram,github,substack,website,...}
-  tags text[] not null default '{}',
-  circle_id uuid references circles on delete set null,
-  cadence_days int check (cadence_days is null or cadence_days >= 0),  -- null = inherit circle → space; 0 = never
-  starred boolean not null default false,
-  triage_state text not null default 'done' check (triage_state in ('pending','done')),
-  cadence_anchor_on date,       -- baseline for "due" when there are no touches (set at triage/creation)
-  last_touched_on date,         -- denormalised by trigger from interactions
+  last_touched_on date,         -- denormalised by trigger: latest touch in any Space
   source text not null default 'manual',  -- manual|vcf|csv|linkedin|google|microsoft|contact_picker|card|chat|calendar|example
   external_refs jsonb not null default '{}', -- {google: 'people/c123', microsoft: '...'}
   example boolean not null default false,
-  archived_at timestamptz, deleted_at timestamptz, merged_into_id uuid references people,
-  search tsvector generated always as (to_tsvector('simple', coalesce(name,'')||' '||coalesce(company,'')||' '||coalesce(position,'')||' '||coalesce(where_met,'')||' '||coalesce(city,'')||' '||array_to_string(tags,' '))) stored
+  deleted_at timestamptz, merged_into_id uuid references people,
+  search tsvector generated always as (to_tsvector('simple', coalesce(name,'')||' '||coalesce(company,'')||' '||coalesce(position,'')||' '||coalesce(city,''))) stored
 );
-create index on people (user_id, space_id) where deleted_at is null;
+create index on people (user_id) where deleted_at is null;
 create index on people using gin (search);
 create index on people using gin (name gin_trgm_ops);
 create index on people using gin (emails);
 create index on people using gin (phones);
 create index on people (user_id, last_touched_on);
 
+-- The edge between you and a person in one Space. Context here is private to that Space.
+create table person_spaces (
+  id uuid pk, user_id uuid not null,
+  person_id uuid not null references people on delete cascade,
+  space_id uuid not null references spaces on delete cascade,
+  where_met text, met_on date, interests text[] not null default '{}',
+  notes text, opportunities text, tags text[] not null default '{}',
+  circle_id uuid references circles on delete set null,
+  cadence_days int check (cadence_days is null or cadence_days >= 0),  -- null = inherit circle → space; 0 = never
+  starred boolean not null default false,
+  triage_state text not null default 'done' check (triage_state in ('pending','done')),
+  triage_suggestion jsonb,      -- pre-sort proposal + reason (§4.3a)
+  cadence_anchor_on date,       -- baseline for "due" when there are no touches (set at triage/creation)
+  last_touched_on date,         -- latest touch in THIS Space (trigger)
+  archived_at timestamptz,
+  unique (person_id, space_id)
+);
+create index on person_spaces (user_id, space_id) where archived_at is null;
+create index on person_spaces using gin (tags);
+
+-- Person-to-person edges: who introduced whom, who works with whom. Powers warm paths (P2 intros).
+create table person_links (
+  id uuid pk, user_id uuid not null,
+  from_person_id uuid not null references people on delete cascade,
+  to_person_id uuid not null references people on delete cascade,
+  kind text not null check (kind in ('introduced_by','works_with','knows','family','partner')),
+  space_id uuid not null references spaces on delete cascade,  -- the Space this link is visible in
+  note text, source text not null default 'manual',
+  check (from_person_id <> to_person_id),
+  unique (from_person_id, to_person_id, kind, space_id)
+);
+
 create type touch_type as enum ('coffee','call','meeting','message','email','event','other');
 create table interactions (
   id uuid pk, user_id uuid not null, person_id uuid not null references people on delete cascade,
+  space_id uuid not null references spaces,   -- which Space this touch belongs to
   occurred_on date not null, occurred_at timestamptz, type touch_type not null, summary text,
   source text not null default 'manual',  -- manual|calendar|chat|voice|whatsapp|draft
   event_id uuid references events on delete set null, occurrence_on date,
@@ -143,6 +172,7 @@ create table interactions (
 
 create table commitments (
   id uuid pk, user_id uuid not null, person_id uuid not null references people on delete cascade,
+  space_id uuid not null references spaces,
   text text not null, owner text not null check (owner in ('me','them')),
   due_on date, done_at timestamptz, source text not null default 'manual', interaction_id uuid references interactions
 );
@@ -200,6 +230,7 @@ create table connections (
 
 create table dossiers (
   id uuid pk, user_id uuid not null, person_id uuid not null references people on delete cascade,
+  space_id uuid not null references spaces,   -- a Work dossier is never shown in Personal, and vice versa
   version int not null, mode text not null,  -- full|get_to_know|verify|knowledge
   payload jsonb not null, sources jsonb not null default '[]', confidence text,
   model text not null, prompt_version text not null, job_id uuid,
@@ -277,10 +308,10 @@ create index on ai_usage (user_id, feature, created_at);
 ### 2.2 Triggers and functions (hand-written SQL)
 
 - `set_updated_at()` on every table.
-- `people_last_touched()`: after insert/update/delete on `interactions`, recompute `people.last_touched_on = max(occurred_on)`. This keeps the people list sortable by warmth at 5,000+ rows without aggregating.
+- `people_last_touched()`: after insert/update/delete on `interactions`, recompute `people.last_touched_on` (any Space) and `person_spaces.last_touched_on` (that Space). This keeps lists sortable by warmth at 5,000+ rows without aggregating.
 - `goal_link_history` insert on `goal_links.stage` change.
 - `enforce_space_research_mode()`: rejects `spaces.defaults->>'research_mode' = 'full'` when `kind in ('personal','dating')`.
-- `same_space()` checks: `event_people`, `goal_links` and `circles` must join rows from the same `space_id`. These run as constraint triggers. Rows can't cross Spaces, which is how Spaces stay sealed at the data layer.
+- `member_of_space()` checks: a person can only be linked to an event, goal, circle, interaction, commitment or person link in a Space they belong to (a `person_spaces` row exists). These run as constraint triggers.
 
 ### 2.3 RLS
 
@@ -370,8 +401,8 @@ create policy "owner can delete" on people for delete using (user_id = (select a
 Days since `last_touched_on`: ≤14 recent, ≤45 warm, ≤90 cooling, >90 cold, null = "No touches yet". Shown as text ("3 weeks ago") plus one small dot whose tone comes from a single ramp (see DESIGN_SYSTEM.md), not five ring colours.
 
 ### 4.3 Cadence (decides nudges)
-`effectiveCadence(person) = person.cadence_days ?? circle.default_cadence_days ?? space.defaults.cadence_days ?? null`. `0` or `null` means never nudge.
-`dueOn = (last_touched_on ?? cadence_anchor_on ?? created_on) + cadence`.
+`effectiveCadence(membership) = person_spaces.cadence_days ?? circle.default_cadence_days ?? space.defaults.cadence_days ?? null`. `0` or `null` means never nudge. A person's cadence is the shortest across their Spaces.
+`dueOn = (people.last_touched_on ?? cadence_anchor_on ?? created_on) + cadence`.
 Imported contacts start in `triage_state='pending'` with no cadence, so they don't flood Today. Triage sets circle, cadence and `cadence_anchor_on = today`. This fixes "imported contacts disappear": they show up through a triage nudge, then on cadence.
 
 ### 4.3a Making triage effortless
@@ -408,11 +439,15 @@ Same priorities as the prototype, with these changes:
 Snooze and dismiss write `nudge_states` with `expires_at`: snooze → `snoozed_until`, expiring then. Dismiss → expires 30 days after the date in the key (dated keys) or after 180 days (undated). Daily cron: `delete from nudge_states where expires_at < now()`. Fixes bug 3. Keys that include the date make dismissing one birthday never hide next year's.
 
 ### 4.6 Dedupe and merge
-`planImport(existingIndex, rows)` → for each row: `{action: add|merge|skip|suggest_merge, matchPersonId, matchKind}`. In order: external ID → any email → any E.164 phone → **name only**, which never auto-merges and creates `suggest_merge` for review. Within one file, duplicates collapse by the same keys, also never by name alone.
+`planImport(existingIndex, rows)` → for each row: `{action: add|merge|skip|suggest_merge, matchPersonId, matchKind}`. In order: external ID → any email → any E.164 phone → **name only**, which never auto-merges and creates `suggest_merge` for review. Matching runs across **all** Spaces: if someone already exists in Work and you import them into Personal, they get a second Space instead of a duplicate. Within one file, duplicates collapse by the same keys, also never by name alone.
 Merging people (from import review or `/people/duplicates`) shows a side-by-side field picker. Lists (emails, phones, tags, interests) are unioned. Interactions, commitments, goal links, event links and dossiers are re-pointed. The loser keeps `merged_into_id` and `deleted_at`. **Undo merge** is available for 30 days, using a stored merge record in `suggestions.payload` with the original field values.
 
 ### 4.7 Spaces and guardrails (brief §4.0)
-- Every person, goal, event, circle, brief and search has a `space_id`. Cross-Space joins are blocked by constraint triggers (2.2).
+- **Graph model.** A person is one node and can belong to several Spaces (owner decision, 2026-10-23). What's shared is only their identity: name, contact details, company, role, city, birthday, socials. Everything about *your relationship* (notes, tags, where you met, cadence, circle, touches, promises, goals, rooms, introductions) is tied to one Space.
+- Goals, events, circles, briefs, searches, interactions, commitments and person links all carry a `space_id`. Constraint triggers (2.2) stop a person being linked to anything in a Space they're not in.
+- Example: Tola is a colleague and a friend. Your Work brief can see Tola's identity and Work notes, plus the date you last spoke. It can't see your Personal notes or what you talked about at the weekend.
+- A person's detail page shows every Space they're in, each as a labelled section. Adding someone to another Space is one action ("Also in Personal").
+- Nudges are one card per person, not one per Space. "Due" uses the most recent touch in any Space, because seeing them at all counts as staying in touch, and the shortest cadence among their Spaces.
 - AI context builders take one `spaceId`, and the repo they use is Space-scoped by type (`SpaceScopedRepo`), so a Dating person can't be read into a Work prompt.
 - `briefs` are generated **per Space**. Today's "All Spaces" view lists each Space's brief as its own section. Model calls never mix Spaces. Dating is never included in a Work brief or prompt.
 - Research by Space mode:
@@ -454,7 +489,10 @@ Each job writes its **artifact** (dossier version, search, brief, score) and a s
 Concurrency: `{key: 'event.data.userId', limit: 2}` for AI jobs, and 1 per connection for syncs. Each job row is created before enqueueing, so the UI shows "Queued" straight away and the work isn't lost if the tab closes.
 
 ### 5.4 Rate limits and usage
-`ai_usage` is written after each call (input/output tokens, web searches). Before enqueueing, `checkLimit(userId, feature)` counts rows over a rolling 24h and 30d against `LIMITS` config (e.g. research 20/day, lookup 20/day, radar 5/day, brief 6/day, draft 100/day, score 10 batches/day, card 50/day, chat 20/day: all placeholders, see Q7). When a limit is hit, the user sees a clear message with the reset time. `/settings/usage` shows the meter. Postgres is enough at this scale, with no Redis needed.
+`ai_usage` is written after each call (input/output tokens, web searches, estimated cost). Before enqueueing, `checkLimit(userId, feature)` checks three layers, all set in config:
+- **Per feature, per user, per day:** research (incl. get to know and verify) 5, look up 5, suggested rooms 2, briefs 4, drafts 50, card scans 30, chat imports 10, scoring 3 batches.
+- **Per user, per month:** about $2 of estimated model cost.
+- **Whole app, per month:** about $25, after which AI features pause for everyone until next month (on top of the spending limit set in the Anthropic console). When a limit is hit, the user sees a clear message with the reset time. `/settings/usage` shows the meter. Postgres is enough at this scale, with no Redis needed.
 
 ### 5.5 Privacy
 - Settings → Data explains what is sent to the model per feature.
@@ -632,5 +670,4 @@ Owner constraint (2026-10-23): no budget and no domain for now.
 Resolved 2026-10-23: Google connections in P0 and built early (Q1); pipeline without drag in P0 (Q2); Personal/Dating ship with research on, including web search (Q3); free hosting (Q5, see §12); no user-facing AI limits yet, but a hidden safety cap stays (Q7); model split accepted (Q8); free-tier Sentry/PostHog (Q9); brief on Today only, no email in P0 (Q10); prototype example data as the seed (Q11). Spaces (Q6) are explained in DECISIONS #13.
 
 Still open:
-1. **Can one person belong to more than one Space** (e.g. a colleague who is also a close friend)? Default plan: one Space per person, movable at any time. Allowing several would make the "Spaces never mix" rule harder to keep.
-2. **App name for the free URL:** `inroads.vercel.app` if it's available. Any preference?
+None. Resolved: one person can be in several Spaces (graph model, §4.7); the app will live at `inroads.vercel.app`; usage limits are as in §5.4 and can be changed in config.
