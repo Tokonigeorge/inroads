@@ -16,7 +16,7 @@ test.describe.serial("signed in", () => {
   test("a new account has the three built-in Spaces", async ({ page }) => {
     await page.goto("/settings");
     for (const name of ["Work", "Personal", "Dating"]) await expect(page.getByText(name, { exact: true })).toBeVisible();
-    await expect(page.getByText("Keep in touch every 30 days · Full research")).toBeVisible();
+    await expect(page.getByText("Work · 0 people · Every month · Full research")).toBeVisible();
     await expectAccessible(page);
   });
 

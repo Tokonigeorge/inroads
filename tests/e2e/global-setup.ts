@@ -7,6 +7,7 @@ import { sessionCookie } from "./support/auth";
 
 export const E2E_DB = "inroads_e2e";
 export const STORAGE_STATE = "tests/e2e/.auth/user.json";
+export const E2E_META = "tests/e2e/.auth/meta.json";
 
 /** Fresh database, one signed-in test user, and a saved browser session for it. */
 export default async function globalSetup() {
@@ -28,6 +29,7 @@ export default async function globalSetup() {
 
   const cookie = sessionCookie(user);
   mkdirSync("tests/e2e/.auth", { recursive: true });
+  writeFileSync(E2E_META, JSON.stringify({ userId: user.id, dbUrl: url.toString() }));
   writeFileSync(
     STORAGE_STATE,
     JSON.stringify({

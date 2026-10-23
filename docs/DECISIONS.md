@@ -2,6 +2,14 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 2
+
+27. **New Spaces pick a type (Work, Personal, Dating or Other), and the type is fixed.** You can have several Work-type Spaces (e.g. "Agency clients"), each with full research. Other Spaces follow the Personal rules: Get to know or Off. *Why:* otherwise renaming a Space or creating a custom one could get round the research guardrail.
+28. **Deleting a Space only works when it's empty.** Otherwise you archive it, which hides it from lists and reminders and keeps everything. You always keep at least one active Space.
+29. **Removing a pipeline stage that people are at is blocked.** Renaming is always safe because stages keep their internal key.
+30. **The selected Space is stored in a cookie (`inroads-space`)**, so lists render on the server already filtered, and the choice follows you between pages. AI features never use this choice; they always take an explicit Space.
+31. **Per-Space copy and goal templates are deferred** to milestone 6 (Goals), where they're first used.
+
 ## 2026-10-23: milestone 1
 
 21. **Next.js 16 instead of 15.** It's the current stable release. It brings Cache Components (static shell plus streamed per-user content, good on slow networks) and `proxy.ts` in place of middleware.

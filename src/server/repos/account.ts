@@ -1,12 +1,13 @@
 import "server-only";
-import { asc, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
+import { listSpaces } from "./spaces";
 
 export async function getAccountOverview(userId: string) {
   return db.withUser(userId, async (tx) => {
     const [profile] = await tx.select().from(t.profiles).where(eq(t.profiles.userId, userId));
-    const spaces = await tx.select().from(t.spaces).orderBy(asc(t.spaces.position));
+    const spaces = await listSpaces(tx, { includeArchived: true });
     const [counts] = await tx
       .select({
         people: sql<number>`(select count(*)::int from people where deleted_at is null)`,

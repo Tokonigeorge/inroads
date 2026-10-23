@@ -8,8 +8,8 @@ import { cn } from "@/ui/cn";
 import { CaptureSheet } from "./capture-sheet";
 import { isActive, primaryNav, type NavItem } from "./nav-items";
 
-function Tab({ item, pathname }: { item: NavItem; pathname: string }) {
-  const active = isActive(pathname, item.href);
+function Tab({ item, pathname }: { item: NavItem; pathname: string | null }) {
+  const active = pathname !== null && isActive(pathname, item.href);
   const Icon = item.icon;
   return (
     <Link
@@ -25,7 +25,11 @@ function Tab({ item, pathname }: { item: NavItem; pathname: string }) {
 
 /** Mobile navigation (<900px): four sections and a central Capture button. */
 export function BottomNav() {
-  const pathname = usePathname();
+  return <BottomNavView pathname={usePathname()} />;
+}
+
+/** Same nav without the current-section highlight, for prerendering (Suspense fallback). */
+export function BottomNavView({ pathname }: { pathname: string | null }) {
   const [capture, setCapture] = useState(false);
   const [left, right] = [primaryNav.slice(0, 2), primaryNav.slice(2)];
   return (

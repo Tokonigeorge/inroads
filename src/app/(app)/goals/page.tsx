@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
+import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
+import { db } from "@/server/db/client";
 import { listGoalsPreview } from "@/server/repos/lists";
 import { EmptyState, PageHeader } from "@/ui/layout";
 import { ListRow } from "@/ui/list-row";
@@ -21,7 +23,7 @@ export default function GoalsPage() {
 
 async function Goals() {
   const user = await requireUser();
-  const goals = await listGoalsPreview(user.id);
+  const goals = await db.withUser(user.id, async (tx) => listGoalsPreview(tx, (await loadSpaceView(tx)).selected?.id ?? null));
   if (!goals.length) return <EmptyState>Set a goal and Inroads weighs every person, room and reminder against it.</EmptyState>;
   return (
     <ul className="-mx-4">

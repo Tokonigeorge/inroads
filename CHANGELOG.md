@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 2 (Spaces)
+- Settings → Spaces:
+  - Add a Space by choosing a type: Work, Personal, Dating or Other.
+  - Rename, reorder, archive and unarchive Spaces. Delete a Space only when it's empty.
+- Per-Space defaults: the default reminder, the research mode (only the options the type allows), and pipeline stages (rename, reorder, add, remove, mark as an end state).
+  - Renaming a stage keeps people's pipeline positions.
+  - Removing a stage that people are at is blocked with a clear message.
+- Space switcher (sidebar on desktop, header on mobile):
+  - Appears once two Spaces have people in them.
+  - Remembers your choice, and People, Rooms and Goals follow it.
+- Mobile header with a Settings link (Settings was unreachable on mobile before).
+- Space-scoped AI context loaders. Prompts can only see one Space's notes, touches, promises, goals and research; tests prove Dating details never reach Work.
+- Database: full research is now Work-only for every other Space type, including Other, and a Space's type can't change after creation.
+
+
 ### Added: milestone 1 (scaffold, auth, schema, example data)
 - Next.js 16 app with TypeScript strict, Tailwind v4 design tokens (light and dark), and base components: Button, Field, Input, ListRow, Avatar, PageHeader, Section, EmptyState, Sheet and Toast.
 - App shell: sidebar on desktop; on mobile, a bottom nav with a central Capture button. Today, People, Rooms, Goals and Settings pages.

@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { spaceDefaultsSchema } from "@/contracts/spaces";
 import { ExampleDataForm } from "@/features/settings/example-data-form";
+import { SpacesSettings } from "@/features/spaces/spaces-settings";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { getAccountOverview } from "@/server/repos/account";
 import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
-import { ListRow } from "@/ui/list-row";
 
 export const metadata: Metadata = { title: "Settings" };
-
-const researchLabel = { full: "Full research", get_to_know: "Get to know", off: "Research off" } as const;
 
 export default function SettingsPage() {
   return (
@@ -40,21 +37,7 @@ async function Settings() {
         </dl>
       </Section>
 
-      <Section title="Spaces">
-        <ul className="-mx-4">
-          {spaces.map((s) => {
-            const d = spaceDefaultsSchema.safeParse(s.defaults);
-            const detail = d.success
-              ? [d.data.cadenceDays ? `Keep in touch every ${d.data.cadenceDays} days` : "No default reminder", researchLabel[d.data.researchMode]].join(" · ")
-              : "";
-            return (
-              <li key={s.id}>
-                <ListRow primary={s.name} secondary={detail} />
-              </li>
-            );
-          })}
-        </ul>
-      </Section>
+      <SpacesSettings spaces={spaces} />
 
       <Section title="Data">
         <div id="data" className="grid gap-3">
