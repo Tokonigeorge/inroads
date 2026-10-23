@@ -15,7 +15,7 @@ Companion docs: `docs/DESIGN_SYSTEM.md`, `docs/DECISIONS.md`.
 | UI primitives | **Radix UI** primitives (Dialog, Popover, Dropdown, Tabs, Tooltip) + **cmdk** for ⌘K | Accessible behaviour (focus traps, ARIA, keyboard) without importing anyone's visual style. |
 | Database | **Supabase Postgres** (+ `pg_trgm`, `citext`, `pgvector` installed but unused until P2) | Relational model from brief §6, RLS, Realtime and Storage from one provider. |
 | ORM / migrations | **Drizzle ORM + drizzle-kit** | Typed queries; SQL-first migrations we can read. RLS policies, triggers and functions go in hand-written SQL migrations alongside the generated ones. |
-| Auth | **Supabase Auth**: email magic link + Google sign-in | Matches the brief. Magic-link email goes out through Resend SMTP. |
+| Auth | **Supabase Auth**: Google sign-in now; email magic link built but off until there is a domain (§12) | Matches the brief. Magic-link email will go out through Resend SMTP. |
 | Files | **Supabase Storage**, private buckets (`imports`, `cards`) with signed upload URLs | Import files and card photos go straight from the browser to storage. The server parses them, then deletes them. |
 | Jobs | **Inngest** | Durable step functions with retries, cron, concurrency keys per user, and a native Vercel integration. Each step is short, so long imports never hit serverless time limits. (Trigger.dev would also work. Inngest's per-step model suits "parse → stage → review → commit".) |
 | Progress | `jobs` table updated by each step and pushed over **Supabase Realtime**, with polling as a fallback | Survives closed tabs and flaky networks: the UI reads persisted state and never depends on an open stream. |
@@ -374,6 +374,16 @@ Days since `last_touched_on`: ≤14 recent, ≤45 warm, ≤90 cooling, >90 cold,
 `dueOn = (last_touched_on ?? cadence_anchor_on ?? created_on) + cadence`.
 Imported contacts start in `triage_state='pending'` with no cadence, so they don't flood Today. Triage sets circle, cadence and `cadence_anchor_on = today`. This fixes "imported contacts disappear": they show up through a triage nudge, then on cadence.
 
+### 4.3a Making triage effortless
+Triage must never feel like homework. Nothing here calls the AI, so it costs nothing to run.
+1. **Inroads pre-sorts every import** using signals it already has: meetings with them in the last 6 months, starred or labelled in Google, how recently they were added, LinkedIn "connected on", whether they have a real name. Each person gets a proposed **Keep / Priority / Not now** with the reason shown ("3 meetings since June", "Starred in Google").
+2. **One tap accepts the whole sort.** "Use suggested sort for 842 people" is the first button after an import. You only look at the uncertain middle if you want to.
+3. **Nothing blocks.** Unsorted people stay searchable and usable; they just don't nudge. Sorting is never a gate before using the app.
+4. **Little and often.** Today shows at most one card a day, "Sort 5 people (about 20 seconds)", until the queue is empty.
+5. **It learns from use.** Logging a touch, linking to a goal or adding a promise automatically marks that person Keep.
+6. **Space per batch.** You choose the Space once per import (e.g. Google contacts go to Work), and you can move anyone later.
+7. Cadence defaults come from the Space or circle, so choosing Keep is one tap. Changing cadence is optional.
+
 ### 4.4 Recurrence and time zones
 - Port `occurrences(e, from, to)` and `nthWeekday` to TS, keeping the same semantics over ISO **calendar dates** (pure date maths with no `Date` local-time ambiguity: implemented on `{y,m,d}` integers).
 - An occurrence's instant is `zonedTimeToUtc(date + start_time, event.tz)`. "Today" for the user is computed in `profile.timezone`. The agenda asks for occurrences in a date window widened by ±1 day, then filters by instant. Travel and online events with another `tz` therefore land on the right local day.
@@ -407,7 +417,7 @@ Merging people (from import review or `/people/duplicates`) shows a side-by-side
 - `briefs` are generated **per Space**. Today's "All Spaces" view lists each Space's brief as its own section. Model calls never mix Spaces. Dating is never included in a Work brief or prompt.
 - Research by Space mode:
   - `full` (Work): web search + fetch, as in the prototype's research prompt.
-  - `get_to_know` (Personal/Dating): **no `web_search` tool**. Only `web_fetch`, with `allowed_domains` set to the domains of the person's saved links, and the prompt given only those exact URLs. Server-side post-filter: any source or item whose URL isn't one of the saved URLs (or a path beneath a saved profile URL) is dropped. Output schema is limited to `sharedInterests`, `thingsToAsk`, `funFacts` (each with a `url`). Banned categories are named in the prompt **and** the schema has no fields for them. Not stored as a dossier. Saved starters become notes.
+  - `get_to_know` (Personal/Dating): **web search and fetch are both on** (owner decision, 2026-10-23). Saved links are opened first. Searches are anchored to the person's saved handles and links, plus the name together with saved context (city, where you met), so results stay on the right person. The prompt limits it to what the person published about themselves. Output schema is limited to `sharedInterests`, `thingsToAsk`, `funFacts` (each with a `url`). Banned categories (family, home address or area, past relationships, finances, old or deleted posts, third-party mentions or news) are named in the prompt, **and** the schema has no fields for them. Not stored as a dossier. Saved starters become notes.
   - `verify` (Personal/Dating, separate button): web search allowed, limited to "does this profile exist, does the photo or name appear elsewhere, any public safety red flags". Returns `yes|no|unclear` + sources. Not stored beyond the session unless the user saves the answer as a note.
   - `off`: no research buttons.
 - The Space switcher is in the sidebar and in Today's header. The default view is "All Spaces" for lists, while AI calls are always issued per Space.
@@ -453,7 +463,7 @@ Concurrency: `{key: 'event.data.userId', limit: 2}` for AI jobs, and 1 per conne
 
 ---
 
-## 6. Integrations (milestone 7)
+## 6. Integrations (milestone 5 in the updated build order)
 
 ### 6.1 Google (Contacts + Calendar)
 - **Separate from sign-in.** "Continue with Google" for auth asks only `openid email profile`. Connecting data is a second incremental-auth step with only the data scopes, so sign-in never triggers the verification-gated consent screen.
@@ -486,7 +496,7 @@ Concurrency: `{key: 'event.data.userId', limit: 2}` for AI jobs, and 1 per conne
 AES-256-GCM, with a random 12-byte IV per value. The key comes from `TOKEN_ENC_KEYS` (a JSON map `{v1: base64}`) plus `TOKEN_ENC_CURRENT=v1`. Stored format: `version || iv || ciphertext || tag`. Rotation: decrypt with the old key, re-encrypt with the current one in a cron. Tokens are decrypted only inside sync jobs and never returned to the client. Revoking a connection deletes the tokens and calls the provider's revoke endpoint.
 
 ### 6.6 Onboarding flow
-1. Sign in → 2. "What should Inroads call you" + city (sets timezone/region; editable) → 3. Spaces: Work on, Personal and Dating off by default (toggle) → 4. Connect: Google / Microsoft / phone contacts / Apple calendar / "Skip, I'll add people myself" → 5. Live progress ("Found 842 contacts and 63 meetings…") → 6. Triage → 7. One goal → Today. Example data is offered at step 4 as "Explore with example data".
+1. Sign in → 2. "What should Inroads call you" + city (sets timezone/region; editable) → 3. Spaces: Work, Personal and Dating all exist from the start (empty); the user can add their own, and every import asks which Space it goes into → 4. Connect: Google / Microsoft / phone contacts / Apple calendar / "Skip, I'll add people myself" → 5. Live progress ("Found 842 contacts and 63 meetings…") → 6. Triage → 7. One goal → Today. Example data is offered at step 4 as "Explore with example data".
 
 ---
 
@@ -579,6 +589,8 @@ Every milestone ships with: types passing (`tsc --noEmit`), lint passing, unit t
 | 9 | AI | Runner with tiers, structured outputs + Zod, web tools, streamed progress into `jobs`, per-user limits + meter. Features: research (versioned dossiers) / get-to-know / verify, Look up, Suggested rooms, Draft (+ Open in WhatsApp/email + log touch), daily & weekly brief per Space, chat import extraction, card scan, batch scoring. Every data change goes through `suggestions` with Accept/Edit/Discard, reasons and sources. Prompts versioned. Guardrail tests: get-to-know requests carry no `web_search` tool and only saved-URL domains, and the post-filter drops foreign sources. |
 | 10 | Settings | Profile (timezone, region, brief time), goals link, imports history, connected accounts, usage, export JSON + CSV (background job → signed link), delete account (confirm by typing email; revokes tokens, deletes Storage objects, cascades rows, deletes the auth user). |
 
+**Build order (updated 2026-10-23):** Google is needed right away, so connections move up. Order: 1 Scaffold → 2 Spaces → 3 People → 4 Rooms → **5 Connections** (Google first, then Microsoft, Contact Picker, Apple ICS), together with the dedupe, review and triage pieces from milestone 8 → 6 Goals → 7 Today → 8 File importers → 9 AI → 10 Settings. The definitions of done above are unchanged.
+
 ---
 
 ## 11. Environment variables (for README)
@@ -596,16 +608,29 @@ APP_URL, SENTRY_DSN (optional)
 
 ---
 
-## 12. Open questions
+## 12. Running on free tiers (no domain yet)
 
-1. **Google/Microsoft OAuth sync: P0 or P1?** Your milestone list puts one-tap connections in P0 (milestone 7), and so does the brief, but the "don't start P1 features" line lists "Google OAuth sync". My plan builds it in P0 as milestone 7. Confirm, or I'll move it after milestone 10.
-2. **Goal pipeline in P0.** The brief puts drag-between-stages pipelines in P2, while your milestone 5 asks for `goal_links` with stages. Plan: stages, a pipeline view, and stage changes by menu or keyboard in P0; drag-and-drop in P2. OK?
-3. **Get to know and Verify in P0?** They follow from the Space guardrails, so I've included them in milestone 9. Say if you'd rather ship Personal/Dating with research off at first.
-4. **Domain and Google Cloud / Azure ownership.** OAuth verification needs a verified domain, privacy policy and demo video, and an Azure app registration for Microsoft. What's the production domain, and who owns the Google Cloud and Azure accounts?
-5. **Hosting region.** Supabase `eu-west-2` (London) + Vercel `lhr1` is my default for Lagos latency. Any data-residency requirement (e.g. NDPA) that would change this?
-6. **Default Spaces.** Plan: Work on, Personal and Dating off until the user turns them on in onboarding (in line with "lead with Work"). OK?
-7. **AI limits for the free tier.** The numbers in §5.4 are placeholders. Do you have target per-user monthly costs or limits?
-8. **Model tiers.** `claude-opus-5-5` for research/look up/radar/briefs and `claude-haiku-5-5` for draft/score/extraction/card, both overridable by env. Happy with that cost/quality split?
-9. **Error tracking and analytics.** OK to add Sentry and a privacy-respecting product analytics tool (e.g. PostHog EU) for the activation and retention metrics in brief §8?
-10. **Daily brief email.** Brief delivery by email is P2. In P0 the brief is prepared at `brief_time` and shown on Today. Confirm no email in P0.
-11. **Example data**: keep the prototype's Lagos example network (6 people, 4 events) as the seed? It would be shown only in onboarding and Settings → Data.
+Owner constraint (2026-10-23): no budget and no domain for now.
+
+| Service | Free tier | What to watch |
+|---|---|---|
+| Vercel Hobby | Free; app lives at `<name>.vercel.app` | Hobby is for non-commercial use. Move to Pro before charging users. Short function time limits, which background jobs avoid by working in small steps. |
+| Supabase Free | Postgres (~500 MB, plenty for tens of thousands of contacts), Auth, Storage (~1 GB), Realtime | The project **pauses after about a week with no activity** (one click to resume). No automatic backups, so we add a weekly export job. Choose the London region at creation. |
+| Inngest Free | Generous monthly step allowance | Enough for a pilot; sync frequency is tunable if we get close. |
+| Sentry Developer, PostHog Free | Free error tracking and product analytics | Both have monthly caps that a pilot won't reach. |
+| Google OAuth / Microsoft (Azure app registration) | Free | See "No domain" below. |
+| **Anthropic API** | **Not free: pay per use** | The one real cost. Rough guide: a Research run on the strong model with web search costs about 10–20 US cents, a brief about 5–10 cents, a draft or card scan under a tenth of a cent. We set a monthly spend limit in the Anthropic console and a hidden per-user safety cap in the app (§5.4) to protect the bill, even though there are no user-facing limits yet. |
+
+**No domain: what changes**
+- **Sign-in:** Google sign-in works on `*.vercel.app` and is the primary method. Email magic links need a sending domain (Supabase's built-in email only reaches project team members, and Resend needs a verified domain), so **magic link stays built but switched off** until there's a domain.
+- **Google Contacts/Calendar:** works now in Google's **Testing** mode for **up to 100 people you add by email** in Google Cloud Console. Those users see an "unverified app" screen once, and **must reconnect every 7 days** (Google expires Testing-mode refresh tokens), so the app shows a "Reconnect Google" prompt. Full verification needs a domain we own with a privacy policy on it. A `vercel.app` subdomain may be accepted but isn't guaranteed.
+- **Microsoft:** personal Outlook/Hotmail accounts work. Some work accounts may be blocked by their organisation until we do publisher verification, which needs a domain.
+- **When ready:** a `.com` costs about $10–12 a year. Pointing it at Vercel and verifying it unlocks magic links, Google verification and Microsoft publisher verification. Nothing in the code changes, only configuration.
+
+## 13. Open questions
+
+Resolved 2026-10-23: Google connections in P0 and built early (Q1); pipeline without drag in P0 (Q2); Personal/Dating ship with research on, including web search (Q3); free hosting (Q5, see §12); no user-facing AI limits yet, but a hidden safety cap stays (Q7); model split accepted (Q8); free-tier Sentry/PostHog (Q9); brief on Today only, no email in P0 (Q10); prototype example data as the seed (Q11). Spaces (Q6) are explained in DECISIONS #13.
+
+Still open:
+1. **Can one person belong to more than one Space** (e.g. a colleague who is also a close friend)? Default plan: one Space per person, movable at any time. Allowing several would make the "Spaces never mix" rule harder to keep.
+2. **App name for the free URL:** `inroads.vercel.app` if it's available. Any preference?
