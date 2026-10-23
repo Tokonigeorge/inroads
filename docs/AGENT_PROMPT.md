@@ -26,7 +26,7 @@ Write `docs/TECH_PLAN.md` covering:
 ## Step 2: build P0 (after approval)
 Build phase **P0** from the brief, one milestone at a time, committing after each with a clear message:
 1. Scaffold, auth (magic link + Google), schema and migrations, seed/example data.
-2. Spaces (Work / Personal / Dating + custom) with per-Space defaults. Enforce the guardrails in brief section 4.0: no web research on people in Personal or Dating, and Spaces never leak into each other's briefs.
+2. Spaces (Work / Personal / Dating + custom) with per-Space defaults. Enforce the guardrails in brief section 4.0: Personal and Dating get the bounded "Get to know" research and "Verify" (seeded only from saved handles, self-published content only), never the full dossier, and Spaces never leak into each other's briefs.
 3. People (list, detail, create/edit, archive/undo, search, filters, circles, cadence), interactions, promises.
 4. Events with full recurrence (port `occurrences()` and `nthWeekday()` with unit tests), attendance, event ↔ people.
 5. Goals and the goal pipeline (`goal_links` with stages).

@@ -122,7 +122,14 @@ Inroads is not only a work CRM. The underlying idea is **any relationship where 
 2. **Beyond people you already know.** Goals should also produce *who to meet*, not just who to follow up with. Decode and Radar already lean this way (key people at an event, rooms worth going to). Make it explicit: for each goal, a "People to meet" list with how to reach them (warm path, event, or cold approach).
 
 **Guardrails (these are product decisions, not optional):**
-- **No web research on private individuals in Personal or Dating.** The research dossier and "Decode a person" are for professional, public-facing people. A date or a friend gets *your own notes*, not a compiled profile from the web. Anything else turns the product into a stalking tool, which is both an ethical and a reputational risk for a young brand.
+- **Research is shaped by the Space's goal, and bounded in Personal and Dating.** Work keeps the full dossier (public professional life). In Personal and Dating, research becomes **"Get to know"**: a light, goal-directed pass that turns up *conversation material*, not a profile.
+  - **Starts from what they shared with you.** It only looks at the handles or links the user has saved (the Instagram they gave you, the profile on the dating app, their public LinkedIn). It never runs a name search across the open web.
+  - **Only what they published about themselves.** Their bios, posts and public work: music they post about, places they've travelled, a run club, a side business. Nothing other people wrote about them.
+  - **Output is conversation starters**, not a file: "shared interests", "things to ask about", "fun facts they've put out there" (e.g. "posts about Afrobeats and hiking; ask about the Kilimanjaro trip"). Each one links to the post it came from.
+  - **Never included:** family members, home address or neighbourhood, past relationships, workplace details beyond what's in their own bio, finances, old or deleted content, and third-party mentions or news.
+  - **Verify (safety):** a separate check that the name, photo and claimed job match up publicly (does the profile exist, does the photo appear under another name, any public red flags), answered with yes / no / unclear and sources. This is for meeting strangers safely, not for digging.
+  - Results aren't kept as a dossier. Starters the user saves become notes on the person.
+- This keeps "know someone before you meet" (the real need) without the product becoming a stalking tool, which would be an ethical problem and would finish a young brand.
 - Dating is a **space inside Inroads, not a dating app**. No matching and no profiles of other users. It helps you manage your own life.
 - Lead with Work in marketing. Personal and Dating are retention and word-of-mouth features ("I use it for everything"), not the pitch on day one.
 
