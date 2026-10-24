@@ -22,7 +22,7 @@ const as = <T,>(fn: (tx: Tx) => Promise<T>) => db.withUser(user.id, fn);
 
 async function snapshot() {
   const [people, ms, touches, promises, goals, rooms] = await Promise.all([
-    sql`select id, name, emails, phones, company, position, deleted_at, merged_into_id from people where id in (${a}, ${b}) order by name`,
+    sql`select id, name, emails, phones, company, position, deleted_at, merged_into_id from people where id in (${a}, ${b}) order by name, id`,
     sql`select person_id, space_id, where_met, notes, tags, starred from person_spaces where person_id in (${a}, ${b}) order by person_id, space_id`,
     sql`select person_id, count(*)::int as n from interactions where person_id in (${a}, ${b}) group by person_id order by person_id`,
     sql`select person_id, count(*)::int as n from commitments where person_id in (${a}, ${b}) group by person_id order by person_id`,
