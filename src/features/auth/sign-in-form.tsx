@@ -10,6 +10,7 @@ import { Field, Input } from "@/ui/field";
 const errors: Record<string, string> = {
   callback: "Google sign-in didn't finish. Try again.",
   link: "That sign-in link has expired or was already used. Ask for a new one.",
+  share: "Sign in, then share it again.",
 };
 
 function GoogleMark() {

@@ -2,7 +2,7 @@ import "server-only";
 
 /**
  * Model tiers and usage limits (TECH_PLAN §5.1, §5.4). Model IDs live here and in env only.
- * fast: drafts, scoring, chat extraction, card reading. strong: research, look up, rooms, briefs.
+ * fast: drafts, scoring, chat extraction, card reading, quick capture. strong: research, look up, rooms, briefs.
  */
 export const aiConfig = () => ({
   models: {
@@ -19,13 +19,14 @@ export const aiConfig = () => ({
     card: Number(process.env.AI_LIMIT_CARD ?? 30),
     chat: Number(process.env.AI_LIMIT_CHAT ?? 10),
     score: Number(process.env.AI_LIMIT_SCORE ?? 3),
+    capture: Number(process.env.AI_LIMIT_CAPTURE ?? 60),
   } as Record<AiFeature, number>,
   /** Estimated spend caps in US dollars. */
   userMonthlyUsd: Number(process.env.AI_USER_MONTHLY_USD ?? 2),
   appMonthlyUsd: Number(process.env.AI_APP_MONTHLY_USD ?? 25),
 });
 
-export const aiFeatures = ["research", "lookup", "radar", "brief", "draft", "card", "chat", "score"] as const;
+export const aiFeatures = ["research", "lookup", "radar", "brief", "draft", "card", "chat", "score", "capture"] as const;
 export type AiFeature = (typeof aiFeatures)[number];
 export type Tier = "fast" | "strong";
 
@@ -38,6 +39,7 @@ export const aiFeatureLabels: Record<AiFeature, string> = {
   card: "Card scans",
   chat: "Chat imports",
   score: "Goal fit scores",
+  capture: "Quick captures",
 };
 
 /** Dollars per million tokens, and per web search. Estimates for the usage meter only. */

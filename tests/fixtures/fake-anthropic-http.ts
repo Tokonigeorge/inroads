@@ -3,12 +3,32 @@
  * with canned replies picked from the prompt. Served by tests/e2e/support/fake-supabase.ts.
  */
 import type { ServerResponse } from "node:http";
+import { parseQuickCapture } from "../../src/domain/quick-capture";
 import { fakeMessage, promptText, type FakeReply, type FakeRequest } from "./fake-anthropic";
 
 const uuids = (s: string) => [...new Set(s.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g) ?? [])];
 
+/** Quick capture: answer like a careful model would, using the rules parser on the line. */
+function captureReply(p: string): FakeReply {
+  const today = /Today is \w+ (\d{4}-\d{2}-\d{2})/.exec(p)?.[1] ?? new Date().toISOString().slice(0, 10);
+  const d = parseQuickCapture(p.split("THE LINE:\n")[1] ?? "", today);
+  return {
+    json: {
+      name: d.name ?? "",
+      company: d.company ?? "",
+      position: d.position ?? "",
+      touched: Boolean(d.touch),
+      touchType: d.touch?.type ?? "other",
+      touchDate: d.touch?.occurredOn ?? "",
+      promises: d.promises.map((x) => ({ text: x.text, owner: x.owner, due: x.dueOn ?? "" })),
+      followUpDate: d.followUpOn ?? "",
+    },
+  };
+}
+
 export function e2eReply(req: FakeRequest): FakeReply {
   const p = promptText(req);
+  if (p.includes("I jotted down one line")) return captureReply(p);
   if (p.includes("relationship-intelligence researcher")) {
     return {
       searches: [{ query: "Adaeze Okafor Kestrel Ventures", results: [{ title: "Adaeze Okafor | Kestrel", url: "https://kestrel.example/team/adaeze" }] }],

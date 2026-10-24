@@ -2,6 +2,35 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 14 (Voice debrief)
+
+105. **Voice uses the browser's speech recognition and feeds quick capture.** Press "Record a voice note", talk, press Stop: the words appear as you speak, and stopping reads them straight away with the same review as a typed line. No audio reaches Inroads. Recording stops by itself after 90 seconds. Where the browser has no speech recognition (Firefox, some in-app browsers), the button isn't shown.
+106. **Quick capture takes up to 1,000 characters** (was 500), enough for a 30–60 second voice note. Speech often comes out in lower case, which the rules parser can miss (it looks for capitalised names), so voice works best with AI set up. The review form is always there to fix a name.
+107. **P1 is complete** (M11–M14). Next is P2 from the brief: intro requests, "Ask your network" search, room ROI and the daily brief by email.
+
+## 2026-10-24: milestone 13 (Share target)
+
+101. **The installed app is a share target** (`share_target` in `app/manifest.ts`, a multipart POST to `/share`). Android Chrome supports it; iPhone Safari doesn't offer web share targets yet, so there you paste a link or line into quick capture instead.
+102. **What's shared decides what happens.** A profile link (LinkedIn, X, Instagram, TikTok, GitHub) becomes "Add this person", prefilled from the shared page title ("Name - Role - Company | LinkedIn") or the link itself. If someone already has that link, Inroads opens them instead of adding a duplicate. Contact and calendar files go to the usual import review. Anything else (a WhatsApp message, a note) opens in quick capture.
+103. **Shared links and text wait as a `share` import, not in the URL,** so they never end up in browser history or server logs. They're deleted when you add or discard them, and after 2 days by the daily clean-up. They don't show in import history.
+104. **Quick capture's "Read it" button waits for the page to hydrate.** Before that, the browser would submit the form itself and put the line in the URL.
+
+## 2026-10-24: milestone 12 (After the room)
+
+97. **"Who did you meet at X?" appears for rooms, not 1:1 meetings, the day after and the day after that,** until you record the session either way. Its key is `after:<eventId>:<date>`, as planned in TECH_PLAN §2.4. Recording it is what clears it: saving marks that you went, "I didn't go" marks that you didn't.
+98. **Saving who you met** links each person as "met there" for that session, logs one touch per person (type "event", dated the session, with your note) and adds a follow-up promise you owe tomorrow or in 2 days (you choose, or none). New people join the room's Space with where and when you met filled in. New people get an id from the browser and touches are keyed per person and session, so saving twice adds nothing.
+99. **Only people already in the room's Space can be picked;** anyone else is added as someone new there. This keeps Spaces separate (decision #1).
+100. **Pages that change after the debrief are revalidated with `revalidatePath`** (Today and the room), which in this version of Next also refreshes pages you visited before, so the card is gone when you go back.
+
+## 2026-10-24: P1 plan and milestone 11 (Quick capture)
+
+91. **P1 is built as four milestones: M11 Quick capture, M12 After-the-room follow-up, M13 Share target, M14 Voice debrief.** Voice uses the browser's built-in speech recognition (owner decision): free, no new key, nothing stored by Inroads; where a browser doesn't support it, you type instead.
+92. **Quick capture reads a line two ways.** A rules parser (`src/domain/quick-capture.ts`) runs anywhere, including offline on the phone, and handles the common shapes ("Met Ada, partnerships @ Paystack, wants intro to Tola by Friday"). When AI is set up, the fast model reads the line instead (limit 60 a day), and the rules parser takes over if the model fails or the limit is reached. Either way you review everything before it's saved.
+93. **Matching people never merges by name.** The review offers people in that Space whose name matches, picks one only on an exact full-name match, and otherwise defaults to "Someone new".
+94. **A follow-up date becomes a promise you owe** ("Follow up with Ada", due that day), so it shows on Today with the promises you already track. *Reverse:* a dedicated follow-up nudge kind.
+95. **Saving a quick capture sends the usual captures in order** (person, touch, promises) through the offline outbox, so it works offline and replays safely. Dates use "today" in the device's zone, like the other capture forms.
+96. **In the ⌘K palette, anything you type can be captured**, and the Capture option comes after any matching person, room, goal or command, so "add a room" still runs the command.
+
 ## 2026-10-24: milestone 10 (Settings)
 
 86. **Exports are kept in Postgres (`exports`, a zip per user), not Storage, and downloaded through `/api/v1/exports/[id]`** under RLS, so only the signed-in owner can fetch one. A new export replaces the old one, and exports are deleted after 7 days. *Why:* nothing else uses Storage (files are parsed in memory, #70), and a session-checked download is safer than a signed link that works for anyone holding it. *Reverse:* write the zip to a private bucket and hand out a short-lived signed URL.

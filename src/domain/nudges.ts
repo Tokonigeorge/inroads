@@ -24,6 +24,8 @@ export type NudgeSnapshot = {
   needContext: (NudgePerson & { createdOn: IsoDate })[];
   /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow. */
   rooms: { eventId: string; title: string; date: IsoDate; time: string | null; location: string | null }[];
+  /** Rooms (not 1:1 meetings) in the last 2 days you haven't said whether you went to. */
+  afterRooms?: { eventId: string; title: string; date: IsoDate; occurrenceOn: IsoDate; people: number }[];
   triagePending: number;
   /** Possible duplicates from imports waiting for review. */
   duplicates?: number;
@@ -33,13 +35,14 @@ export type NudgeSnapshot = {
   hidden: Set<string>;
 };
 
-export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "triage" | "duplicates" | "suggestions";
+export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "after_room" | "triage" | "duplicates" | "suggestions";
 export type NudgeAction =
   | { type: "promise_done"; commitmentId: string; label: string }
   | { type: "log_touch"; personId: string; label: string }
   | { type: "open_person"; personId: string; label: string }
   | { type: "edit_person"; personId: string; label: string }
   | { type: "open_room"; eventId: string; label: string }
+  | { type: "debrief_room"; eventId: string; occurrenceOn: IsoDate; label: string }
   | { type: "sort"; label: string }
   | { type: "review_duplicates"; label: string }
   | { type: "review_suggestions"; label: string }
@@ -236,6 +239,25 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       actions: [
         { type: "review_suggestions", label: "Review" },
         { type: "dismiss", label: "Not today" },
+      ],
+    });
+  }
+
+  // The morning after a room (Loop A, step 3): confirm who you met while it's fresh.
+  for (const r of s.afterRooms ?? []) {
+    const ago = diffDays(r.date, t);
+    if (ago < 1 || ago > 2) continue;
+    out.push({
+      key: `after:${r.eventId}:${r.occurrenceOn}`,
+      kind: "after_room",
+      priority: 1,
+      label: "After the room",
+      title: `Who did you meet at ${r.title}?`,
+      body: `${ago === 1 ? "Yesterday" : formatLongDate(r.date, t)}. Confirm who you met and Inroads lines up the follow-ups${r.people ? `; ${r.people === 1 ? "1 person is" : `${r.people} people are`} already linked to it` : ""}.`,
+      person: null,
+      actions: [
+        { type: "debrief_room", eventId: r.eventId, occurrenceOn: r.occurrenceOn, label: "Who I met" },
+        { type: "dismiss", label: "Hide" },
       ],
     });
   }

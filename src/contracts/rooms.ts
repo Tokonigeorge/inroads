@@ -70,3 +70,39 @@ export const roomSchema = z
   });
 export type RoomInput = z.input<typeof roomSchema>;
 export type Room = z.output<typeof roomSchema>;
+
+/* ---------- after the room ---------- */
+
+const note = z
+  .string()
+  .trim()
+  .max(500, "Keep each note under 500 characters.")
+  .optional()
+  .transform((v) => v || null);
+
+/** "Who did you meet at X?": people you met at one session, and when to follow up. */
+export const roomDebriefSchema = z.object({
+  eventId: z.string().uuid(),
+  occurrenceOn: z.string().refine(isIsoDate, "Use a real date."),
+  met: z
+    .array(
+      z.union([
+        z.object({ personId: z.string().uuid(), note }),
+        z.object({
+          /** Client-generated, so saving twice never adds them twice. */
+          id: z.string().uuid(),
+          name: z.string().trim().min(1, "Add their name.").max(120),
+          company: z
+            .string()
+            .trim()
+            .max(120)
+            .optional()
+            .transform((v) => v || null),
+          note,
+        }),
+      ]),
+    )
+    .max(50, "That's a lot of people. Save the first 50, then add the rest."),
+  followUpInDays: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+});
+export type RoomDebriefInput = z.input<typeof roomDebriefSchema>;

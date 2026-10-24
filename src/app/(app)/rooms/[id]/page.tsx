@@ -132,7 +132,14 @@ function RoomView({ d, today, userTz }: { d: RoomDetail; today: string; userTz: 
             {d.past.map((p) => (
               <li key={p.date} className="flex flex-wrap items-center justify-between gap-2">
                 <span>{formatLongDate(p.date, today)}</span>
-                <AttendanceToggle roomId={e.id} date={p.date} label={formatLongDate(p.date, today)} attended={p.attended} />
+                <span className="flex flex-wrap items-center gap-2">
+                  {p.attended !== false ? (
+                    <Link href={`/rooms/${e.id}/after?on=${p.date}`} className="text-small font-[550] text-accent hover:underline">
+                      Who did you meet?
+                    </Link>
+                  ) : null}
+                  <AttendanceToggle roomId={e.id} date={p.date} label={formatLongDate(p.date, today)} attended={p.attended} />
+                </span>
               </li>
             ))}
           </ul>

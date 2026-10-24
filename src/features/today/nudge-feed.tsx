@@ -36,6 +36,8 @@ export function NudgeFeed({ nudges, spaces }: Props) {
         return router.push(`/people/${a.personId}/edit`);
       case "open_room":
         return router.push(`/rooms/${a.eventId}`);
+      case "debrief_room":
+        return router.push(`/rooms/${a.eventId}/after?on=${a.occurrenceOn}`);
       case "sort":
         return router.push("/people/triage");
       case "review_duplicates":

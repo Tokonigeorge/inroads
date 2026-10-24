@@ -10,7 +10,7 @@ A personal relationship and networking tool for people whose work depends on who
 
 ## Stack
 
-Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Inngest for background jobs (optional) and the Anthropic API for AI features. Hosted on Vercel's free tier. Email (Resend) arrives in P1.
+Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Inngest for background jobs (optional) and the Anthropic API for AI features. Hosted on Vercel's free tier. Email (Resend) arrives in P2, with the daily brief by email.
 
 ## Run it locally
 
@@ -60,12 +60,12 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | background sync | From Inngest (free tier). Without them a sync runs right after the request that started it, and there are no scheduled re-syncs. |
 | `ANTHROPIC_API_KEY` | AI features | Server only. Without it, AI buttons say AI isn't set up and nothing else changes. |
 | `AI_MODEL_FAST`, `AI_MODEL_STRONG` | optional | Override the model ids in `src/server/ai/config.ts`. |
-| `AI_LIMIT_RESEARCH`, `AI_LIMIT_LOOKUP`, `AI_LIMIT_RADAR`, `AI_LIMIT_BRIEF`, `AI_LIMIT_DRAFT`, `AI_LIMIT_CARD`, `AI_LIMIT_CHAT`, `AI_LIMIT_SCORE` | optional | Daily uses per person per feature (defaults 5, 5, 2, 4, 50, 30, 10, 3). |
+| `AI_LIMIT_RESEARCH`, `AI_LIMIT_LOOKUP`, `AI_LIMIT_RADAR`, `AI_LIMIT_BRIEF`, `AI_LIMIT_DRAFT`, `AI_LIMIT_CARD`, `AI_LIMIT_CHAT`, `AI_LIMIT_SCORE`, `AI_LIMIT_CAPTURE` | optional | Daily uses per person per feature (defaults 5, 5, 2, 4, 50, 30, 10, 3, 60). Quick capture falls back to the rules parser when its limit is reached. |
 | `AI_USER_MONTHLY_USD`, `AI_APP_MONTHLY_USD` | optional | Monthly AI spend caps per person (default 2) and for the whole app (default 25). |
 | `TEST_DATABASE_URL` | tests | Any Postgres 15+ server with contrib. Tests create their own databases on it. |
 | `PW_CHROMIUM_PATH` | tests, optional | Use an installed Chromium instead of `playwright install`. |
 
-`RESEND_API_KEY` arrives with email (P1).
+`RESEND_API_KEY` arrives with the emailed daily brief (P2).
 
 ### Connect Google (Contacts and Calendar)
 

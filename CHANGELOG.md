@@ -4,6 +4,31 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 14 (Voice debrief)
+- Record a voice note in the capture sheet: say who you met and what was promised, press Stop, and check what was read before saving. Your browser turns speech into text; no audio is sent to Inroads.
+- Quick capture now takes up to 1,000 characters.
+
+### Added: milestone 13 (Share target)
+- Install Inroads on Android and it appears in the share menu of other apps.
+- Share a LinkedIn (or X, Instagram, TikTok, GitHub) profile to add that person, with their name, role and company filled in from the page. If you already have them, Inroads opens them instead.
+- Share a WhatsApp message or any text to read it like a quick capture.
+- Share a contact card (.vcf) or calendar file to go straight to the import review.
+
+### Fixed
+- Quick capture could put what you typed in the address bar if you pressed "Read it" before the page had finished loading.
+
+### Added: milestone 12 (After the room)
+- The day after a room, Today asks "Who did you meet at X?". Tick the people you met (anyone linked to the room is listed), add people you know or someone new, note what you talked about, and choose when to follow up: tomorrow, in 2 days, or not.
+- Saving logs that you went, links them as "met there", logs a touch with each and puts the follow-ups on Today. New people get where and when you met filled in.
+- "I didn't go" clears the card. Past sessions on a room's page have a "Who did you meet?" link too.
+
+### Added: milestone 11 (Quick capture)
+- Type one line, like "Met Ada, partnerships @ Paystack, wants intro to Tola by Friday", and Inroads reads it into who, how you were in touch, what was promised (and by whom) and when to follow up.
+- Check it before saving: pick someone you already know or add someone new, edit the touch, tick or edit each promise, set a follow-up date.
+- In the capture sheet (the + button, or `c`), and from ⌘K: type anything and choose "Capture".
+- Works offline: the line is read on your phone and saved when you're back online.
+- With AI set up, the line is read by the model (60 a day, then the built-in reader takes over).
+
 ### Added: milestone 10 (Settings)
 - Settings → Profile: name, what you do, where you're based, background, what you can offer, industries, time zone, phone country and brief time.
 - Daily briefs are prepared at your brief time in the Spaces where you read them (with background jobs set up).

@@ -14,6 +14,10 @@ export function errorNotice(error: string | undefined, provider: string | undefi
       return "That sign-in took too long or was opened twice. Try connecting again.";
     case "no_space":
       return "Create a Space first, then connect.";
+    case "share_too_big":
+      return "That file is more than 4 MB. Share fewer contacts at a time, or upload the file here.";
+    case "share_unreadable":
+      return "No contacts or calendar events were found in what you shared.";
     default:
       return `${name} didn't let us connect. Try again in a moment.`;
   }
