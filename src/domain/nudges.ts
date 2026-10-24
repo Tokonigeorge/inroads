@@ -27,11 +27,13 @@ export type NudgeSnapshot = {
   triagePending: number;
   /** Possible duplicates from imports waiting for review. */
   duplicates?: number;
+  /** AI suggestions (details found, goal fits, chat touches) waiting for a decision. */
+  suggestions?: number;
   /** Keys snoozed or dismissed right now. */
   hidden: Set<string>;
 };
 
-export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "triage" | "duplicates";
+export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "triage" | "duplicates" | "suggestions";
 export type NudgeAction =
   | { type: "promise_done"; commitmentId: string; label: string }
   | { type: "log_touch"; personId: string; label: string }
@@ -40,6 +42,7 @@ export type NudgeAction =
   | { type: "open_room"; eventId: string; label: string }
   | { type: "sort"; label: string }
   | { type: "review_duplicates"; label: string }
+  | { type: "review_suggestions"; label: string }
   | { type: "snooze"; days: number; label: string }
   | { type: "dismiss"; label: string };
 
@@ -215,6 +218,23 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       person: null,
       actions: [
         { type: "review_duplicates", label: "Review" },
+        { type: "dismiss", label: "Not today" },
+      ],
+    });
+  }
+
+  if ((s.suggestions ?? 0) > 0) {
+    const n = s.suggestions!;
+    out.push({
+      key: `sugg:${t}`,
+      kind: "suggestions",
+      priority: 4,
+      label: "Review",
+      title: `${n} ${n === 1 ? "suggestion" : "suggestions"} to review`,
+      body: "Details research found, people who fit your goals, and touches from chats. Nothing changes until you accept.",
+      person: null,
+      actions: [
+        { type: "review_suggestions", label: "Review" },
         { type: "dismiss", label: "Not today" },
       ],
     });

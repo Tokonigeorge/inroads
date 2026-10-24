@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 9 (AI)
+- Research a Work contact: a summary, talking points and sources, with suggested details (company, role, city, social links) to accept, edit or discard. Research can be deleted.
+- Personal and Dating: "Get to know" gives conversation starters from what you saved, and "Check they're real" gives a quick safety check. Dating never offers full research.
+- Draft a message to anyone, in your voice, then copy it, open it in WhatsApp or email, and log it as a touch.
+- Import a chat (pasted or the exported .txt): promises, touches and interests come back as suggestions. The chat itself isn't kept.
+- Scan a business card from the capture sheet to fill in the Add person form.
+- Look up a person or company: who they are, why it matters to your goals and who in that Space could introduce you.
+- Suggested rooms: events worth going to for your goals, which you can add as rooms.
+- Daily and weekly briefs on Today, one per Space.
+- "Who could help" on a goal suggests people to add to it.
+- Settings → AI usage shows what you've used today and this month. Each feature has a daily limit and there is a monthly allowance.
+
 ### Added: milestone 8 (File imports and merging)
 - Import contacts and calendars from files, in Settings → Connections → Files:
   - vCard (.vcf) from iPhone, Android (including old quoted-printable exports), Google and Outlook.

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAiConfigured } from "@/server/ai/config";
 import { apiRoute } from "@/server/api";
 import { db } from "@/server/db/client";
 import { listSpaces } from "@/server/repos/spaces";
@@ -10,5 +11,6 @@ export const GET = apiRoute(async (_req, user) => {
   return NextResponse.json({
     spaces: spaces.map((s) => ({ id: s.id, name: s.name, kind: s.kind })),
     selectedId: spaces.some((s) => s.id === selectedId) ? selectedId : null,
+    aiEnabled: isAiConfigured(),
   });
 });

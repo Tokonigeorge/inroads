@@ -4,6 +4,7 @@ import { Inngest } from "inngest";
 import { getSystemDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { runConnectionSync } from "@/server/sync/run-sync";
+import { aiJobSchema, runAiJob } from "./ai-jobs";
 import { connectionsStore } from "@/server/system/connections";
 import { jobsStore } from "@/server/system/jobs";
 
@@ -18,6 +19,18 @@ export const syncConnection = inngest.createFunction(
   async ({ event, step }) => {
     const data = event.data as SyncEventData;
     return step.run("sync", () => runConnectionSync(data.connectionId, data.jobId));
+  },
+);
+
+export const AI_EVENT = "ai/job.requested";
+export type AiEventData = { userId: string; jobId: string; job: unknown };
+
+/** One AI job (research, look up, rooms, brief, scoring). At most two at a time per user (TECH_PLAN §5.3). */
+export const aiJob = inngest.createFunction(
+  { id: "ai-job", triggers: [{ event: AI_EVENT }], concurrency: { key: "event.data.userId", limit: 2 }, retries: 1 },
+  async ({ event, step }) => {
+    const data = event.data as AiEventData;
+    return step.run("run", () => runAiJob(data.userId, data.jobId, aiJobSchema.parse(data.job)));
   },
 );
 
@@ -54,4 +67,4 @@ export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", trigge
   });
 });
 
-export const functions = [syncConnection, scheduleSyncs, dailyCleanup];
+export const functions = [syncConnection, scheduleSyncs, dailyCleanup, aiJob];

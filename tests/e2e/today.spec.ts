@@ -12,7 +12,7 @@ async function openPalette(page: Page, isMobile: boolean) {
   const box = page.getByRole("combobox", { name: "Search people, rooms, goals and commands" });
   await expect(async () => {
     if (!(await box.isVisible())) {
-      if (isMobile) await page.getByRole("button", { name: "Search" }).click();
+      if (isMobile) await page.getByRole("button", { name: "Search", exact: true }).click();
       else await page.keyboard.press("ControlOrMeta+k");
     }
     await expect(box).toBeVisible({ timeout: 1000 });

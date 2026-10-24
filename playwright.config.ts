@@ -46,6 +46,9 @@ export default defineConfig({
         GOOGLE_CLIENT_SECRET: "e2e-google-secret",
         TOKEN_ENC_KEYS: JSON.stringify({ e2e: Buffer.alloc(32, 7).toString("base64") }),
         TOKEN_ENC_CURRENT: "e2e",
+        // Claude is played by the same server; nothing reaches the real API.
+        ANTHROPIC_API_KEY: "e2e-anthropic-key",
+        ANTHROPIC_BASE_URL: `${FAKE_SUPABASE_URL}/anthropic`,
       },
     },
   ],

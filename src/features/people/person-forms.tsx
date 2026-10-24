@@ -233,7 +233,7 @@ function Submit({ busy, label, busyLabel }: { busy: boolean; label: string; busy
 }
 
 /** Add a person with everything you know. Works offline: it's queued like any capture. */
-export function NewPersonForm({ spaces, defaultSpaceId }: { spaces: SpaceOption[]; defaultSpaceId: string }) {
+export function NewPersonForm({ spaces, defaultSpaceId, initial }: { spaces: SpaceOption[]; defaultSpaceId: string; initial?: { identity: Identity; notes: string | null; note?: string } }) {
   const router = useRouter();
   const after = useAfterCapture();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -256,10 +256,11 @@ export function NewPersonForm({ spaces, defaultSpaceId }: { spaces: SpaceOption[
   }
   return (
     <form onSubmit={submit} className="grid gap-8" noValidate>
-      <IdentityFields v={emptyIdentity} errors={errors} />
+      {initial?.note ? <p className="rounded-md bg-sunken p-3 text-small">{initial.note}</p> : null}
+      <IdentityFields v={initial?.identity ?? emptyIdentity} errors={errors} />
       <section className="grid gap-5 border-t border-border pt-6">
         <h2 className="text-title font-semibold">Your relationship</h2>
-        <MembershipFields v={emptyMembership(defaultSpaceId)} spaces={spaces} errors={errors} chooseSpace={spaces.length > 1} />
+        <MembershipFields v={{ ...emptyMembership(defaultSpaceId), notes: initial?.notes ?? null }} spaces={spaces} errors={errors} chooseSpace={spaces.length > 1} />
       </section>
       <ErrorText>{message ?? undefined}</ErrorText>
       <Submit busy={busy} label="Add person" busyLabel="Saving…" />

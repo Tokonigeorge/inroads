@@ -9,7 +9,7 @@ import { Button } from "@/ui/button";
 import { Field, Input, Select } from "@/ui/field";
 import { useAfterCapture } from "./capture-forms";
 
-type SpacesResponse = { spaces: { id: string; name: string }[]; selectedId: string | null };
+type SpacesResponse = { spaces: { id: string; name: string }[]; selectedId: string | null; aiEnabled?: boolean };
 const CACHE_KEY = "inroads.spaces";
 
 /** Active Spaces, cached on the device so capture still works offline. */

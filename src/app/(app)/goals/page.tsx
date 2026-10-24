@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { goalTypeLabels } from "@/contracts/goals";
 import { progressMeter, progressSummary } from "@/domain/goal-progress";
+import { AiJobButton } from "@/features/ai/ai-job-button";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
+import { isAiConfigured } from "@/server/ai/config";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -14,6 +16,7 @@ import { EmptyState, PageHeader, Section } from "@/ui/layout";
 import { Meter } from "@/ui/meter";
 
 export const metadata: Metadata = { title: "Goals" };
+export const maxDuration = 300;
 
 export default function GoalsPage({ searchParams }: PageProps<"/goals">) {
   return (
@@ -128,6 +131,14 @@ async function Goals({
           <GoalList key="all" goals={list} />
         );
       })}
+      <Section title="Who could help" className="pt-4">
+        <p className="pb-3 text-small text-muted">Scores up to 60 people in a Space against its goals. Strong fits come back as suggestions to add to a goal; nothing is added on its own.</p>
+        <div className="flex flex-wrap gap-3">
+          {[...new Map(goals.filter((g) => g.active).map((g) => [g.space.id, g.space.name])).entries()].map(([spaceId, name]) => (
+            <AiJobButton key={spaceId} aiEnabled={isAiConfigured()} job={{ kind: "score", spaceId }} label={`Find who fits in ${name}`} />
+          ))}
+        </div>
+      </Section>
       {archivedLink}
     </>
   );

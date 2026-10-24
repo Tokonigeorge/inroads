@@ -8,6 +8,7 @@ import { cadenceLabel } from "@/contracts/spaces";
 import { formatLongDate } from "@/domain/dates";
 import { formatPhone, whatsappDigits } from "@/domain/normalise";
 import { dueOn, dueState, effectiveCadence, personCadence, warmth } from "@/domain/relationship";
+import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
 import { DeleteButton, PersonActions, PromiseCheck, RemoveFromSpaceButton } from "@/features/people/person-actions";
 import { LoadingRows } from "@/features/shell/page-frame";
@@ -24,6 +25,8 @@ import { Avatar } from "@/ui/list-row";
 import { WarmthDot } from "@/ui/warmth";
 
 export const metadata: Metadata = { title: "Person" };
+// AI jobs started here may run right after the response (without Inngest).
+export const maxDuration = 300;
 
 export default function PersonPage({ params }: PageProps<"/people/[id]">) {
   return (
@@ -82,12 +85,28 @@ async function Person({ params }: { params: Promise<{ id: string }> }) {
   });
   if (!data.detail) notFound();
   const { detail: d, ctx, rooms, goalOptions } = data;
-  return <PersonView d={d} today={ctx.today} selectedSpaceId={selectedSpaceId} rooms={rooms} goalOptions={goalOptions} />;
+  return (
+    <PersonView
+      d={d}
+      today={ctx.today}
+      selectedSpaceId={selectedSpaceId}
+      rooms={rooms}
+      goalOptions={goalOptions}
+      ai={
+        <PersonAi
+          userId={user.id}
+          personId={d.person.id}
+          name={d.person.name}
+          spaces={d.memberships.filter((m) => !m.archivedAt && !m.space.archived).map((m) => ({ id: m.space.id, name: m.space.name, kind: m.space.kind, researchMode: m.spaceDefaults.researchMode }))}
+        />
+      }
+    />
+  );
 }
 
 type PersonRooms = Awaited<ReturnType<typeof roomsForPerson>>;
 
-function PersonView({ d, today, selectedSpaceId, rooms, goalOptions }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms; goalOptions: GoalOption[] }) {
+function PersonView({ d, today, selectedSpaceId, rooms, goalOptions, ai }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms; goalOptions: GoalOption[]; ai: ReactNode }) {
   const p = d.person;
   const active = d.memberships.filter((m) => !m.archivedAt && !m.space.archived);
   const archived = d.memberships.length > 0 && d.memberships.every((m) => m.archivedAt);
@@ -155,6 +174,8 @@ function PersonView({ d, today, selectedSpaceId, rooms, goalOptions }: { d: Pers
           </ul>
         ) : null}
       </header>
+
+      {ai}
 
       <Block title="Promises">
         {owe.length + theyOwe.length === 0 ? (

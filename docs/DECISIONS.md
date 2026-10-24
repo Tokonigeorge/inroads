@@ -2,6 +2,18 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 9 (AI)
+
+77. **Every AI call goes through one server-side runner** (`src/server/ai/run.ts`). It checks the daily and monthly limits, picks the model tier, records tokens and cost in `ai_usage`, and turns failures into plain messages. The key and model ids never reach the browser.
+78. **Structured outputs only when no web tools are used.** Research, Look up and Suggested rooms search the web, so their reply is read as JSON from the text, missing fields are filled leniently, and a reply in the wrong shape is repaired once by the fast model. If that fails, the person sees "Couldn't read the result. Try again." *Reverse:* drop the extraction path once structured outputs work alongside web tools.
+79. **The strong tier asks for server-side fallbacks**, so a busy model doesn't fail a research run. The fast tier doesn't.
+80. **Get to know and Check they're real are stored like research**, as dossier versions for that one Space, and can be deleted. Dating never offers full research, only these two.
+81. **Nothing AI writes lands silently.** Research, chat imports and scoring produce suggestions (a field, a social link, a goal link, a touch, a promise, interests or a note) with Accept, Edit and Discard. Research summaries and briefs are shown as AI output, not stored as facts.
+82. **Chat imports and card scans run while you wait and keep no raw text or image**; only accepted suggestions are saved. A card scan prefills the Add person form.
+83. **Drafts are written in one go, not streamed** to the browser. They are short, and this keeps the client free of model plumbing. Sending one offers to log a touch.
+84. **Long AI jobs (research, Look up, Suggested rooms, briefs, scoring) run as background jobs** with progress, through Inngest when it is set up and right after the request otherwise (pages that start them allow 300 seconds).
+85. **Warm paths from Look up are checked against your own people in that Space**; names the model invents are dropped.
+
 ## 2026-10-24: milestone 8
 
 70. **Files are read on the server straight from the upload and never stored.** The plan said Storage first; on Vercel's free tier a request body is capped at about 4.5 MB, which fits 5,000+ contacts as a vCard, so the upload is parsed in memory instead. Up to 4 MB per upload (several files or a .zip). Bigger exports: upload in parts, or unzip and pick the contacts file.

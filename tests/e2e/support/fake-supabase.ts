@@ -1,10 +1,12 @@
 /**
  * A stand-in for the few Supabase Auth endpoints the app calls server-side, and for Google
  * (OAuth, People, Calendar) under /google/<host><path>, which the app reaches through
- * TEST_FAKE_PROVIDERS_URL. Started by Playwright's webServer. Not a security boundary; never
+ * TEST_FAKE_PROVIDERS_URL, and for the Anthropic API under /anthropic (ANTHROPIC_BASE_URL).
+ * Started by Playwright's webServer. Not a security boundary; never
  * run outside tests.
  */
 import { createServer } from "node:http";
+import { handleFakeAnthropic } from "../../fixtures/fake-anthropic-http";
 import { handleFakeGoogle } from "../../fixtures/fake-google";
 import { FAKE_SUPABASE_PORT, publicJwk } from "./auth";
 
@@ -17,6 +19,11 @@ const json = (res: import("node:http").ServerResponse, status: number, body: unk
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
+  if (url.pathname === "/anthropic/v1/messages" && req.method === "POST") {
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    return handleFakeAnthropic(raw, res);
+  }
   if (url.pathname.startsWith("/google/")) {
     const [host, ...rest] = url.pathname.slice("/google/".length).split("/");
     let raw = "";

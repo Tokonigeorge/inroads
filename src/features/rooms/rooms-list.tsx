@@ -56,6 +56,14 @@ export function RoomsList({ today, upcoming, series, past, spaceName }: { today:
             </Link>
           </Button>
         </div>
+        <div className="flex gap-3 text-small">
+          <Link href="/rooms/lookup" className="font-[550] text-muted hover:text-text">
+            Look up a person, company or event
+          </Link>
+          <Link href="/rooms/suggested" className="font-[550] text-muted hover:text-text">
+            Suggested rooms
+          </Link>
+        </div>
         <div role="tablist" aria-label="Rooms" className="flex gap-1 border-b border-border">
           {tabs.map((t) => (
             <button

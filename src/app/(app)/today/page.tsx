@@ -5,6 +5,7 @@ import { formatLongDate } from "@/domain/dates";
 import { formatTime } from "@/domain/zoned";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
+import { Briefs, loadBriefs } from "@/features/ai/briefs";
 import { NudgeFeed } from "@/features/today/nudge-feed";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -16,6 +17,8 @@ import { EmptyState, PageHeader, Section } from "@/ui/layout";
 import { Avatar } from "@/ui/list-row";
 
 export const metadata: Metadata = { title: "Today" };
+// AI jobs started here may run right after the response (without Inngest).
+export const maxDuration = 300;
 
 export default function TodayPage() {
   return (
@@ -39,7 +42,10 @@ async function Today() {
         tx,
         nudges.flatMap((n) => (n.person ? [n.person.id] : [])),
       );
-      return { agenda, nudges, spaces, today: ctx.today, spaceName: view.selected?.name ?? null };
+      // Briefs: the selected Space, or each Space with people in it.
+      const briefSpaces = (view.selected ? [view.selected] : view.spaces.filter((s) => s.people > 0)).map((s) => ({ id: s.id, name: s.name }));
+      const briefs = await loadBriefs(tx, briefSpaces, ctx.today);
+      return { agenda, nudges, spaces, briefSpaces, briefs, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
@@ -59,6 +65,7 @@ async function Today() {
           </div>
         </section>
       ) : null}
+      {counts.people > 0 ? <Briefs spaces={data.briefSpaces} briefs={data.briefs} /> : null}
       <div className="grid gap-8 md:grid-cols-[3fr_2fr]">
         <Section title="Today's rooms">
           {data.agenda.length ? (

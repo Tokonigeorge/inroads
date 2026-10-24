@@ -3,13 +3,15 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { CardScan } from "@/features/ai/card-scan";
+import { ChatImportForm } from "@/features/ai/chat-import";
 import { AddPromiseForm, LogTouchForm, type PickedPerson } from "@/features/people/capture-forms";
 import { PersonPicker } from "@/features/people/person-picker";
 import { QuickAddPerson, useSpaces } from "@/features/people/quick-add-person";
 import { Sheet } from "@/ui/sheet";
 import { useShortcut } from "@/ui/use-shortcut";
 
-type Mode = "menu" | "person" | "touch" | "promise";
+type Mode = "menu" | "person" | "touch" | "promise" | "card" | "chat";
 type OpenArgs = { mode?: Mode; person?: PickedPerson; spaceId?: string };
 const CaptureContext = createContext<{ open: (args?: OpenArgs) => void } | null>(null);
 
@@ -19,13 +21,8 @@ export function useCapture() {
   return ctx;
 }
 
-const titles: Record<Mode, string> = { menu: "Capture", person: "Add a person", touch: "Log a touch", promise: "Add a promise" };
+const titles: Record<Mode, string> = { menu: "Capture", person: "Add a person", touch: "Log a touch", promise: "Add a promise", card: "Scan a business card", chat: "Import a chat" };
 
-// Wired to their flows as each milestone lands: rooms (M4), card scan and chat import (M9).
-const later = [
-  { label: "Scan a business card", when: "AI features" },
-  { label: "Import a chat", when: "AI features" },
-];
 
 /** One capture sheet for the whole app: the mobile + button, the `c` key and person pages open it. */
 export function CaptureProvider({ children }: { children: ReactNode }) {
@@ -61,19 +58,24 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
                 Add a room
               </Link>
             </li>
-            {later.map((a) => (
-              <li key={a.label}>
-                <button type="button" disabled className="flex min-h-11 w-full items-center justify-between rounded-md px-3 text-left text-muted">
-                  <span className="font-[550]">{a.label}</span>
-                  <span className="text-small text-faint">Arrives with {a.when}</span>
+            {(["card", "chat"] as const).map((m) => (
+              <li key={m}>
+                <button type="button" onClick={() => setState((s) => ({ ...s, mode: m }))} className="flex min-h-11 w-full items-center rounded-md px-3 text-left font-[550] hover:bg-sunken">
+                  {titles[m]}
                 </button>
               </li>
             ))}
           </ul>
         ) : state.mode === "person" ? (
           <QuickAddPerson onDone={close} />
+        ) : state.mode === "card" ? (
+          <CardScan onDone={close} aiEnabled={Boolean(spaces?.aiEnabled)} />
+        ) : state.mode === "chat" && !spaces?.aiEnabled ? (
+          <p className="text-small text-muted">Reading chats needs AI, which isn&apos;t set up on this server yet.</p>
         ) : !state.person ? (
           <PersonPicker spaceId={spaceId} onPick={(person) => setState((s) => ({ ...s, person }))} />
+        ) : state.mode === "chat" ? (
+          <ChatImportForm personId={state.person.id} spaces={state.person.spaces} myName="" onDone={close} />
         ) : state.mode === "touch" ? (
           <LogTouchForm person={state.person} defaultSpaceId={spaceId} onDone={close} />
         ) : (

@@ -51,6 +51,17 @@ async function Settings() {
         </div>
       </Section>
 
+      <Section title="AI">
+        <div className="grid gap-3">
+          <p className="text-muted">Research, drafts, briefs and suggested rooms, with daily limits and a monthly allowance.</p>
+          <div>
+            <Button asChild>
+              <Link href="/settings/usage">See usage</Link>
+            </Button>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Data">
         <div id="data" className="grid gap-3">
           <p className="text-muted">
