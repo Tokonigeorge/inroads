@@ -2,6 +2,16 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 3
+
+32. **Quick capture goes through one idempotent endpoint (`POST /api/v1/capture`) with ids created on the phone.** Edits that need a connection anyway (contact details, relationship details, archive, delete) use server actions. *Why:* captures must work offline and replay safely; edits are rare and easier to get right online.
+33. **Archive applies to a person in every Space at once.** Removing someone from a single Space is a separate, explicit action that deletes what you logged there.
+34. **"Due" uses the most recent touch in any Space and the shortest reminder across their Spaces** (repeats DECISIONS #18 in code).
+35. **After bulk inserts (imports), run `ANALYZE` on `people` and `person_spaces`.** Without fresh statistics the list query took 40 s at 10,000 rows; with them, about 20 ms.
+36. **"Today" in capture forms comes from the phone's clock and time zone.** Server-side pages use the profile's time zone.
+37. **Deleting a touch or promise is immediate, with no undo** (they're small). Deleting a person has Undo and a 30-day restore window. The purge job arrives with background jobs (milestone 5).
+38. **The ⌘K command palette is deferred to milestone 7 (Today).** Single-key shortcuts (`/ j k l e c`) work now.
+
 ## 2026-10-24: milestone 2
 
 27. **New Spaces pick a type (Work, Personal, Dating or Other), and the type is fixed.** You can have several Work-type Spaces (e.g. "Agency clients"), each with full research. Other Spaces follow the Personal rules: Get to know or Off. *Why:* otherwise renaming a Space or creating a custom one could get round the research guardrail.

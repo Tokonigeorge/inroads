@@ -1,26 +1,10 @@
 import "server-only";
-import { and, asc, desc, eq, exists, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 
 // Interim lists so the app shows real rows. Milestones 3–6 replace these with paginated
 // views. `spaceId` null means "All spaces".
-
-export function listPeoplePreview(tx: Tx, spaceId: string | null, limit = 50) {
-  const inSpace = (sid: string) =>
-    exists(
-      tx
-        .select({ one: t.personSpaces.id })
-        .from(t.personSpaces)
-        .where(and(eq(t.personSpaces.personId, t.people.id), eq(t.personSpaces.spaceId, sid), isNull(t.personSpaces.archivedAt))),
-    );
-  return tx
-    .select({ id: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position, lastTouchedOn: t.people.lastTouchedOn })
-    .from(t.people)
-    .where(and(isNull(t.people.deletedAt), spaceId ? inSpace(spaceId) : undefined))
-    .orderBy(asc(t.people.name))
-    .limit(limit);
-}
 
 export function listEventsPreview(tx: Tx, spaceId: string | null, limit = 50) {
   return tx

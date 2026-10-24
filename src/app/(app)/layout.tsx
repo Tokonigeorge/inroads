@@ -5,7 +5,7 @@ import { SpaceSwitcherSlot } from "@/features/spaces/space-switcher-slot";
 import { BottomNav, BottomNavView } from "@/features/shell/bottom-nav";
 import { Logo } from "@/features/shell/logo";
 import { Sidebar, SidebarView } from "@/features/shell/sidebar";
-import { ToastProvider } from "@/ui/toast";
+import { AppProviders } from "@/features/shell/app-providers";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const switcher = (
@@ -14,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </Suspense>
   );
   return (
-    <ToastProvider>
+    <AppProviders>
       <div className="flex min-h-dvh">
         <Suspense fallback={<SidebarView pathname={null} spaceSwitcher={switcher} />}>
           <Sidebar spaceSwitcher={switcher} />
@@ -38,6 +38,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Suspense fallback={<BottomNavView pathname={null} />}>
         <BottomNav />
       </Suspense>
-    </ToastProvider>
+    </AppProviders>
   );
 }

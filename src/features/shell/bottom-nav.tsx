@@ -3,9 +3,8 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { cn } from "@/ui/cn";
-import { CaptureSheet } from "./capture-sheet";
+import { useCapture } from "./capture-sheet";
 import { isActive, primaryNav, type NavItem } from "./nav-items";
 
 function Tab({ item, pathname }: { item: NavItem; pathname: string | null }) {
@@ -30,7 +29,7 @@ export function BottomNav() {
 
 /** Same nav without the current-section highlight, for prerendering (Suspense fallback). */
 export function BottomNavView({ pathname }: { pathname: string | null }) {
-  const [capture, setCapture] = useState(false);
+  const capture = useCapture();
   const [left, right] = [primaryNav.slice(0, 2), primaryNav.slice(2)];
   return (
     <>
@@ -44,7 +43,7 @@ export function BottomNavView({ pathname }: { pathname: string | null }) {
         <div className="flex flex-1 items-center justify-center">
           <button
             type="button"
-            onClick={() => setCapture(true)}
+            onClick={() => capture.open()}
             aria-label="Capture"
             className="flex size-[52px] items-center justify-center rounded-full bg-accent text-on-accent"
           >
@@ -55,7 +54,6 @@ export function BottomNavView({ pathname }: { pathname: string | null }) {
           <Tab key={item.href} item={item} pathname={pathname} />
         ))}
       </nav>
-      <CaptureSheet open={capture} onOpenChange={setCapture} />
     </>
   );
 }

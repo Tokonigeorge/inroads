@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import type { SpaceKind } from "@/contracts/spaces";
+import { CirclesEditor } from "@/features/spaces/circles-editor";
 import { EditSpaceForm } from "@/features/spaces/edit-space-form";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { listCircles } from "@/server/repos/people";
 import { getSpace } from "@/server/repos/spaces";
 import { PageHeader } from "@/ui/layout";
 
@@ -27,8 +29,12 @@ export default function SpacePage({ params }: PageProps<"/settings/spaces/[id]">
 
 async function SpaceEditor({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, user] = await Promise.all([params, requireUser()]);
-  const space = await db.withUser(user.id, (tx) => getSpace(tx, id));
-  if (!space) notFound();
+  const data = await db.withUser(user.id, async (tx) => {
+    const space = await getSpace(tx, id);
+    return space ? { space, circles: await listCircles(tx, space.id) } : null;
+  });
+  if (!data) notFound();
+  const { space, circles } = data;
   return (
     <>
       <PageHeader title={space.name} subtitle={space.archivedAt ? "Archived" : undefined} />
@@ -42,6 +48,9 @@ async function SpaceEditor({ params }: { params: Promise<{ id: string }> }) {
           defaults: space.defaults,
         }}
       />
+      <div className="pt-10">
+        <CirclesEditor spaceId={space.id} circles={circles} spaceDefault={space.defaults.cadenceDays} />
+      </div>
     </>
   );
 }

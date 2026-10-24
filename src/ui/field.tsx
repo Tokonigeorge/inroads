@@ -46,3 +46,39 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
     </div>
   );
 }
+
+export function Select({ className, ...props }: ComponentProps<"select">) {
+  return <select className={cn(control, "h-10 px-2", className)} {...props} />;
+}
+
+/** Radio buttons styled as a compact segmented row (used for small fixed choices). */
+export function Segmented<T extends string>({
+  name,
+  value,
+  onChange,
+  options,
+  legend,
+}: {
+  name: string;
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  legend: string;
+}) {
+  return (
+    <fieldset>
+      <legend className="pb-1.5 text-small font-[550]">{legend}</legend>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <label
+            key={o.value}
+            className="cursor-pointer rounded-md border border-border px-3 py-2 text-small font-[550] text-muted has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent"
+          >
+            <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onChange(o.value)} className="sr-only" />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}

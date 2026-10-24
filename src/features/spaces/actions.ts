@@ -8,6 +8,7 @@ import { createSpaceSchema, updateSpaceSchema, type Stage } from "@/contracts/sp
 import { fieldErrors, type FormState } from "@/features/forms";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { deleteCircle, saveCircle } from "@/server/repos/people";
 import { createSpace, deleteSpace, listSpaces, reorderSpaces, setSpaceArchived, updateSpace } from "@/server/repos/spaces";
 import { SPACE_COOKIE } from "@/server/space-selection";
 
@@ -88,5 +89,28 @@ export async function moveSpaceAction(spaceId: string, direction: "up" | "down")
     [ids[i], ids[j]] = [ids[j], ids[i]];
     await reorderSpaces(tx, ids);
   });
+  refresh();
+}
+
+const circleSchema = z.object({
+  id: z.string().uuid().optional(),
+  spaceId: z.string().uuid(),
+  name: z.string(),
+  defaultCadenceDays: z.number().int().min(1).max(365).nullable(),
+});
+
+export async function saveCircleAction(input: z.input<typeof circleSchema>): Promise<FormState> {
+  const user = await requireUser();
+  const parsed = circleSchema.safeParse(input);
+  if (!parsed.success) return { message: "Check the circle's details." };
+  const r = await db.withUser(user.id, (tx) => saveCircle(tx, user.id, parsed.data));
+  if (!r.ok) return r.field ? { fieldErrors: { [r.field]: r.message } } : { message: r.message };
+  refresh();
+  return { ok: true, savedAt: Date.now() };
+}
+
+export async function deleteCircleAction(circleId: string) {
+  const user = await requireUser();
+  await db.withUser(user.id, (tx) => deleteCircle(tx, idSchema.parse(circleId)));
   refresh();
 }
