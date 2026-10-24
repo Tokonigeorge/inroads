@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/ui/button";
 
 /** Upload contacts or calendar files; the review page shows what will happen before anything is saved. */
@@ -11,6 +11,9 @@ export function FileImport({ spaceId }: { spaceId: string }) {
   const hint = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Uploading needs the handler below, so the input stays disabled until the page has hydrated.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(true);
@@ -43,10 +46,11 @@ export function FileImport({ spaceId }: { spaceId: string }) {
         aria-label="Choose files to import"
         aria-describedby={hint}
         className="sr-only"
+        disabled={!ready || busy}
         onChange={(e) => void upload(e.target.files)}
       />
       <div>
-        <Button size="sm" disabled={busy} onClick={() => input.current?.click()}>
+        <Button size="sm" disabled={!ready || busy} onClick={() => input.current?.click()}>
           {busy ? "Reading files…" : "Choose files"}
         </Button>
       </div>

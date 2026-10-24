@@ -27,6 +27,7 @@ test.describe.serial("Importing files and merging duplicates", () => {
 
   test("upload, review, import", async ({ page }) => {
     await page.goto("/settings/connections");
+    await expect(page.getByLabel("Choose files to import")).toBeEnabled();
     await page.getByLabel("Choose files to import").setInputFiles([fixture("iphone.vcf"), fixture("Connections.csv")]);
     await expect(page.getByRole("heading", { name: "Review import", level: 1 })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("6 new people, waiting for you to sort afterwards")).toBeVisible();
