@@ -154,6 +154,8 @@ function Palette({ close, showHelp }: { close: () => void; showHelp: () => void 
       { id: "go-rooms", group: "Go to", label: "Rooms", run: go("/rooms"), hint: "g r" },
       { id: "go-goals", group: "Go to", label: "Goals", run: go("/goals"), hint: "g g" },
       { id: "go-settings", group: "Go to", label: "Settings", run: go("/settings"), hint: "g s" },
+      { id: "profile", group: "Actions", label: "Edit your profile", run: go("/settings/profile"), keywords: "time zone brief name" },
+      { id: "export", group: "Actions", label: "Export your data", run: go("/settings#export"), keywords: "download backup csv json" },
     ];
     if (spaces && spaces.spaces.length > 1) {
       const pick = (id: string | "all") => () => {

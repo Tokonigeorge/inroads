@@ -29,6 +29,7 @@ export function SignInForm() {
   const [busy, setBusy] = useState<"google" | "email" | null>(null);
   const [message, setMessage] = useState<string | null>(errors[params.get("error") ?? ""] ?? null);
   const [sent, setSent] = useState(false);
+  const deleted = params.get("deleted") === "1";
   const configured = Boolean(clientEnv);
 
   const redirectTo = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
@@ -85,6 +86,11 @@ export function SignInForm() {
         )
       ) : null}
 
+      {deleted ? (
+        <p role="status" className="text-small text-muted">
+          Your account and everything in it has been deleted.
+        </p>
+      ) : null}
       {!configured ? <p className="text-small text-danger">Sign-in isn&apos;t configured on this server yet.</p> : null}
       {message ? (
         <p role="alert" className="text-small text-danger">

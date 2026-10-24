@@ -4,7 +4,8 @@ import { runConnectionSync } from "@/server/sync/run-sync";
 import { jobsStore } from "@/server/system/jobs";
 import { checkLimit } from "@/server/ai/limits";
 import { aiJobFeature, runAiJob, type AiJob } from "./ai-jobs";
-import { AI_EVENT, inngest, SYNC_EVENT, type AiEventData, type SyncEventData } from "./inngest";
+import { runExport } from "@/server/account/export";
+import { AI_EVENT, EXPORT_EVENT, inngest, SYNC_EVENT, type AiEventData, type ExportEventData, type SyncEventData } from "./inngest";
 
 /**
  * Starts a sync and returns the job id the UI follows. With Inngest configured the work runs as
@@ -43,6 +44,23 @@ export async function enqueueAiJob(userId: string, job: AiJob): Promise<string> 
         await runAiJob(userId, jobId, job);
       } catch (e) {
         console.error("ai job failed", e);
+      }
+    });
+  }
+  return jobId;
+}
+
+/** Starts a data export and returns the job id the Settings page follows. */
+export async function enqueueExport(userId: string): Promise<string> {
+  const jobId = await jobsStore().create(userId, "export", "Queued");
+  if (process.env.INNGEST_EVENT_KEY) {
+    await inngest.send({ name: EXPORT_EVENT, data: { userId, jobId } satisfies ExportEventData });
+  } else {
+    after(async () => {
+      try {
+        await runExport(userId, jobId);
+      } catch (e) {
+        console.error("export failed", e);
       }
     });
   }

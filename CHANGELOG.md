@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 10 (Settings)
+- Settings → Profile: name, what you do, where you're based, background, what you can offer, industries, time zone, phone country and brief time.
+- Daily briefs are prepared at your brief time in the Spaces where you read them (with background jobs set up).
+- Export your data: a .zip with everything as JSON, plus spreadsheets of your people, touches, promises and rooms. Made in the background and kept for 7 days.
+- Delete your account: type your email to confirm. Connected accounts are revoked and everything is removed.
+- Settings links to your goals, import history and AI usage; "Edit your profile" and "Export your data" are in the ⌘K palette.
+
+### Fixed
+- File uploads could be ignored if you chose files before the page had finished loading.
+
 ### Added: milestone 9 (AI)
 - Research a Work contact: a summary, talking points and sources, with suggested details (company, role, city, social links) to accept, edit or discard. Research can be deleted.
 - Personal and Dating: "Get to know" gives conversation starters from what you saved, and "Check they're real" gives a quick safety check. Dating never offers full research.

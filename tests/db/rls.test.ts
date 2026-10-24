@@ -66,6 +66,7 @@ beforeAll(async () => {
   // System-written tables (service role / table owner bypasses RLS).
   await sql`insert into jobs (user_id, kind) values (${alice.id}, 'research')`;
   await sql`insert into ai_usage (user_id, feature, model) values (${alice.id}, 'draft', 'test')`;
+  await sql`insert into exports (user_id, filename, size_bytes, data, expires_at) values (${alice.id}, 'x.zip', 1, '\\x00', now() + interval '1 day')`;
   await sql`insert into connections (user_id, provider, account_email, tokens_enc) values (${alice.id}, 'google', 'alice@example.test', '\\x00')`;
 });
 
@@ -113,7 +114,7 @@ describe("isolation between accounts", () => {
   const ownedTables = [
     t.profiles, t.spaces, t.circles, t.goals, t.people, t.personSpaces, t.personLinks, t.events, t.eventPeople,
     t.eventAttendance, t.interactions, t.commitments, t.goalLinks, t.goalLinkHistory, t.dossiers, t.scores, t.searches,
-    t.suggestions, t.nudgeStates, t.briefs, t.imports, t.importItems, t.jobs, t.aiUsage,
+    t.suggestions, t.nudgeStates, t.briefs, t.imports, t.importItems, t.jobs, t.aiUsage, t.dataExports,
   ];
 
   it("Alice sees her rows", async () => {

@@ -1,9 +1,9 @@
-import { getCountries } from "libphonenumber-js/max";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AboutYouForm } from "@/features/connections/about-you-form";
 import { ConnectionsSection } from "@/features/connections/connections-section";
 import { FinishOnboarding } from "@/features/connections/finish-onboarding";
+import { countries, timezonesWith } from "@/features/settings/locale-options";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -23,12 +23,6 @@ export default function OnboardingPage({ searchParams }: PageProps<"/onboarding"
   );
 }
 
-const countryNames = new Intl.DisplayNames(["en-GB"], { type: "region" });
-const countries = getCountries()
-  .map((code) => ({ code, name: countryNames.of(code) ?? code }))
-  .sort((a, b) => a.name.localeCompare(b.name, "en-GB"));
-const timezones = Intl.supportedValuesOf("timeZone");
-
 async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboarding">["searchParams"] }) {
   const [q, user] = await Promise.all([searchParams, requireUser()]);
   const step = q.step === "connect" ? "connect" : "about";
@@ -42,7 +36,7 @@ async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboardi
           name={profile.name}
           timezone={profile.timezone}
           region={profile.defaultRegion}
-          timezones={timezones.includes(profile.timezone) ? timezones : [profile.timezone, ...timezones]}
+          timezones={timezonesWith(profile.timezone)}
           countries={countries}
         />
       </>

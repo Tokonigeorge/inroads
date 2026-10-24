@@ -699,6 +699,22 @@ export const jobs = pgTable(
   ],
 );
 
+/** Data exports (Settings → Data): one zip per request, downloaded by its owner, deleted after 7 days. */
+export const dataExports = pgTable(
+  "exports",
+  {
+    id: id(),
+    userId: userId(),
+    jobId: uuid("job_id"),
+    filename: text("filename").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    data: bytea("data").notNull(),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("exports_user_idx").on(t.userId, t.createdAt), ...ownerReadOnly("exports")],
+);
+
 export const aiUsage = pgTable(
   "ai_usage",
   {

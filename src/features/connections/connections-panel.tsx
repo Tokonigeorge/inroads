@@ -261,7 +261,7 @@ function ImportsList({ imports }: { imports: ImportRow[] }) {
   const toast = useToast();
   if (!imports.length) return null;
   return (
-    <section className="grid gap-3">
+    <section id="imports" className="grid gap-3">
       <h2 className="text-title font-semibold">Recent imports</h2>
       <p className="text-small text-muted">Undo removes the people, rooms and touches an import added. Details it filled in on people you already had stay.</p>
       <ul className="grid">

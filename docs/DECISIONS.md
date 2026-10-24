@@ -2,6 +2,14 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 10 (Settings)
+
+86. **Exports are kept in Postgres (`exports`, a zip per user), not Storage, and downloaded through `/api/v1/exports/[id]`** under RLS, so only the signed-in owner can fetch one. A new export replaces the old one, and exports are deleted after 7 days. *Why:* nothing else uses Storage (files are parsed in memory, #70), and a session-checked download is safer than a signed link that works for anyone holding it. *Reverse:* write the zip to a private bucket and hand out a short-lived signed URL.
+87. **The export has every table as `inroads.json` plus four CSVs** (people with one row per Space, touches, promises, rooms). Connection secrets never leave the database; staging rows, jobs, nudge states and AI usage are left out as housekeeping. CSV cells that a spreadsheet would run as a formula are prefixed with `'`, but phone numbers like `+234…` are left alone.
+88. **Deleting an account** asks for the email typed exactly (case doesn't matter), asks Google to revoke its tokens, forgets every stored secret, then deletes the sign-in through the Supabase Admin API (or the `auth.users` row directly without a service key), which cascades to every row. There is no grace period: the confirmation step is the safeguard, and the copy points to Export first.
+89. **Daily briefs are prepared at your brief time only in Spaces where you wrote a brief in the last week.** A scheduled job (every 30 minutes, with Inngest) checks each person's brief time in their own zone. *Why:* briefs cost AI calls; preparing them for people who never read them would use up the app's monthly budget. Briefs still appear on demand from Today.
+90. **Profile fields** (what you do, where you're based, background, what you can offer, industries) are optional and feed AI context only. Time zone, phone country and brief time share their pickers with onboarding.
+
 ## 2026-10-24: milestone 9 (AI)
 
 77. **Every AI call goes through one server-side runner** (`src/server/ai/run.ts`). It checks the daily and monthly limits, picks the model tier, records tokens and cost in `ai_usage`, and turns failures into plain messages. The key and model ids never reach the browser.

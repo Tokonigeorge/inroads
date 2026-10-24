@@ -10,7 +10,7 @@ A personal relationship and networking tool for people whose work depends on who
 
 ## Stack
 
-Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Hosted on Vercel's free tier. Later milestones add Inngest, the Anthropic API and Resend.
+Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Inngest for background jobs (optional) and the Anthropic API for AI features. Hosted on Vercel's free tier. Email (Resend) arrives in P1.
 
 ## Run it locally
 
@@ -50,7 +50,7 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 | `NEXT_PUBLIC_SUPABASE_URL` | everything | `https://<ref>.supabase.co`. Inlined at build time. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | everything | Anon / publishable key. Safe in the browser; RLS protects data. |
 | `DATABASE_URL` | server | Postgres connection string. The app connects as the table owner and drops to the `authenticated` role per request, so RLS applies (see `src/server/db/with-user.ts`). |
-| `SUPABASE_SERVICE_ROLE_KEY` | later milestones | Server only. Never expose it. |
+| `SUPABASE_SERVICE_ROLE_KEY` | deleting accounts | Server only. Never expose it. Used to delete the sign-in through the Supabase Admin API (which also ends sessions). Without it the auth row is deleted directly in Postgres. |
 | `APP_URL` | server | Public base URL. |
 | `NEXT_PUBLIC_MAGIC_LINK_ENABLED` | optional | `true` once a sending domain is set up. |
 | `TOKEN_ENC_KEYS` | connections | JSON map of key id to a base64 32-byte key, e.g. `{"v1":"…"}`. Encrypts OAuth tokens and calendar links (AES-256-GCM). Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. |
