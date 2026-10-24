@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 11 (Quick capture)
+- Type one line, like "Met Ada, partnerships @ Paystack, wants intro to Tola by Friday", and Inroads reads it into who, how you were in touch, what was promised (and by whom) and when to follow up.
+- Check it before saving: pick someone you already know or add someone new, edit the touch, tick or edit each promise, set a follow-up date.
+- In the capture sheet (the + button, or `c`), and from ⌘K: type anything and choose "Capture".
+- Works offline: the line is read on your phone and saved when you're back online.
+- With AI set up, the line is read by the model (60 a day, then the built-in reader takes over).
+
 ### Added: milestone 10 (Settings)
 - Settings → Profile: name, what you do, where you're based, background, what you can offer, industries, time zone, phone country and brief time.
 - Daily briefs are prepared at your brief time in the Spaces where you read them (with background jobs set up).

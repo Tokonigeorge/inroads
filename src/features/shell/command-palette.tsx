@@ -177,8 +177,15 @@ function Palette({ close, showHelp }: { close: () => void; showHelp: () => void 
             ...found.goals.map((g) => ({ id: `g-${g.id}`, group: "Goals", label: g.text, run: go(`/goals/${g.id}`) })),
           ]
         : [];
-    return [...dynamic, ...statics.filter((i) => matches(i, deferred))];
-  }, [deferred, found, go, statics]);
+    // Anything typed can be captured as one line. It comes after any matching person, room, goal or command.
+    const line = q.trim();
+    const captureLine: Item[] =
+      line.length >= 3
+        ? [{ id: "capture-line", group: "Capture", label: `Capture “${line.length > 60 ? `${line.slice(0, 60)}…` : line}”`, run: () => (close(), setTimeout(() => capture.open({ line }), 0)) }]
+        : [];
+    const rest = [...dynamic, ...statics.filter((i) => matches(i, deferred))];
+    return [...rest, ...captureLine];
+  }, [capture, close, deferred, found, go, q, statics]);
 
   const current = Math.min(active, Math.max(0, items.length - 1));
   useEffect(() => {

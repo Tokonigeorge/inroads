@@ -2,6 +2,15 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: P1 plan and milestone 11 (Quick capture)
+
+91. **P1 is built as four milestones: M11 Quick capture, M12 After-the-room follow-up, M13 Share target, M14 Voice debrief.** Voice uses the browser's built-in speech recognition (owner decision): free, no new key, nothing stored by Inroads; where a browser doesn't support it, you type instead.
+92. **Quick capture reads a line two ways.** A rules parser (`src/domain/quick-capture.ts`) runs anywhere, including offline on the phone, and handles the common shapes ("Met Ada, partnerships @ Paystack, wants intro to Tola by Friday"). When AI is set up, the fast model reads the line instead (limit 60 a day), and the rules parser takes over if the model fails or the limit is reached. Either way you review everything before it's saved.
+93. **Matching people never merges by name.** The review offers people in that Space whose name matches, picks one only on an exact full-name match, and otherwise defaults to "Someone new".
+94. **A follow-up date becomes a promise you owe** ("Follow up with Ada", due that day), so it shows on Today with the promises you already track. *Reverse:* a dedicated follow-up nudge kind.
+95. **Saving a quick capture sends the usual captures in order** (person, touch, promises) through the offline outbox, so it works offline and replays safely. Dates use "today" in the device's zone, like the other capture forms.
+96. **In the ⌘K palette, anything you type can be captured**, and the Capture option comes after any matching person, room, goal or command, so "add a room" still runs the command.
+
 ## 2026-10-24: milestone 10 (Settings)
 
 86. **Exports are kept in Postgres (`exports`, a zip per user), not Storage, and downloaded through `/api/v1/exports/[id]`** under RLS, so only the signed-in owner can fetch one. A new export replaces the old one, and exports are deleted after 7 days. *Why:* nothing else uses Storage (files are parsed in memory, #70), and a session-checked download is safer than a signed link that works for anyone holding it. *Reverse:* write the zip to a private bucket and hand out a short-lived signed URL.
