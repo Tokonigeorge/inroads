@@ -2,11 +2,36 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 18 (Ask your network)
+
+118. **Ask your network searches one Space at a time** (decision #1), across what you've recorded there: name, role, company and city, your notes, interests, tags, where you met and opportunities, the latest research, and recent touch summaries. People from other Spaces are never candidates and never reach the model.
+119. **Two fast-model calls, counted as one use** (limit 20 a day): the first widens your question into search terms (synonyms, related words), and the second ranks up to 30 Postgres matches, picks at most 8 and gives a reason that cites what you recorded. Ids the model returns are checked against the candidates, so it can't invent people. Without AI, or past the limit, you get the best word matches with the words they matched.
+120. **The email brief (P2) waits for a sending domain**, so P2 ships with M15–M18. When there's a domain: Resend, the brief time from Settings, and an unsubscribe link.
+
+## 2026-10-24: milestone 17 (Room ROI)
+
+116. **"What it's led to" counts only what you recorded.** People you marked as met there (M12), touches with them after the day you met (the debrief's own touch doesn't count), whether the latest is in the last 60 days, and forward moves or wins on goals in that Space since you met. Nothing is inferred from who was merely invited. A room with nothing recorded says how to start.
+117. **The rooms list shows "Met 6 · 4 in touch"** on repeating and past rooms, so you can see which rooms are worth your evenings at a glance. Per-room detail is on the room page.
+
+## 2026-10-24: milestone 16 (Intro requests)
+
+112. **An intro request is a promise the connector owes you** (`commitments.kind = 'intro'`, `about_person_id` = who you want to meet, optional `goal_id`), as planned in TECH_PLAN §2.4. It reads "Introduce you to Tunde Bakare", is due in a week, and shows on Today like any late promise. The database checks that both people and the goal are in the same Space.
+113. **Warm paths come from your own data in that Space:** people you've linked to them, people at the same company, and people linked to the same rooms. Each comes with its reason. Anyone else in the Space can be picked too. Dating Spaces don't offer intros.
+114. **The ask is consent-first** ("Would you be open to asking if they'd be happy to be introduced?"), written from a template and editable, then opened in WhatsApp or email, or copied. Inroads never sends it. "I've asked" logs a touch with the connector.
+115. **Goals move with the intro.** Asking moves the person to "Warm path found" (adding them to the goal if needed), and ticking the intro done moves them to "Introduced", but only forward, and only if the goal has those stages. Done also records who introduced you, which shows up as a warm path later.
+
+## 2026-10-24: P2 plan and milestone 15 (Pipeline drag and fit)
+
+108. **P2 is built as M15 Pipeline drag and fit, M16 Intro requests, M17 Room ROI, M18 Ask your network.** The daily brief by email waits for a sending domain (decision #15: no domain yet). Resend can only send to the account owner's own address without one.
+109. **Drag and drop uses the browser's own drag events on desktop.** Phones keep the stage picker, and the picker plus `[` / `]` stay on desktop, so dragging is never the only way to move someone (WCAG 2.5.7). The stage you drop on is highlighted.
+110. **The fit score is a hint, not the main signal.** The latest score for that goal shows on the card with its reason ("Fit 86 · Invests at your stage"), and "Best fit" is one of three orders, alongside "Recently moved" (the default) and "Name".
+111. **"Ask your network" (M18) uses Postgres search plus the fast model, not embeddings.** The model turns the question into search terms and filters, Postgres finds candidates in that Space (people, notes, research, touches), and the model ranks them and says why, citing only what was found. *Why:* the Anthropic API has no embeddings, and the free-tiers-only rule rules out a paid embeddings service. pgvector stays installed for later.
+
 ## 2026-10-24: milestone 14 (Voice debrief)
 
 105. **Voice uses the browser's speech recognition and feeds quick capture.** Press "Record a voice note", talk, press Stop: the words appear as you speak, and stopping reads them straight away with the same review as a typed line. No audio reaches Inroads. Recording stops by itself after 90 seconds. Where the browser has no speech recognition (Firefox, some in-app browsers), the button isn't shown.
 106. **Quick capture takes up to 1,000 characters** (was 500), enough for a 30–60 second voice note. Speech often comes out in lower case, which the rules parser can miss (it looks for capitalised names), so voice works best with AI set up. The review form is always there to fix a name.
-107. **P1 is complete** (M11–M14). Next is P2 from the brief: intro requests, "Ask your network" search, room ROI and the daily brief by email.
+107. **P1 is complete** (M11–M14). Next is P2 from the brief (see #108).
 
 ## 2026-10-24: milestone 13 (Share target)
 

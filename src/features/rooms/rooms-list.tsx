@@ -34,7 +34,26 @@ function Row({ href, selected, primary, secondary, trailing }: { href: string; s
   );
 }
 
-export function RoomsList({ today, upcoming, series, past, spaceName }: { today: string; upcoming: UpcomingItem[]; series: SeriesItem[]; past: PastItem[]; spaceName: string | null }) {
+type Impact = Record<string, { met: number; inTouchNow: number }>;
+
+/** "Met 6 · 4 in touch": what a room has led to, shown in the Repeating and Past tabs. */
+const impactLabel = (i: Impact[string] | undefined) => (i?.met ? `Met ${i.met} · ${i.inTouchNow} in touch` : null);
+
+export function RoomsList({
+  today,
+  upcoming,
+  series,
+  past,
+  impact = {},
+  spaceName,
+}: {
+  today: string;
+  upcoming: UpcomingItem[];
+  series: SeriesItem[];
+  past: PastItem[];
+  impact?: Impact;
+  spaceName: string | null;
+}) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const params = useParams<{ id?: string }>();
   const groups = new Map<string, UpcomingItem[]>();
@@ -113,7 +132,7 @@ export function RoomsList({ today, upcoming, series, past, spaceName }: { today:
                     href={`/rooms/${s.id}`}
                     selected={params.id === s.id}
                     primary={s.title}
-                    secondary={[recurrenceLabel(s.recurrence), s.next ? `next ${dayLabel(s.next, today).replace(/^Today$/, "today").replace(/^Tomorrow$/, "tomorrow")}` : "ended"].join(" · ")}
+                    secondary={[recurrenceLabel(s.recurrence), s.next ? `next ${dayLabel(s.next, today).replace(/^Today$/, "today").replace(/^Tomorrow$/, "tomorrow")}` : "ended", impactLabel(impact[s.id])].filter(Boolean).join(" · ")}
                     trailing={s.pastCount ? `Went ${s.attended} of ${s.pastCount}` : undefined}
                   />
                 </li>
@@ -130,7 +149,7 @@ export function RoomsList({ today, upcoming, series, past, spaceName }: { today:
                   href={`/rooms/${p.id}`}
                   selected={params.id === p.id}
                   primary={p.title}
-                  secondary={[formatLongDate(p.date, today), roomKindLabels[p.kind as RoomKind] ?? p.kind].join(" · ")}
+                  secondary={[formatLongDate(p.date, today), roomKindLabels[p.kind as RoomKind] ?? p.kind, impactLabel(impact[p.id])].filter(Boolean).join(" · ")}
                   trailing={p.people ? (p.people === 1 ? "1 person" : `${p.people} people`) : undefined}
                 />
               </li>

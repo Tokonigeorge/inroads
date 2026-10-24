@@ -130,6 +130,9 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
             <span aria-hidden>→</span>
           </Link>
         ) : null}
+        <Link href="/people/ask" className="text-small font-[550] text-accent hover:underline">
+          Ask your network a question
+        </Link>
         <Input
           ref={search}
           type="search"

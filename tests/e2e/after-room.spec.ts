@@ -52,7 +52,8 @@ test.describe.serial("After the room", () => {
 
     await expect(page.getByRole("status").filter({ hasText: "2 people from Ikoyi Founders Mixer saved. Follow-ups are on Today in 2 days." })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Ikoyi Founders Mixer", level: 1 })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Tola Adeyemi" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Tola Adeyemi" }).first()).toBeVisible();
+    await expect(page.getByText(/^2 people met · 0 kept in touch/)).toBeVisible();
 
     await page.goto("/today");
     await expect(page.getByText("Who did you meet at Ikoyi Founders Mixer?")).toHaveCount(0);

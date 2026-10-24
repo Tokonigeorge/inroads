@@ -19,6 +19,7 @@ import type { IsoDate } from "@/domain/dates";
 import { normaliseContactLists } from "@/domain/normalise";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
+import { completeIntro } from "./intros";
 import type { Result } from "./spaces";
 
 const fail = (message: string, field?: string): Result<never> => ({ ok: false, message, field });
@@ -398,7 +399,9 @@ export async function addPromise(tx: Tx, userId: string, raw: PromiseInput): Pro
 }
 
 export async function setPromiseDone(tx: Tx, id: string, done: boolean) {
-  await tx.update(t.commitments).set({ doneAt: done ? new Date() : null }).where(eq(t.commitments.id, id));
+  const [c] = await tx.update(t.commitments).set({ doneAt: done ? new Date() : null }).where(eq(t.commitments.id, id)).returning({ userId: t.commitments.userId, kind: t.commitments.kind });
+  // An intro that happened: remember who introduced you and move them on the goal.
+  if (done && c?.kind === "intro") await completeIntro(tx, c.userId, id);
 }
 
 export async function deletePromise(tx: Tx, id: string) {

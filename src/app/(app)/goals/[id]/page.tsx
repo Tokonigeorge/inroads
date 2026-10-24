@@ -81,7 +81,7 @@ function GoalView({ g, today, tz }: { g: GoalDetail; today: string; tz: string }
         <Pipeline
           stages={g.stages}
           today={today}
-          cards={g.pipeline.map((p) => ({ linkId: p.linkId, personId: p.personId, name: p.name, detail: p.detail, stage: p.stage, note: p.note, lastTouchedOn: p.lastTouchedOn }))}
+          cards={g.pipeline.map((p) => ({ linkId: p.linkId, personId: p.personId, name: p.name, detail: p.detail, stage: p.stage, note: p.note, lastTouchedOn: p.lastTouchedOn, fit: p.fit, movedAt: p.movedAt.toISOString() }))}
         />
         <p className="hidden pt-3 text-small text-muted md:block">Tip: focus a person and press [ or ] to move them a stage. Press a to add people.</p>
       </Section>

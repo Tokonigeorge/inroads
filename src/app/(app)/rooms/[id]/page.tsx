@@ -5,12 +5,14 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { roomKindLabels, roomRoleLabels, type RoomKind, type RoomRole } from "@/contracts/rooms";
 import { addDays, formatLongDate } from "@/domain/dates";
+import type { RoomRoi } from "@/domain/room-roi";
 import { recurrenceLabel } from "@/domain/recurrence";
 import { expandAgenda, formatTime, zoneCity } from "@/domain/zoned";
 import { AttendanceToggle, RoomActions, UnlinkButton } from "@/features/rooms/room-actions";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { roomImpact } from "@/server/repos/room-impact";
 import { getRoom, type RoomDetail } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 import { EmptyState } from "@/ui/layout";
@@ -44,10 +46,11 @@ async function Room({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, user] = await Promise.all([params, requireUser()]);
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
-    return { room: await getRoom(tx, id, ctx.today), ctx };
+    const room = await getRoom(tx, id, ctx.today);
+    return { room, ctx, impact: room ? await roomImpact(tx, room.room.id, ctx.today) : null };
   });
-  if (!data.room) notFound();
-  return <RoomView d={data.room} today={data.ctx.today} userTz={data.ctx.timezone} />;
+  if (!data.room || !data.impact) notFound();
+  return <RoomView d={data.room} today={data.ctx.today} userTz={data.ctx.timezone} impact={data.impact} />;
 }
 
 function when(d: RoomDetail, date: string, today: string, userTz: string) {
@@ -59,7 +62,7 @@ function when(d: RoomDetail, date: string, today: string, userTz: string) {
   return `${formatLongDate(item.date, today)} · ${formatTime(item.time)}${end}${item.localTimeLabel ? ` (${item.localTimeLabel})` : ""}`;
 }
 
-function RoomView({ d, today, userTz }: { d: RoomDetail; today: string; userTz: string }) {
+function RoomView({ d, today, userTz, impact }: { d: RoomDetail; today: string; userTz: string; impact: RoomRoi }) {
   const e = d.room;
   const repeats = d.recurrence.freq !== "none";
   const headlineDate = d.next[0] ?? e.startsOn;
@@ -125,6 +128,8 @@ function RoomView({ d, today, userTz }: { d: RoomDetail; today: string; userTz: 
         )}
       </Block>
 
+      {d.past.length ? <Impact impact={impact} today={today} roomId={e.id} lastSession={d.past[0]?.date ?? null} /> : null}
+
       {d.past.length ? (
         <Block title="Did you go?">
           {repeats && answered ? <p className="pb-3 text-small text-muted">You went to {went} of the last {d.past.length} sessions.</p> : null}
@@ -162,5 +167,56 @@ function RoomView({ d, today, userTz }: { d: RoomDetail; today: string; userTz: 
         </Block>
       ) : null}
     </article>
+  );
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** What the room has led to: who you met there, whether you've kept in touch, goal progress. */
+function Impact({ impact, today, roomId, lastSession }: { impact: RoomRoi; today: string; roomId: string; lastSession: string | null }) {
+  if (!impact.met) {
+    return (
+      <Block title="What it's led to">
+        <p className="text-small text-muted">
+          After a session, record who you met{" "}
+          {lastSession ? (
+            <Link href={`/rooms/${roomId}/after?on=${lastSession}`} className="font-[550] text-accent hover:underline">
+              (Who did you meet?)
+            </Link>
+          ) : null}{" "}
+          and this shows whether the room is worth your evenings.
+        </p>
+      </Block>
+    );
+  }
+  const summary = [
+    plural(impact.met, "person met", "people met"),
+    `${impact.keptInTouch} kept in touch`,
+    `${impact.inTouchNow} in touch in the last 60 days`,
+    impact.movedForward ? `${impact.movedForward} moved forward on your goals` : null,
+    impact.won ? `${impact.won} won` : null,
+  ].filter(Boolean);
+  return (
+    <Block title="What it's led to">
+      <p className="pb-3">{summary.join(" · ")}</p>
+      <ul className="grid gap-2 text-small">
+        {impact.people.slice(0, 12).map((p) => (
+          <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <Link href={`/people/${p.id}`} className="font-[550] hover:underline">
+              {p.name}
+            </Link>
+            <span className="text-muted">
+              {[
+                `met ${formatLongDate(p.metOn, today)}`,
+                p.touchesSince ? `${plural(p.touchesSince, "touch", "touches")} since, last ${formatLongDate(p.lastTouchOn!, today)}` : "no touches since",
+                p.won ? "won" : p.forward ? "moved forward" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Block>
   );
 }

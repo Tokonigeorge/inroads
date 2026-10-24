@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 18 (Ask your network)
+- Ask a question about the people you know, in your own words ("Who do I know in fintech in Accra who's raised before?"), in People or from ⌘K.
+- You get up to 8 people with a reason for each, citing what you've recorded about them. Only one Space is searched at a time.
+- With AI set up, the question is widened and the results are ranked by the model (20 a day); without it, Inroads matches the words in your question.
+
+### Added: milestone 17 (Room ROI)
+- A room's page shows what it has led to: the people you met there, how many you've kept in touch with (and in the last 60 days), and who has moved forward on your goals since, person by person.
+- Repeating and past rooms in the list show "Met 6 · 4 in touch".
+
+### Added: milestone 16 (Intro requests)
+- "Ask for an intro" on a person's page: see who in that Space could introduce you and why (they know them, they work at the same company, you've seen them at the same rooms), or pick anyone.
+- A consent-first message to send by WhatsApp or email, or to copy. Pick a goal and the person moves to "Warm path found".
+- The intro is tracked as a promise the connector owes you, with a reminder on Today if it's late. Tick it done when it happens: the person moves to "Introduced" and Inroads remembers who introduced you.
+
+### Added: milestone 15 (Pipeline drag and fit)
+- On desktop, drag people between stages of a goal's pipeline. The stage picker and `[` / `]` still work.
+- A person's fit for the goal shows on their card with the reason, and you can order each stage by best fit, recently moved or name.
+
 ### Added: milestone 14 (Voice debrief)
 - Record a voice note in the capture sheet: say who you met and what was promised, press Stop, and check what was read before saving. Your browser turns speech into text; no audio is sent to Inroads.
 - Quick capture now takes up to 1,000 characters.

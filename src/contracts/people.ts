@@ -190,3 +190,18 @@ export const peopleQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional().default(60),
 });
 export type PeopleQuery = z.input<typeof peopleQuerySchema>;
+
+/* ---------- intro requests (P2) ---------- */
+
+/** "Ask Kemi to introduce me to Tunde": tracked as a promise Kemi owes you. */
+export const introRequestSchema = z.object({
+  targetId: z.string().uuid(),
+  connectorId: z.string().uuid(),
+  spaceId: z.string().uuid(),
+  goalId: z
+    .union([z.string().uuid(), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => v || null),
+  dueInDays: z.number().int().min(1).max(60).default(7),
+});
+export type IntroRequestInput = z.input<typeof introRequestSchema>;
