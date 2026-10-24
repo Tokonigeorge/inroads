@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 15 (Pipeline drag and fit)
+- On desktop, drag people between stages of a goal's pipeline. The stage picker and `[` / `]` still work.
+- A person's fit for the goal shows on their card with the reason, and you can order each stage by best fit, recently moved or name.
+
 ### Added: milestone 14 (Voice debrief)
 - Record a voice note in the capture sheet: say who you met and what was promised, press Stop, and check what was read before saving. Your browser turns speech into text; no audio is sent to Inroads.
 - Quick capture now takes up to 1,000 characters.

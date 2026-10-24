@@ -2,11 +2,18 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: P2 plan and milestone 15 (Pipeline drag and fit)
+
+108. **P2 is built as M15 Pipeline drag and fit, M16 Intro requests, M17 Room ROI, M18 Ask your network.** The daily brief by email waits for a sending domain (decision #15: no domain yet). Resend can only send to the account owner's own address without one.
+109. **Drag and drop uses the browser's own drag events on desktop.** Phones keep the stage picker, and the picker plus `[` / `]` stay on desktop, so dragging is never the only way to move someone (WCAG 2.5.7). The stage you drop on is highlighted.
+110. **The fit score is a hint, not the main signal.** The latest score for that goal shows on the card with its reason ("Fit 86 · Invests at your stage"), and "Best fit" is one of three orders, alongside "Recently moved" (the default) and "Name".
+111. **"Ask your network" (M18) uses Postgres search plus the fast model, not embeddings.** The model turns the question into search terms and filters, Postgres finds candidates in that Space (people, notes, research, touches), and the model ranks them and says why, citing only what was found. *Why:* the Anthropic API has no embeddings, and the free-tiers-only rule rules out a paid embeddings service. pgvector stays installed for later.
+
 ## 2026-10-24: milestone 14 (Voice debrief)
 
 105. **Voice uses the browser's speech recognition and feeds quick capture.** Press "Record a voice note", talk, press Stop: the words appear as you speak, and stopping reads them straight away with the same review as a typed line. No audio reaches Inroads. Recording stops by itself after 90 seconds. Where the browser has no speech recognition (Firefox, some in-app browsers), the button isn't shown.
 106. **Quick capture takes up to 1,000 characters** (was 500), enough for a 30–60 second voice note. Speech often comes out in lower case, which the rules parser can miss (it looks for capitalised names), so voice works best with AI set up. The review form is always there to fix a name.
-107. **P1 is complete** (M11–M14). Next is P2 from the brief: intro requests, "Ask your network" search, room ROI and the daily brief by email.
+107. **P1 is complete** (M11–M14). Next is P2 from the brief (see #108).
 
 ## 2026-10-24: milestone 13 (Share target)
 

@@ -150,6 +150,7 @@ export type PipelineEntry = {
   stage: string;
   note: string | null;
   lastTouchedOn: string | null;
+  fit: { value: number; why: string | null } | null;
   movedAt: Date;
 };
 
@@ -168,9 +169,11 @@ export async function getGoal(tx: Tx, id: string, today: IsoDate, tz: string): P
   if (!space) return null;
   const { stages, custom } = stagesOf(row.stages, space.defaults.stages);
   const lastTouch = sql<string | null>`(select max(i.occurred_on)::text from interactions i where i.person_id = ${t.goalLinks.personId} and i.space_id = ${row.spaceId})`;
+  // The latest fit score for this goal, kept as a hint with its reason (brief §4.2, P2).
+  const fit = sql<{ value: number; why: string | null } | null>`(select json_build_object('value', s.value, 'why', s.why) from scores s where s.person_id = ${t.goalLinks.personId} and s.goal_id = ${id} order by s.created_at desc limit 1)`;
   const [links, rooms, recent, progress] = await Promise.all([
     tx
-      .select({ l: t.goalLinks, name: t.people.name, company: t.people.company, position: t.people.position, lastTouchedOn: lastTouch })
+      .select({ l: t.goalLinks, name: t.people.name, company: t.people.company, position: t.people.position, lastTouchedOn: lastTouch, fit })
       .from(t.goalLinks)
       .innerJoin(t.people, eq(t.people.id, t.goalLinks.personId))
       .where(and(eq(t.goalLinks.goalId, id), isNull(t.people.deletedAt)))
@@ -190,7 +193,7 @@ export async function getGoal(tx: Tx, id: string, today: IsoDate, tz: string): P
       .limit(8),
     weeklyProgress(tx, [{ id, weeklyTarget: row.weeklyTarget, stages }], weekBounds(today, tz)),
   ]);
-  const pipeline = links.map(({ l, name, company, position, lastTouchedOn }) => ({
+  const pipeline = links.map(({ l, name, company, position, lastTouchedOn, fit }) => ({
     linkId: l.id,
     personId: l.personId,
     name,
@@ -198,6 +201,7 @@ export async function getGoal(tx: Tx, id: string, today: IsoDate, tz: string): P
     stage: l.stage,
     note: l.note,
     lastTouchedOn,
+    fit: fit ?? null,
     movedAt: l.updatedAt,
   }));
   const counts: Record<string, number> = {};
