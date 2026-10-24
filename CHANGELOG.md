@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 6 (Goals)
+- Goals per Space: what you're aiming for, kind, priority, touches a week and an optional finish date. Pause, archive or delete.
+- A pipeline for each goal, using the Space's stages or its own (e.g. hiring stages for a hiring goal):
+  - Desktop shows a column per stage; on a phone the stages are stacked.
+  - Change anyone's stage from their card, or press `[` / `]` on desktop. Every move is recorded, and recent moves show on the goal.
+  - Add people you know, or someone you want to meet by name. Remove with Undo.
+- Weekly progress that counts real things: touches with people on the goal, sessions you went to of rooms tied to it, and people moving forward or won.
+- Goals list grouped by Space with this week's meter and a one-line summary.
+- A person's page shows their goals with a stage picker, and can add them to another goal in their Spaces.
+
+### Changed
+- The pipeline-stage editor is shared between Spaces and goals.
+
 ### Added: milestone 5 (Connections)
 - Connect Google (Contacts and Calendar, read-only) and Outlook (Microsoft 365 and Outlook.com), from Settings → Connections or during onboarding.
   - Tokens are encrypted at rest; scopes are the narrowest read-only ones.

@@ -8,12 +8,14 @@ import { cadenceLabel } from "@/contracts/spaces";
 import { formatLongDate } from "@/domain/dates";
 import { formatPhone, whatsappDigits } from "@/domain/normalise";
 import { dueOn, dueState, effectiveCadence, personCadence, warmth } from "@/domain/relationship";
+import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
 import { DeleteButton, PersonActions, PromiseCheck, RemoveFromSpaceButton } from "@/features/people/person-actions";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { readSelectedSpaceId } from "@/server/space-selection";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { getPerson, type PersonDetail } from "@/server/repos/people";
+import { goalOptionsForPerson, stagesOf } from "@/server/repos/goals";
 import { roomsForPerson } from "@/server/repos/rooms";
 import { roomRoleLabels } from "@/contracts/rooms";
 import { userContext } from "@/server/user-context";
@@ -53,10 +55,8 @@ function socialHref(key: string, v: string) {
   return map[key] ?? null;
 }
 
-function stageLabel(d: PersonDetail, g: PersonDetail["goals"][number]) {
-  const own = Array.isArray(g.goalStages) ? (g.goalStages as { key: string; label: string }[]) : null;
-  const stages = own ?? d.memberships.find((m) => m.space.id === g.goalSpaceId)?.spaceDefaults.stages ?? [];
-  return stages.find((s) => s.key === g.stage)?.label ?? g.stage.replace(/_/g, " ");
+function goalStages(d: PersonDetail, g: PersonDetail["goals"][number]) {
+  return stagesOf(g.goalStages, d.memberships.find((m) => m.space.id === g.goalSpaceId)?.spaceDefaults.stages ?? []).stages;
 }
 
 function Block({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
@@ -76,16 +76,18 @@ async function Person({ params }: { params: Promise<{ id: string }> }) {
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
     const detail = await getPerson(tx, id);
-    return { detail, ctx, rooms: detail ? await roomsForPerson(tx, id, ctx.today) : [] };
+    if (!detail) return { detail, ctx, rooms: [], goalOptions: [] };
+    const [rooms, goalOptions] = await Promise.all([roomsForPerson(tx, id, ctx.today), goalOptionsForPerson(tx, id)]);
+    return { detail, ctx, rooms, goalOptions };
   });
   if (!data.detail) notFound();
-  const { detail: d, ctx, rooms } = data;
-  return <PersonView d={d} today={ctx.today} selectedSpaceId={selectedSpaceId} rooms={rooms} />;
+  const { detail: d, ctx, rooms, goalOptions } = data;
+  return <PersonView d={d} today={ctx.today} selectedSpaceId={selectedSpaceId} rooms={rooms} goalOptions={goalOptions} />;
 }
 
 type PersonRooms = Awaited<ReturnType<typeof roomsForPerson>>;
 
-function PersonView({ d, today, selectedSpaceId, rooms }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms }) {
+function PersonView({ d, today, selectedSpaceId, rooms, goalOptions }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms; goalOptions: GoalOption[] }) {
   const p = d.person;
   const active = d.memberships.filter((m) => !m.archivedAt && !m.space.archived);
   const archived = d.memberships.length > 0 && d.memberships.every((m) => m.archivedAt);
@@ -305,16 +307,15 @@ function PersonView({ d, today, selectedSpaceId, rooms }: { d: PersonDetail; tod
         </Block>
       ) : null}
 
-      {d.goals.length ? (
+      {d.goals.length || goalOptions.length ? (
         <Block title="Goals">
-          <ul className="grid gap-2">
-            {d.goals.map((g) => (
-              <li key={g.id} className="flex justify-between gap-3">
-                <span>{g.goalText}</span>
-                <span className="text-small text-muted">{stageLabel(d, g)}</span>
-              </li>
-            ))}
-          </ul>
+          <PersonGoals
+            personId={p.id}
+            personName={p.name}
+            showSpaces={multi}
+            options={goalOptions}
+            links={d.goals.map((g) => ({ linkId: g.id, goalId: g.goalId, goalText: g.goalText, stage: g.stage, stages: goalStages(d, g) }))}
+          />
         </Block>
       ) : null}
 

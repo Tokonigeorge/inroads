@@ -109,7 +109,7 @@ describe("people in rooms", () => {
 
     expect(await as((tx) => linkPerson(tx, user.id, r.data.id, pid, "attendee"))).toEqual({ ok: true, data: null });
     expect(await as((tx) => linkPerson(tx, user.id, r.data.id, pid, "speaker"))).toEqual({ ok: true, data: null });
-    expect(await as((tx) => linkPerson(tx, user.id, d.data.id, pid, "attendee"))).toMatchObject({ ok: false, message: expect.stringContaining("not in this room's Space") });
+    expect(await as((tx) => linkPerson(tx, user.id, d.data.id, pid, "attendee"))).toMatchObject({ ok: false, message: expect.stringContaining("not in this Space") });
 
     const room = (await as((tx) => getRoom(tx, r.data.id, TODAY)))!;
     expect(room.people.map((p) => p.role).sort()).toEqual(["attendee", "speaker"]);

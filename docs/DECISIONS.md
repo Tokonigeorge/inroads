@@ -2,6 +2,16 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 6
+
+55. **A goal uses its Space's pipeline stages unless you give it its own.** Changing either is refused if it would leave someone at a stage that no longer exists; the message names the stage and how many people are at it.
+56. **Weekly progress counts three things, all from explicit links** (fixes brief bugs 7 and 8): touches in the goal's Space with people on the goal, sessions you went to of rooms tied to the goal, and stage moves. The meter is touches plus rooms against the weekly target; moves are reported beside it ("2 moved forward · 1 won"). Weeks run Monday to Sunday in your time zone.
+57. **Moving to the first end stage (usually "Won") counts as won; moving to a later end stage ("Closed") doesn't count as progress.** Moving back is recorded but not counted.
+58. **People join a goal only when you add them**: from the goal, from their page, or as a new person ("Someone you want to meet"), who is created in the goal's Space. Being added to a goal also sorts them out of the import queue.
+59. **No drag and drop in the pipeline yet.** Each person has a stage picker, and on desktop `[` and `]` move the focused person (TECH_PLAN §7.2; drag is P2). On a phone, stages are stacked and empty ones are hidden.
+60. **Pause, archive and delete are separate.** Paused goals stay listed but don't count or appear as choices on people's pages; archived goals leave the list (still viewable under "Archived goals"); deleting removes the pipeline but keeps the people and unties the rooms.
+61. **"People to meet" suggestions (brief §4.2) come with AI in milestone 9.** For now you add them by name.
+
 ## 2026-10-24: milestone 5
 
 44. **Connected-account secrets are encrypted in the app (AES-256-GCM, keys in `TOKEN_ENC_KEYS`, versioned for rotation)**, and only a system-level store (`src/server/system/connections.ts`) decrypts them. Users can read their connection's status through RLS, but not the encrypted columns. Calendar links count as secrets too, so only the host and a short fingerprint are stored in the clear.
