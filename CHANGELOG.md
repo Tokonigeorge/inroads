@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 7 (Today)
+- Today's rooms, in your time zone, with a prep line for everyone you'll see: what they do, your last touch and anything you owe them.
+- A follow-up feed that tells you who to get back to:
+  - Birthdays this week, promises you owe (overdue first), promises they owe you that are late.
+  - People due a touch by the reminder you set, prep for meetings in the next 3 days, rooms this week, new people missing context, and one small "Sort 5 new people" card a day after an import.
+  - Each card has its actions: Mark done, Log a touch, Open, Snooze or Hide. Snooze, hide and done have Undo.
+- Today follows the Space switcher: one Space, or all of them.
+- ⌘K (Ctrl K) palette: jump to any person, room or goal, run any command, or switch Space. A search button opens it on phones.
+- Keyboard: `g` then `t`, `p`, `r`, `g` or `s` goes to a section; `?` shows every shortcut.
+
 ### Added: milestone 6 (Goals)
 - Goals per Space: what you're aiming for, kind, priority, touches a week and an optional finish date. Pause, archive or delete.
 - A pipeline for each goal, using the Space's stages or its own (e.g. hiring stages for a hiring goal):

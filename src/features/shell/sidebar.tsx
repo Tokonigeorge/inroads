@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/ui/cn";
+import { PaletteButton } from "./command-palette";
 import { Logo } from "./logo";
 import { isActive, primaryNav, settingsNav, type NavItem } from "./nav-items";
 
@@ -41,6 +42,9 @@ export function SidebarView({ spaceSwitcher, pathname }: SidebarProps & { pathna
         <span className="font-semibold">Inroads</span>
       </div>
       <div className="min-h-2 pb-2">{spaceSwitcher}</div>
+      <div className="pb-3">
+        <PaletteButton />
+      </div>
       <div className="grid gap-0.5">
         {primaryNav.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />

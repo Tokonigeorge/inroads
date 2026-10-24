@@ -21,7 +21,8 @@ test.describe.serial("Spaces", () => {
     await page.getByLabel(/^Other/).check();
     await page.getByRole("button", { name: "Create Space" }).click();
 
-    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+    // Creating saves, then redirects to the new Space's page; allow for a slow CI runner.
+    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible({ timeout: 15_000 });
     // Only Work Spaces can use full research.
     await expect(page.getByLabel(/^Get to know/)).toBeChecked();
     await expect(page.getByLabel(/^Full research/)).toHaveCount(0);

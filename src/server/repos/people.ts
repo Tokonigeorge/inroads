@@ -58,6 +58,37 @@ function decodeCursor(raw: string | undefined): Cursor | null {
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
 
 /**
+ * One row per person with their memberships rolled up: priority flag, the shortest reminder
+ * (person → circle → Space default; 0 means never), latest anchor, and the date they're due
+ * (`r_due_on`). Shared by the People list and Today's reminders so "due" means one thing.
+ */
+export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]) {
+  return sql`
+    with m as (
+      select ps.person_id,
+             bool_or(ps.starred) as starred,
+             min(nullif(coalesce(ps.cadence_days, c.default_cadence_days, (s.defaults ->> 'cadenceDays')::int), 0)) as cadence,
+             max(ps.cadence_anchor_on) as anchor,
+             bool_or(ps.triage_state = 'pending') as unsorted,
+             bool_and(ps.where_met is null and cardinality(ps.interests) = 0) as needs_context,
+             array_agg(s.name order by s.position) as spaces,
+             array_agg(s.id order by s.position) as space_ids
+        from person_spaces ps
+        join spaces s on s.id = ps.space_id and s.archived_at is null
+        left join circles c on c.id = ps.circle_id
+       where ${sql.join(membershipWhere, sql` and `)}
+       group by ps.person_id
+      having ${sql.join(having, sql` and `)}
+    ),
+    base as (
+      select p.*, m.starred, m.cadence, m.unsorted, m.spaces, m.space_ids, m.needs_context,
+             case when m.cadence is null then null
+                  else coalesce(p.last_touched_on, m.anchor, (p.created_at at time zone 'UTC')::date) + m.cadence end as r_due_on
+        from people p join m on m.person_id = p.id
+    )`;
+}
+
+/**
  * Keyset-paginated people list, built for 5,000+ rows. One row per person; with a Space
  * selected only that Space's membership counts, with "All spaces" the shortest reminder and
  * any priority flag across their Spaces apply.
@@ -126,28 +157,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     space_ids: string[];
     sort_key: string;
   }>(sql`
-    with m as (
-      select ps.person_id,
-             bool_or(ps.starred) as starred,
-             min(nullif(coalesce(ps.cadence_days, c.default_cadence_days, (s.defaults ->> 'cadenceDays')::int), 0)) as cadence,
-             max(ps.cadence_anchor_on) as anchor,
-             bool_or(ps.triage_state = 'pending') as unsorted,
-             bool_and(ps.where_met is null and cardinality(ps.interests) = 0) as needs_context,
-             array_agg(s.name order by s.position) as spaces,
-             array_agg(s.id order by s.position) as space_ids
-        from person_spaces ps
-        join spaces s on s.id = ps.space_id and s.archived_at is null
-        left join circles c on c.id = ps.circle_id
-       where ${sql.join(membershipWhere, sql` and `)}
-       group by ps.person_id
-      having ${sql.join(having, sql` and `)}
-    ),
-    base as (
-      select p.*, m.starred, m.cadence, m.unsorted, m.spaces, m.space_ids, m.needs_context,
-             case when m.cadence is null then null
-                  else coalesce(p.last_touched_on, m.anchor, (p.created_at at time zone 'UTC')::date) + m.cadence end as r_due_on
-        from people p join m on m.person_id = p.id
-    )
+    ${personRollup(membershipWhere, having)}
     select p.id, p.name, p.company, p.position, p.last_touched_on::text as last_touched_on, p.starred, p.cadence,
            p.r_due_on::text as due_on, p.unsorted, p.spaces, p.space_ids, p.sort_key
       from (select p.*, ${sort.key} as sort_key from base p where ${sql.join(where, sql` and `)}) p

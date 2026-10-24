@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { OutboxSync } from "@/features/offline/outbox-sync";
 import { ToastProvider } from "@/ui/toast";
 import { CaptureProvider } from "./capture-sheet";
+import { CommandPaletteProvider } from "./command-palette";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -19,8 +20,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <CaptureProvider>
-          {children}
-          <OutboxSync />
+          <CommandPaletteProvider>
+            {children}
+            <OutboxSync />
+          </CommandPaletteProvider>
         </CaptureProvider>
       </ToastProvider>
     </QueryClientProvider>

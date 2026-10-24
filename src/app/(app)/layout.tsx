@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { SpaceSwitcherSlot } from "@/features/spaces/space-switcher-slot";
 import { BottomNav, BottomNavView } from "@/features/shell/bottom-nav";
+import { PaletteButton } from "@/features/shell/command-palette";
 import { Logo } from "@/features/shell/logo";
 import { Sidebar, SidebarView } from "@/features/shell/sidebar";
 import { AppProviders } from "@/features/shell/app-providers";
@@ -20,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Sidebar spaceSwitcher={switcher} />
         </Suspense>
         <div className="min-w-0 flex-1">
-          {/* Mobile header: Space switcher (when there's more than one in use) and Settings. */}
+          {/* Mobile header: Space switcher (when there's more than one in use), search and Settings. */}
           <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-border bg-bg px-2 md:hidden">
             <Suspense fallback={<Logo />}>
               <div className="flex min-w-0 items-center gap-1 pl-2">
@@ -28,9 +29,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SpaceSwitcherSlot />
               </div>
             </Suspense>
-            <Link href="/settings" aria-label="Settings" className="flex size-11 items-center justify-center rounded-md text-muted hover:bg-sunken">
-              <Settings size={20} strokeWidth={1.75} aria-hidden />
-            </Link>
+            <div className="flex items-center">
+              <PaletteButton compact />
+              <Link href="/settings" aria-label="Settings" className="flex size-11 items-center justify-center rounded-md text-muted hover:bg-sunken">
+                <Settings size={20} strokeWidth={1.75} aria-hidden />
+              </Link>
+            </div>
           </header>
           <main className="pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
         </div>

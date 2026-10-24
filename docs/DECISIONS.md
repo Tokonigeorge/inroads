@@ -2,6 +2,17 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 7
+
+62. **Reminders follow the plan's rules (TECH_PLAN §4.5)**: birthdays within a week; promises you owe that are overdue, due within 3 days or undated; promises they owe you once late; people due by the reminder you set; prep for anyone you meet in the next 3 days; rooms from tomorrow to a week out (not 1:1 meetings); context for people you added by hand in the last 14 days; and one "Sort 5 new people" card a day while imports wait. At most 20 cards.
+63. **One card per person.** If someone is due and also has a promise, a meeting or a birthday coming, only the sharper card shows.
+64. **Unsorted and archived people never get reminders**, and example people don't get "add context" cards.
+65. **Prep cards say who, when, your last touch and what you owe.** "Research" and "Look up" buttons join them with AI (milestone 9).
+66. **Snooze and dismiss are stored with an expiry** (`nudge_states`), and the daily clean-up deletes expired rows. Dismissing a dated card (a birthday, a session) keeps the row 30 days past that date; undated ones 180 days. Every hide has Undo.
+67. **Today follows the Space switcher.** "All Spaces" merges every Space's reminders and rooms in the list only; nothing is combined for AI (#1).
+68. **⌘K palette searches names of people, rooms and goals across all Spaces** and runs commands (capture, add a room or goal, sort, connect, switch Space, go to a section). `g` then `t p r g s` jumps to a section; `?` lists every shortcut. On a phone the palette opens from the search button in the header.
+69. **The daily and weekly AI brief arrives with milestone 9.** Today has no empty brief box until then.
+
 ## 2026-10-24: milestone 6
 
 55. **A goal uses its Space's pipeline stages unless you give it its own.** Changing either is refused if it would leave someone at a stage that no longer exists; the message names the stage and how many people are at it.
