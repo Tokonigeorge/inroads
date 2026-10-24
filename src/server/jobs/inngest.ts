@@ -82,6 +82,8 @@ export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", trigge
     const nudges = await sys.delete(t.nudgeStates).where(lt(t.nudgeStates.expiresAt, new Date())).returning({ key: t.nudgeStates.key });
     await sys.delete(t.dataExports).where(lt(t.dataExports.expiresAt, new Date()));
     const jobs = await sys.delete(t.jobs).where(lt(t.jobs.createdAt, new Date(Date.now() - 14 * 86_400_000))).returning({ id: t.jobs.id });
+    // Shares you never added or discarded: delete them, text and all.
+    await sys.delete(t.imports).where(and(eq(t.imports.type, "share"), lt(t.imports.createdAt, new Date(Date.now() - 2 * 86_400_000))));
     // File imports left in review for two days: drop the staged rows (the files were never kept).
     const stale = await sys
       .update(t.imports)

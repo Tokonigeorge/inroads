@@ -2,6 +2,13 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 13 (Share target)
+
+101. **The installed app is a share target** (`share_target` in `app/manifest.ts`, a multipart POST to `/share`). Android Chrome supports it; iPhone Safari doesn't offer web share targets yet, so there you paste a link or line into quick capture instead.
+102. **What's shared decides what happens.** A profile link (LinkedIn, X, Instagram, TikTok, GitHub) becomes "Add this person", prefilled from the shared page title ("Name - Role - Company | LinkedIn") or the link itself. If someone already has that link, Inroads opens them instead of adding a duplicate. Contact and calendar files go to the usual import review. Anything else (a WhatsApp message, a note) opens in quick capture.
+103. **Shared links and text wait as a `share` import, not in the URL,** so they never end up in browser history or server logs. They're deleted when you add or discard them, and after 2 days by the daily clean-up. They don't show in import history.
+104. **Quick capture's "Read it" button waits for the page to hydrate.** Before that, the browser would submit the form itself and put the line in the URL.
+
 ## 2026-10-24: milestone 12 (After the room)
 
 97. **"Who did you meet at X?" appears for rooms, not 1:1 meetings, the day after and the day after that,** until you record the session either way. Its key is `after:<eventId>:<date>`, as planned in TECH_PLAN §2.4. Recording it is what clears it: saving marks that you went, "I didn't go" marks that you didn't.

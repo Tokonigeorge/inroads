@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { touchTypeLabels, touchTypes, type TouchType } from "@/contracts/people";
 import type { QuickCandidate, QuickReadResult } from "@/contracts/quick-capture";
 import { todayIn } from "@/domain/dates";
@@ -14,6 +14,7 @@ import { Field, Input, Select, Textarea } from "@/ui/field";
 import { quickCapturePlan, type QuickReview } from "./plan";
 
 const localToday = () => todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone);
+const noSubscribe = () => () => {};
 const EXAMPLE = "Met Ada, partnerships @ Paystack, wants intro to Tola by Friday";
 
 type Read = QuickReadResult & {
@@ -26,6 +27,8 @@ type Read = QuickReadResult & {
 export function QuickCapture({ initialLine = "", onDone, hint = EXAMPLE, below }: { initialLine?: string; onDone: () => void; hint?: string; below?: ReactNode }) {
   const { data: spaces } = useSpaces();
   const [read, setRead] = useState<Read | null>(null);
+  // Before hydration the browser would submit the form itself (putting the line in the URL), so wait.
+  const ready = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const options = spaces?.spaces ?? [];
@@ -114,7 +117,7 @@ export function QuickCapture({ initialLine = "", onDone, hint = EXAMPLE, below }
           </Field>
         ) : null}
         <div>
-          <Button type="submit" variant="primary" disabled={busy}>
+          <Button type="submit" variant="primary" disabled={busy || !ready}>
             {busy ? "Reading…" : "Read it"}
           </Button>
         </div>

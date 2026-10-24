@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 13 (Share target)
+- Install Inroads on Android and it appears in the share menu of other apps.
+- Share a LinkedIn (or X, Instagram, TikTok, GitHub) profile to add that person, with their name, role and company filled in from the page. If you already have them, Inroads opens them instead.
+- Share a WhatsApp message or any text to read it like a quick capture.
+- Share a contact card (.vcf) or calendar file to go straight to the import review.
+
+### Fixed
+- Quick capture could put what you typed in the address bar if you pressed "Read it" before the page had finished loading.
+
 ### Added: milestone 12 (After the room)
 - The day after a room, Today asks "Who did you meet at X?". Tick the people you met (anyone linked to the room is listed), add people you know or someone new, note what you talked about, and choose when to follow up: tomorrow, in 2 days, or not.
 - Saving logs that you went, links them as "met there", logs a touch with each and puts the follow-ups on Today. New people get where and when you met filled in.

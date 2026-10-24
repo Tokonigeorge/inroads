@@ -48,6 +48,8 @@ export async function recentImports(tx: Tx, limit = 10): Promise<ImportView[]> {
     .select({ id: t.imports.id, type: t.imports.type, status: t.imports.status, createdAt: t.imports.createdAt, counts: t.imports.counts, spaceName: t.spaces.name })
     .from(t.imports)
     .innerJoin(t.spaces, eq(t.spaces.id, t.imports.spaceId))
+    // Things shared into Inroads wait as `share` imports; they aren't imports you'd undo.
+    .where(ne(t.imports.type, "share"))
     .orderBy(desc(t.imports.createdAt))
     .limit(limit);
   return rows.map((r) => ({ ...r, counts: (r.counts ?? {}) as Record<string, unknown> }));
