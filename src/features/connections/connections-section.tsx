@@ -16,6 +16,7 @@ const importNames: Record<string, string> = {
   microsoft: "Outlook",
   apple_ics: "Calendar link",
   contact_picker: "Phone contacts",
+  file: "Files",
 };
 
 /** "today 3:05pm", "yesterday 9am" or "Thursday 23 October", in the user's time zone. */

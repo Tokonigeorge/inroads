@@ -2,6 +2,16 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 8
+
+70. **Files are read on the server straight from the upload and never stored.** The plan said Storage first; on Vercel's free tier a request body is capped at about 4.5 MB, which fits 5,000+ contacts as a vCard, so the upload is parsed in memory instead. Up to 4 MB per upload (several files or a .zip). Bigger exports: upload in parts, or unzip and pick the contacts file.
+71. **Parsed files wait for review in `import_items`, then are deleted.** The review page shows what will happen (new people, details filled in, already up to date, possible duplicates, calendar events) and the first new people. Nothing touches your people until you press Import. Reviews left for two days are cancelled by the daily clean-up.
+72. **File contacts get a fingerprint id** (name, emails, phones), so importing the same file again adds nothing. Matching is still external id → email → phone → name suggestion.
+73. **LinkedIn connections keep where and when you met:** "LinkedIn" and the "Connected On" date. Notes from vCards and CSVs go to the person's notes in that Space.
+74. **Zip archives are read up to 40 MB unpacked**, only .vcf, .csv and .ics entries, and nested zips are ignored. Text is UTF-8, or Windows-1252 when it isn't valid UTF-8 (older Outlook and phone exports).
+75. **Merging keeps one person and soft-deletes the other** (`merged_into_id`). You pick who to keep and, for each differing single detail, which value. Emails, phones and profiles are combined. Touches, promises, goals, rooms, links, research and scores move across; where both had the same Space, goal or room, the kept one's stays and the other's details fill its gaps (notes are joined). Every moved and removed row is recorded, so Undo restores both people exactly, for 30 days.
+76. **Possible duplicates show as a link in People and one card on Today.** "Keep both" dismisses the pair for good.
+
 ## 2026-10-24: milestone 7
 
 62. **Reminders follow the plan's rules (TECH_PLAN §4.5)**: birthdays within a week; promises you owe that are overdue, due within 3 days or undated; promises they owe you once late; people due by the reminder you set; prep for anyone you meet in the next 3 days; rooms from tomorrow to a week out (not 1:1 meetings); context for people you added by hand in the last 14 days; and one "Sort 5 new people" card a day while imports wait. At most 20 cards.

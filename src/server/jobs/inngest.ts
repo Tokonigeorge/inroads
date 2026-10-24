@@ -1,5 +1,5 @@
 import "server-only";
-import { and, isNotNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { Inngest } from "inngest";
 import { getSystemDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
@@ -43,7 +43,14 @@ export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", trigge
     const events = await sys.delete(t.events).where(and(isNotNull(t.events.deletedAt), lt(t.events.deletedAt, cutoff))).returning({ id: t.events.id });
     const nudges = await sys.delete(t.nudgeStates).where(lt(t.nudgeStates.expiresAt, new Date())).returning({ key: t.nudgeStates.key });
     const jobs = await sys.delete(t.jobs).where(lt(t.jobs.createdAt, new Date(Date.now() - 14 * 86_400_000))).returning({ id: t.jobs.id });
-    return { people: people.length, events: events.length, nudges: nudges.length, jobs: jobs.length };
+    // File imports left in review for two days: drop the staged rows (the files were never kept).
+    const stale = await sys
+      .update(t.imports)
+      .set({ status: "cancelled" })
+      .where(and(eq(t.imports.status, "review"), lt(t.imports.createdAt, new Date(Date.now() - 2 * 86_400_000))))
+      .returning({ id: t.imports.id });
+    if (stale.length) await sys.delete(t.importItems).where(inArray(t.importItems.importId, stale.map((s) => s.id)));
+    return { people: people.length, events: events.length, nudges: nudges.length, jobs: jobs.length, staleImports: stale.length };
   });
 });
 

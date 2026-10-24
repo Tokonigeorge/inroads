@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 8 (File imports and merging)
+- Import contacts and calendars from files, in Settings → Connections → Files:
+  - vCard (.vcf) from iPhone, Android (including old quoted-printable exports), Google and Outlook.
+  - CSV from Google (current and older layouts), Outlook and LinkedIn connections (with "connected on" as when you met).
+  - Calendar .ics files, and .zip archives such as Google Takeout or LinkedIn's data export.
+- A review step before anything is saved: how many new people, details filled in, already up to date, possible duplicates and calendar events, with the new people listed. Choose the Space, then import or cancel. New people go to the sorting queue.
+- Importing the same file twice adds nothing. 5,000 contacts import in a few seconds.
+- Possible duplicates (same name, no shared email or phone) can be reviewed side by side in People → "Review possible duplicates": choose who to keep and which details win, or keep both. Everything they had moves across, and a merge can be undone for 30 days.
+
 ### Added: milestone 7 (Today)
 - Today's rooms, in your time zone, with a prep line for everyone you'll see: what they do, your last touch and anything you owe them.
 - A follow-up feed that tells you who to get back to:

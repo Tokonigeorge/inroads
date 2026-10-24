@@ -27,6 +27,7 @@
     "@tanstack/react-virtual": "^3.14.22",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
+    "fflate": "0.8.2",
     "idb-keyval": "^6.3.0",
     "inngest": "^4.26.0",
     "libphonenumber-js": "^1.13.15",

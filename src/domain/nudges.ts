@@ -25,11 +25,13 @@ export type NudgeSnapshot = {
   /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow. */
   rooms: { eventId: string; title: string; date: IsoDate; time: string | null; location: string | null }[];
   triagePending: number;
+  /** Possible duplicates from imports waiting for review. */
+  duplicates?: number;
   /** Keys snoozed or dismissed right now. */
   hidden: Set<string>;
 };
 
-export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "triage";
+export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "triage" | "duplicates";
 export type NudgeAction =
   | { type: "promise_done"; commitmentId: string; label: string }
   | { type: "log_touch"; personId: string; label: string }
@@ -37,6 +39,7 @@ export type NudgeAction =
   | { type: "edit_person"; personId: string; label: string }
   | { type: "open_room"; eventId: string; label: string }
   | { type: "sort"; label: string }
+  | { type: "review_duplicates"; label: string }
   | { type: "snooze"; days: number; label: string }
   | { type: "dismiss"; label: string };
 
@@ -195,6 +198,23 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       person: null,
       actions: [
         { type: "sort", label: "Sort now" },
+        { type: "dismiss", label: "Not today" },
+      ],
+    });
+  }
+
+  if ((s.duplicates ?? 0) > 0) {
+    const n = s.duplicates!;
+    out.push({
+      key: `dups:${t}`,
+      kind: "duplicates",
+      priority: 4,
+      label: "Review",
+      title: `${n} possible ${n === 1 ? "duplicate" : "duplicates"}`,
+      body: "Same name, no shared email or phone. Merge the ones that are the same person.",
+      person: null,
+      actions: [
+        { type: "review_duplicates", label: "Review" },
         { type: "dismiss", label: "Not today" },
       ],
     });

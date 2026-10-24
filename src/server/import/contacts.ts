@@ -16,7 +16,7 @@ const chunks = <T,>(xs: T[], n = CHUNK) => Array.from({ length: Math.ceil(xs.len
 /** Is this "name" really a phone number or email address? */
 export const looksNameless = (name: string) => name.includes("@") || /^[+()\d\s.-]{5,}$/.test(name.trim());
 
-async function loadExisting(tx: Tx): Promise<ExistingPerson[]> {
+export async function loadExisting(tx: Tx): Promise<ExistingPerson[]> {
   const rows = await tx
     .select({
       id: t.people.id,
@@ -83,6 +83,9 @@ export async function applyContacts(tx: Tx, ctx: ImportContext, incoming: Incomi
         personId: ids.get(key)!,
         spaceId: ctx.spaceId,
         tags: tagsSchema.parse(c.labels).slice(0, 20),
+        notes: c.notes ?? null,
+        whereMet: c.whereMet ?? null,
+        metOn: c.metOn ?? null,
         triageState: "pending",
         // Signals for the suggested sort, finished by suggestTriage() once meetings are known.
         triageSuggestion: { starred: c.starred, labels: c.labels, hasName: c.hasName },

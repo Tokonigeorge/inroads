@@ -38,6 +38,8 @@ export function NudgeFeed({ nudges, spaces }: Props) {
         return router.push(`/rooms/${a.eventId}`);
       case "sort":
         return router.push("/people/triage");
+      case "review_duplicates":
+        return router.push("/people/duplicates");
       case "log_touch":
         return capture.open({ mode: "touch", person: { id: a.personId, name: n.person?.name ?? "", spaces: spaces[a.personId] ?? [] } });
       case "promise_done":

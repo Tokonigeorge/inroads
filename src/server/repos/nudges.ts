@@ -5,6 +5,7 @@ import { buildNudges, nudgeStateFor, type NudgePerson, type NudgeSnapshot } from
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 import { pendingTriageCount } from "./connections";
+import { countDuplicates } from "./merge";
 import { personRollup } from "./people";
 import { listUpcoming, type UpcomingItem } from "./rooms";
 
@@ -95,7 +96,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
   const select = sql`select id, name, company, position, last_touched_on::text, r_due_on::text as due_on, cadence, birthday, (created_at at time zone 'UTC')::date::text as created_on from base`;
   const spaceOnly = <T extends SQL | undefined>(col: T) => (ctx.spaceId ? eq(t.commitments.spaceId, ctx.spaceId) : col);
 
-  const [due, birthdays, context, owed, owedToMe, upcoming, triagePending, hidden] = await Promise.all([
+  const [due, birthdays, context, owed, owedToMe, upcoming, triagePending, hidden, duplicates] = await Promise.all([
     tx.execute<Row>(sql`${rollup} ${select} where deleted_at is null and not unsorted and r_due_on <= ${ctx.today}::date order by r_due_on asc, id limit 40`),
     tx.execute<Row>(sql`${rollup} ${select} where deleted_at is null and birthday = any(${sql.raw(`array[${bdays.map((d) => `'${d}'`).join(",")}]`)})`),
     tx.execute<Row>(
@@ -129,6 +130,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, 7),
     pendingTriageCount(tx, ctx.spaceId),
     hiddenKeys(tx),
+    countDuplicates(tx),
   ]);
 
   const soon = upcoming.filter((s) => s.date <= addDays(ctx.today, 3));
@@ -155,6 +157,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     ),
     rooms: upcoming.filter((s) => s.kind !== "meeting").map((s) => ({ eventId: s.eventId, title: s.title, date: s.date, time: s.time, location: s.location })),
     triagePending,
+    duplicates,
     hidden,
   };
 }

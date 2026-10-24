@@ -25,6 +25,10 @@ export type IncomingContact = ContactFields & {
   externalId: string | null;
   labels: string[];
   starred: boolean;
+  /** Relationship details for a new person's Space (file imports: notes, LinkedIn "connected on"). */
+  notes?: string | null;
+  whereMet?: string | null;
+  metOn?: string | null;
 };
 
 export type ExistingPerson = ContactFields & { id: string; externalIds: string[] };

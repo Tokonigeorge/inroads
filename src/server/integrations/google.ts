@@ -95,16 +95,8 @@ type GPerson = {
   memberships?: { contactGroupMembership?: { contactGroupResourceName?: string } }[];
 };
 
-export function urlsToSocials(urls: string[]): Record<string, string> {
-  const s: Record<string, string> = {};
-  for (const raw of urls) {
-    const v = raw.trim();
-    if (!v) continue;
-    const key = /linkedin\.com/i.test(v) ? "linkedin" : /(twitter|x)\.com\//i.test(v) ? "x" : /instagram\.com/i.test(v) ? "instagram" : /tiktok\.com/i.test(v) ? "tiktok" : /github\.com/i.test(v) ? "github" : /substack\.com/i.test(v) ? "substack" : "website";
-    s[key] ??= v;
-  }
-  return s;
-}
+export { urlsToSocials } from "@/importers/common";
+import { urlsToSocials } from "@/importers/common";
 
 export function mapGooglePerson(p: GPerson, region: string, groupNames: Map<string, string>): IncomingContact | null {
   const emails = [...new Set((p.emailAddresses ?? []).map((e) => normaliseEmail(e.value)).filter((x): x is string => Boolean(x)))];

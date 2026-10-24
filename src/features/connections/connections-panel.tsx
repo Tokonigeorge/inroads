@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { providerLabels, type ProviderKind } from "@/contracts/connections";
 import { Button } from "@/ui/button";
 import { Field, Input, Select } from "@/ui/field";
 import { useToast } from "@/ui/toast";
 import { addIcsLinkAction, disconnectAction, importPickedContactsAction, syncNowAction, undoImportAction, type IcsFormState } from "./actions";
+import { FileImport } from "./file-import";
 import { JobProgress } from "./job-progress";
 
 export type ConnectionRow = {
@@ -70,6 +72,9 @@ export function ConnectionsPanel({ connections, spaces, imports, configured, ini
         ))}
         <IcsCard accounts={connections.filter((c) => c.provider === "apple_ics")} spaceId={spaceId} onJob={setJobId} />
         <PhoneCard spaceId={spaceId} />
+        <Card title="Files" what="Contacts or calendar files you've exported. You'll see what will change before anything is saved.">
+          <FileImport spaceId={spaceId} />
+        </Card>
       </ul>
 
       <ImportsList imports={imports} />
@@ -244,7 +249,7 @@ function PhoneCard({ spaceId }: { spaceId: string }) {
           </Button>
         </div>
       ) : (
-        <p className="text-small text-muted">Available in Chrome on Android. On other phones, export a contacts file and import it from Settings later.</p>
+        <p className="text-small text-muted">Available in Chrome on Android. On other phones, export your contacts as a .vcf file and add it under Files.</p>
       )}
     </Card>
   );
@@ -267,10 +272,14 @@ function ImportsList({ imports }: { imports: ImportRow[] }) {
                 {i.what} <span className="font-normal text-muted">· {i.when}</span>
               </p>
               <p className="text-small text-muted">
-                {i.status === "cancelled" ? "Undone" : i.status === "failed" ? "Didn't finish" : i.detail} · {i.spaceName}
+                {i.status === "cancelled" ? "Undone" : i.status === "failed" ? "Didn't finish" : i.status === "review" ? "Waiting for you to review" : i.detail} · {i.spaceName}
               </p>
             </div>
-            {i.status === "done" ? (
+            {i.status === "review" ? (
+              <Button asChild size="sm">
+                <Link href={`/settings/imports/${i.id}`}>Review</Link>
+              </Button>
+            ) : i.status === "done" ? (
               confirming === i.id ? (
                 <div className="flex gap-2">
                   <Button
