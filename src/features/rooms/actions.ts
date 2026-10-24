@@ -1,12 +1,14 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
-import { roomRoles, type RoomInput, type RoomRole } from "@/contracts/rooms";
+import { roomRoles, type RoomDebriefInput, type RoomInput, type RoomRole } from "@/contracts/rooms";
 import type { FormState } from "@/features/forms";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { saveRoomDebrief, skipRoomSession } from "@/server/repos/debrief";
 import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, unlinkPerson, updateRoom } from "@/server/repos/rooms";
+import { userContext } from "@/server/user-context";
 
 const id = z.string().uuid();
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -50,4 +52,21 @@ export async function unlinkPersonAction(roomId: string, personId: string, role:
   const user = await requireUser();
   await db.withUser(user.id, (tx) => unlinkPerson(tx, id.parse(roomId), id.parse(personId), z.enum(roomRoles).parse(role)));
   refresh();
+}
+
+export async function saveRoomDebriefAction(input: RoomDebriefInput): Promise<FormState & { people?: number }> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, async (tx) => saveRoomDebrief(tx, user.id, input, (await userContext(tx)).today));
+  if (!r.ok) return { message: r.message };
+  // Today's card and the room's people both change; this also refreshes pages visited before.
+  revalidatePath("/today");
+  revalidatePath(`/rooms/${input.eventId}`);
+  return { ok: true, people: r.data.people };
+}
+
+export async function skipRoomSessionAction(roomId: string, on: string) {
+  const user = await requireUser();
+  await db.withUser(user.id, (tx) => skipRoomSession(tx, user.id, id.parse(roomId), date.parse(on)));
+  revalidatePath("/today");
+  revalidatePath(`/rooms/${roomId}`);
 }

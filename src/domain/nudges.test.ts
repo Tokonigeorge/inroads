@@ -115,4 +115,18 @@ describe("nudgeStateFor", () => {
     expect(nudgeStateFor("bday:p:2026-10-24", { type: "dismiss" }, now).expiresAt).toEqual(new Date("2026-11-23T00:00:00Z"));
     expect(nudgeStateFor("ctx:p", { type: "dismiss" }, now).expiresAt).toEqual(new Date("2027-04-22T09:00:00Z"));
   });
+  it("after a room: asks who you met for sessions 1-2 days ago, first thing, with a dated key", () => {
+    const afterRooms = [
+      { eventId: "e1", title: "Ikoyi Founders Mixer", date: "2026-10-23", occurrenceOn: "2026-10-23", people: 2 },
+      { eventId: "e2", title: "Fintech Breakfast", date: "2026-10-22", occurrenceOn: "2026-10-22", people: 0 },
+      { eventId: "e3", title: "Too old", date: "2026-10-21", occurrenceOn: "2026-10-21", people: 0 },
+      { eventId: "e4", title: "Today", date: today, occurrenceOn: today, people: 0 },
+    ];
+    const n = buildNudges({ ...empty(), afterRooms });
+    expect(n.map((x) => x.key)).toEqual(["after:e1:2026-10-23", "after:e2:2026-10-22"]);
+    expect(n[0]).toMatchObject({ kind: "after_room", priority: 1, title: "Who did you meet at Ikoyi Founders Mixer?" });
+    expect(n[0].body).toMatch(/^Yesterday\. .*2 people are already linked/);
+    expect(n[0].actions[0]).toEqual({ type: "debrief_room", eventId: "e1", occurrenceOn: "2026-10-23", label: "Who I met" });
+    expect(keys({ afterRooms, hidden: new Set(["after:e1:2026-10-23"]) })).toEqual(["after:e2:2026-10-22"]);
+  });
 });

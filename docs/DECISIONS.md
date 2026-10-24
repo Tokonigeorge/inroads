@@ -2,6 +2,13 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 12 (After the room)
+
+97. **"Who did you meet at X?" appears for rooms, not 1:1 meetings, the day after and the day after that,** until you record the session either way. Its key is `after:<eventId>:<date>`, as planned in TECH_PLAN §2.4. Recording it is what clears it: saving marks that you went, "I didn't go" marks that you didn't.
+98. **Saving who you met** links each person as "met there" for that session, logs one touch per person (type "event", dated the session, with your note) and adds a follow-up promise you owe tomorrow or in 2 days (you choose, or none). New people join the room's Space with where and when you met filled in. New people get an id from the browser and touches are keyed per person and session, so saving twice adds nothing.
+99. **Only people already in the room's Space can be picked;** anyone else is added as someone new there. This keeps Spaces separate (decision #1).
+100. **Pages that change after the debrief are revalidated with `revalidatePath`** (Today and the room), which in this version of Next also refreshes pages you visited before, so the card is gone when you go back.
+
 ## 2026-10-24: P1 plan and milestone 11 (Quick capture)
 
 91. **P1 is built as four milestones: M11 Quick capture, M12 After-the-room follow-up, M13 Share target, M14 Voice debrief.** Voice uses the browser's built-in speech recognition (owner decision): free, no new key, nothing stored by Inroads; where a browser doesn't support it, you type instead.

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { roomSchema, type RoomInput, type RoomRole } from "@/contracts/rooms";
 import { addDays, type IsoDate } from "@/domain/dates";
 import { fromRRule, nextOccurrence, occurrences, toRRule, type Recurrence } from "@/domain/recurrence";
@@ -57,6 +57,26 @@ export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDat
     const e = byId.get(a.eventId)!;
     return { ...a, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0 };
   });
+}
+
+/**
+ * Sessions of rooms (not 1:1 meetings) in the last two days, in the user's zone, that you
+ * haven't recorded yet (no attendance either way): the "Who did you meet?" cards.
+ */
+export async function roomsToDebrief(tx: Tx, spaceId: string | null, today: IsoDate, userTz: string) {
+  const rooms = (await activeRooms(tx, spaceId)).filter((r) => r.kind !== "meeting");
+  const items = expandAgenda(rooms.map(timingOf), addDays(today, -2), addDays(today, -1), userTz);
+  if (!items.length) return [];
+  const ids = [...new Set(items.map((i) => i.eventId))];
+  const [answered, counts] = await Promise.all([
+    tx.select({ eventId: t.eventAttendance.eventId, on: t.eventAttendance.occurrenceOn }).from(t.eventAttendance).where(inArray(t.eventAttendance.eventId, ids)),
+    peopleCounts(tx),
+  ]);
+  const done = new Set(answered.map((a) => `${a.eventId}:${a.on}`));
+  const byId = new Map(rooms.map((r) => [r.id, r]));
+  return items
+    .filter((i) => !done.has(`${i.eventId}:${i.occurrenceOn}`))
+    .map((i) => ({ eventId: i.eventId, title: byId.get(i.eventId)!.title, date: i.date, occurrenceOn: i.occurrenceOn, people: counts.get(i.eventId) ?? 0 }));
 }
 
 /** Recurring rooms with their next date and how often you've gone lately. */

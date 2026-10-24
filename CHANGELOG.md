@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 12 (After the room)
+- The day after a room, Today asks "Who did you meet at X?". Tick the people you met (anyone linked to the room is listed), add people you know or someone new, note what you talked about, and choose when to follow up: tomorrow, in 2 days, or not.
+- Saving logs that you went, links them as "met there", logs a touch with each and puts the follow-ups on Today. New people get where and when you met filled in.
+- "I didn't go" clears the card. Past sessions on a room's page have a "Who did you meet?" link too.
+
 ### Added: milestone 11 (Quick capture)
 - Type one line, like "Met Ada, partnerships @ Paystack, wants intro to Tola by Friday", and Inroads reads it into who, how you were in touch, what was promised (and by whom) and when to follow up.
 - Check it before saving: pick someone you already know or add someone new, edit the touch, tick or edit each promise, set a follow-up date.
