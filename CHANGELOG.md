@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 17 (Room ROI)
+- A room's page shows what it has led to: the people you met there, how many you've kept in touch with (and in the last 60 days), and who has moved forward on your goals since, person by person.
+- Repeating and past rooms in the list show "Met 6 · 4 in touch".
+
 ### Added: milestone 16 (Intro requests)
 - "Ask for an intro" on a person's page: see who in that Space could introduce you and why (they know them, they work at the same company, you've seen them at the same rooms), or pick anyone.
 - A consent-first message to send by WhatsApp or email, or to copy. Pick a goal and the person moves to "Warm path found".

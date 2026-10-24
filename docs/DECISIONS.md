@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 17 (Room ROI)
+
+116. **"What it's led to" counts only what you recorded.** People you marked as met there (M12), touches with them after the day you met (the debrief's own touch doesn't count), whether the latest is in the last 60 days, and forward moves or wins on goals in that Space since you met. Nothing is inferred from who was merely invited. A room with nothing recorded says how to start.
+117. **The rooms list shows "Met 6 · 4 in touch"** on repeating and past rooms, so you can see which rooms are worth your evenings at a glance. Per-room detail is on the room page.
+
 ## 2026-10-24: milestone 16 (Intro requests)
 
 112. **An intro request is a promise the connector owes you** (`commitments.kind = 'intro'`, `about_person_id` = who you want to meet, optional `goal_id`), as planned in TECH_PLAN §2.4. It reads "Introduce you to Tunde Bakare", is due in a week, and shows on Today like any late promise. The database checks that both people and the goal are in the same Space.
