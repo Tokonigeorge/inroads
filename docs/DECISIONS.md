@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 14 (Voice debrief)
+
+105. **Voice uses the browser's speech recognition and feeds quick capture.** Press "Record a voice note", talk, press Stop: the words appear as you speak, and stopping reads them straight away with the same review as a typed line. No audio reaches Inroads. Recording stops by itself after 90 seconds. Where the browser has no speech recognition (Firefox, some in-app browsers), the button isn't shown.
+106. **Quick capture takes up to 1,000 characters** (was 500), enough for a 30–60 second voice note. Speech often comes out in lower case, which the rules parser can miss (it looks for capitalised names), so voice works best with AI set up. The review form is always there to fix a name.
+107. **P1 is complete** (M11–M14). Next is P2 from the brief: intro requests, "Ask your network" search, room ROI and the daily brief by email.
+
 ## 2026-10-24: milestone 13 (Share target)
 
 101. **The installed app is a share target** (`share_target` in `app/manifest.ts`, a multipart POST to `/share`). Android Chrome supports it; iPhone Safari doesn't offer web share targets yet, so there you paste a link or line into quick capture instead.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useId, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { touchTypeLabels, touchTypes, type TouchType } from "@/contracts/people";
 import type { QuickCandidate, QuickReadResult } from "@/contracts/quick-capture";
 import { todayIn } from "@/domain/dates";
@@ -12,9 +12,12 @@ import { sendCapture } from "@/features/offline/outbox";
 import { Button } from "@/ui/button";
 import { Field, Input, Select, Textarea } from "@/ui/field";
 import { quickCapturePlan, type QuickReview } from "./plan";
+import { VoiceButton } from "./voice";
 
 const localToday = () => todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone);
 const noSubscribe = () => () => {};
+/** Long enough for a 30-60 second voice note. */
+const MAX_LINE = 1000;
 const EXAMPLE = "Met Ada, partnerships @ Paystack, wants intro to Tola by Friday";
 
 type Read = QuickReadResult & {
@@ -31,6 +34,8 @@ export function QuickCapture({ initialLine = "", onDone, hint = EXAMPLE, below }
   const ready = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const form = useRef<HTMLFormElement>(null);
+  const lineRef = useRef<HTMLTextAreaElement>(null);
   const options = spaces?.spaces ?? [];
   const defaultSpace = spaces?.selectedId ?? options[0]?.id ?? "";
 
@@ -82,15 +87,16 @@ export function QuickCapture({ initialLine = "", onDone, hint = EXAMPLE, below }
 
   return (
     <div className="grid gap-6">
-      <form onSubmit={submit} className="grid gap-4" noValidate>
-        <Field label="What happened?" hint={`One line, e.g. “${hint}”.`} error={error ?? undefined}>
+      <form ref={form} onSubmit={submit} className="grid gap-4" noValidate>
+        <Field label="What happened?" hint={`One line or a short voice note, e.g. “${hint}”.`} error={error ?? undefined}>
           {({ id, describedBy, invalid }) => (
             <Textarea
+              ref={lineRef}
               id={id}
               name="line"
               rows={2}
               defaultValue={initialLine}
-              maxLength={500}
+              maxLength={MAX_LINE}
               autoFocus
               aria-describedby={describedBy}
               aria-invalid={invalid}
@@ -121,6 +127,11 @@ export function QuickCapture({ initialLine = "", onDone, hint = EXAMPLE, below }
             {busy ? "Reading…" : "Read it"}
           </Button>
         </div>
+        <VoiceButton
+          disabled={busy || !ready}
+          onText={(text) => lineRef.current && (lineRef.current.value = text.slice(0, MAX_LINE))}
+          onDone={() => form.current?.requestSubmit()}
+        />
       </form>
       {below}
     </div>

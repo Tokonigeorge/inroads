@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 14 (Voice debrief)
+- Record a voice note in the capture sheet: say who you met and what was promised, press Stop, and check what was read before saving. Your browser turns speech into text; no audio is sent to Inroads.
+- Quick capture now takes up to 1,000 characters.
+
 ### Added: milestone 13 (Share target)
 - Install Inroads on Android and it appears in the share menu of other apps.
 - Share a LinkedIn (or X, Instagram, TikTok, GitHub) profile to add that person, with their name, role and company filled in from the page. If you already have them, Inroads opens them instead.

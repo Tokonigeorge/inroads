@@ -121,8 +121,8 @@ export function SharedProfile({ shareId, read, spaces, spaceId, existing }: { sh
 export function SharedText({ shareId, text }: { shareId: string; text: string }) {
   return (
     <div className="grid max-w-[640px] gap-4">
-      {text.length > 500 ? <p className="text-small text-muted">Only the first 500 characters are read. Trim it to the part that matters.</p> : null}
-      <QuickCapture initialLine={text.slice(0, 500)} hint="Check who it's about and what was promised" onDone={() => void discardShareAction(shareId)} />
+      {text.length > 1000 ? <p className="text-small text-muted">Only the first 1,000 characters are read. Trim it to the part that matters.</p> : null}
+      <QuickCapture initialLine={text.slice(0, 1000)} hint="Check who it's about and what was promised" onDone={() => void discardShareAction(shareId)} />
       <div>
         <Discard shareId={shareId} />
       </div>

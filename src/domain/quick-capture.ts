@@ -148,7 +148,7 @@ function promiseFrom(clause: string, name: string | null, today: IsoDate): Quick
 }
 
 export function parseQuickCapture(line: string, today: IsoDate): QuickDraft {
-  const text = line.replace(/\s+/g, " ").trim().slice(0, 500);
+  const text = line.replace(/\s+/g, " ").trim().slice(0, 1000);
   const draft: QuickDraft = {
     name: null,
     company: null,

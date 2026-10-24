@@ -10,7 +10,7 @@ A personal relationship and networking tool for people whose work depends on who
 
 ## Stack
 
-Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Inngest for background jobs (optional) and the Anthropic API for AI features. Hosted on Vercel's free tier. Email (Resend) arrives in P1.
+Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth) · Drizzle ORM · Zod · Vitest · Playwright. Inngest for background jobs (optional) and the Anthropic API for AI features. Hosted on Vercel's free tier. Email (Resend) arrives in P2, with the daily brief by email.
 
 ## Run it locally
 
@@ -65,7 +65,7 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 | `TEST_DATABASE_URL` | tests | Any Postgres 15+ server with contrib. Tests create their own databases on it. |
 | `PW_CHROMIUM_PATH` | tests, optional | Use an installed Chromium instead of `playwright install`. |
 
-`RESEND_API_KEY` arrives with email (P1).
+`RESEND_API_KEY` arrives with the emailed daily brief (P2).
 
 ### Connect Google (Contacts and Calendar)
 

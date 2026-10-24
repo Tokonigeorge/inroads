@@ -32,7 +32,7 @@ export const quickDraftSchema = z.object({
 });
 
 export const quickReadSchema = z.object({
-  line: z.string().trim().min(2, "Type what happened.").max(500, "Keep it to one line."),
+  line: z.string().trim().min(2, "Type what happened.").max(1000, "Keep it under 1,000 characters."),
   spaceId: z.string().uuid(),
 });
 
