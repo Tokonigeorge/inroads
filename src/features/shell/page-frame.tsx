@@ -7,7 +7,7 @@ export function PageFrame({ children, wide }: { children: ReactNode; wide?: bool
 
 export function LoadingRows({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="grid gap-3" aria-busy="true" aria-label="Loading">
+    <div className="grid gap-3" role="status" aria-busy="true" aria-label="Loading">
       <div className="h-8 w-56 rounded-md bg-sunken" />
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="h-11 rounded-md bg-sunken" />

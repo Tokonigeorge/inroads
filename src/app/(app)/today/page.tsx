@@ -25,12 +25,24 @@ async function Today() {
   const { profile, counts } = await getAccountOverview(user.id);
   const today = todayIn(profile.timezone);
   const firstName = profile.name.split(/\s+/)[0];
+  const setUp = !(profile.onboardingState as { completedAt?: string } | null)?.completedAt;
   return (
     <>
       <PageHeader
         title={formatLongDate(today)}
         subtitle={firstName ? `Welcome back, ${firstName}.` : "Welcome to Inroads."}
       />
+      {setUp ? (
+        <section className="mb-8 grid gap-3 rounded-md border border-border bg-surface p-4">
+          <h2 className="font-semibold">Finish setting up</h2>
+          <p className="text-muted">Set your time zone and connect Google, Outlook or a calendar link so Inroads knows who you meet.</p>
+          <div>
+            <Button asChild variant="primary" size="sm">
+              <Link href="/onboarding">Set up Inroads</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-8 md:grid-cols-[3fr_2fr]">
         <Section title="Today's rooms">
           <EmptyState>Your agenda for today appears here once you add rooms or connect a calendar.</EmptyState>

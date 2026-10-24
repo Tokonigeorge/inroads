@@ -7,8 +7,8 @@ import { createDb } from "@/server/db/with-user";
 
 export function connect() {
   const sql = postgres(inject("dbUrl"), { max: 4, onnotice: () => {} });
-  const db = createDb(drizzle(sql, { schema }));
-  return { sql, db };
+  const base = createDb(drizzle(sql, { schema }));
+  return { sql, db: base, sys: base.unsafeSystem };
 }
 
 /** Creates an auth user (as Supabase Auth would); the bootstrap trigger adds profile + Spaces. */

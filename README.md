@@ -53,10 +53,44 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 | `SUPABASE_SERVICE_ROLE_KEY` | later milestones | Server only. Never expose it. |
 | `APP_URL` | server | Public base URL. |
 | `NEXT_PUBLIC_MAGIC_LINK_ENABLED` | optional | `true` once a sending domain is set up. |
+| `TOKEN_ENC_KEYS` | connections | JSON map of key id to a base64 32-byte key, e.g. `{"v1":"…"}`. Encrypts OAuth tokens and calendar links (AES-256-GCM). Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. |
+| `TOKEN_ENC_CURRENT` | connections | The key id new secrets are encrypted with (`v1`). To rotate, add `v2` to the map, set this to `v2`, and keep `v1` until old rows have re-synced. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google connection | See *Connect Google* below. Without them the Google card says it isn't set up. |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | Outlook connection | See *Connect Outlook* below. `MICROSOFT_TENANT` is optional (default `common`). |
+| `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | background sync | From Inngest (free tier). Without them a sync runs right after the request that started it, and there are no scheduled re-syncs. |
 | `TEST_DATABASE_URL` | tests | Any Postgres 15+ server with contrib. Tests create their own databases on it. |
 | `PW_CHROMIUM_PATH` | tests, optional | Use an installed Chromium instead of `playwright install`. |
 
-Later milestones add `ANTHROPIC_API_KEY`, `AI_MODEL_FAST`, `AI_MODEL_STRONG`, `INNGEST_*`, `GOOGLE_CLIENT_*`, `MICROSOFT_CLIENT_*`, `TOKEN_ENC_KEYS`, `TOKEN_ENC_CURRENT` and `RESEND_API_KEY`.
+Later milestones add `ANTHROPIC_API_KEY`, `AI_MODEL_FAST`, `AI_MODEL_STRONG` and `RESEND_API_KEY`.
+
+### Connect Google (Contacts and Calendar)
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project (or reuse the one used for sign-in).
+2. APIs & Services → Library: enable the **People API** and the **Google Calendar API**.
+3. OAuth consent screen: User type *External*, publishing status *Testing*. Add the scopes `contacts.readonly`, `calendar.events.readonly` and `calendar.calendarlist.readonly`. Under *Test users*, add the Google accounts that will use it (up to 100).
+4. Credentials → Create credentials → OAuth client ID → *Web application*. Authorised redirect URIs:
+   - `http://localhost:3000/api/oauth/google/callback`
+   - `https://inroads.vercel.app/api/oauth/google/callback`
+5. Put the client id and secret in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+While the app is in Testing, Google expires the connection after 7 days; Inroads then shows "Needs reconnecting". Publishing the app (and Google's verification for these scopes) needs a domain with a privacy policy; see `docs/TECH_PLAN.md` §12.
+
+### Connect Outlook (Microsoft 365 and Outlook.com)
+
+1. In the [Azure portal](https://portal.azure.com/) → Microsoft Entra ID → App registrations → New registration. Supported account types: *Accounts in any organizational directory and personal Microsoft accounts*.
+2. Redirect URI (Web): `https://inroads.vercel.app/api/oauth/microsoft/callback` (add the localhost one too).
+3. API permissions → Microsoft Graph → Delegated: `User.Read`, `Contacts.Read`, `Calendars.Read`, `offline_access`.
+4. Certificates & secrets → New client secret. Put the Application (client) ID and the secret value in `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`.
+
+### Background jobs (Inngest)
+
+1. Create a free account at [inngest.com](https://www.inngest.com/) and an app.
+2. Copy the Event key and Signing key into `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` on Vercel.
+3. After deploying, sync the app in Inngest with the URL `https://inroads.vercel.app/api/inngest`. That registers the sync, the 30-minute re-sync schedule and the daily clean-up.
+
+Locally, `npx inngest-cli@latest dev` runs the dev server; or leave the keys unset and syncs run inline.
+
+Calendar links (Apple iCloud, Outlook "publish", any `.ics`) and the Android Contact Picker need no setup.
 
 ## Tests
 
@@ -68,7 +102,7 @@ pnpm build && pnpm test:e2e   # Playwright on desktop and mobile viewports, with
 ```
 
 - **Database tests** run against plain Postgres. `supabase/tests/supabase-stub.sql` stands in for the parts of Supabase the migrations use: the `auth` schema, `auth.uid()` and the roles.
-- **End-to-end tests** sign in through a small fake auth server (`tests/e2e/support/fake-supabase.ts`) that signs real ES256 tokens, so the app's real token verification runs unchanged. The build must use `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54399` and `NEXT_PUBLIC_SUPABASE_ANON_KEY=e2e-anon-key` (CI does this).
+- **End-to-end tests** sign in through a small fake auth server (`tests/e2e/support/fake-supabase.ts`) that signs real ES256 tokens, so the app's real token verification runs unchanged. The same server plays Google (OAuth, People, Calendar) via `TEST_FAKE_PROVIDERS_URL`, so the connect → sync → sort flow runs end to end. The build must use `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54399` and `NEXT_PUBLIC_SUPABASE_ANON_KEY=e2e-anon-key` (CI does this).
 
 ## Database changes
 

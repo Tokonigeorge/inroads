@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 5 (Connections)
+- Connect Google (Contacts and Calendar, read-only) and Outlook (Microsoft 365 and Outlook.com), from Settings → Connections or during onboarding.
+  - Tokens are encrypted at rest; scopes are the narrowest read-only ones.
+  - The first sync starts as soon as you're back from Google, with live progress ("Reading your Google contacts (1,200 so far)").
+  - Re-syncs every 30 minutes with Inngest, only fetching what changed. "Sync now" and "Disconnect" on each account.
+  - An expired Google connection says "Needs reconnecting" instead of failing silently.
+- Calendar links: paste an iCloud public calendar, Outlook "publish" link or any `.ics` URL. Links are fetched safely (https only, public addresses only, size and time limits) and stored encrypted.
+- Phone contacts on Android through the Contact Picker. Only the people you pick are shared.
+- Imports, for all of the above:
+  - Matches by external id, then email, then phone. A name-only match never merges; it's flagged as a possible duplicate.
+  - Existing people gain missing details without anything being overwritten.
+  - Past meetings become touches; events become rooms (repeating ones too), with people linked by role.
+  - Recent imports in Settings → Connections, each with Undo.
+- Sorting new people (People → "Sort N new people"): everyone gets a suggested sort with a reason. Use the suggested sort for everyone in one go, or go one at a time with Priority, Keep or Not now and an optional reminder.
+- Onboarding: your name, time zone and phone country, then connect, then sort. Today shows "Finish setting up" until it's done.
+
+### Fixed
+- Loading placeholders had a label but no role, which screen readers ignore. They're now announced as loading.
+
 ### Added: milestone 4 (Rooms)
 - Repeating rooms, ported from the prototype's `occurrences()` and `nthWeekday()`:
   - Weekly (on several days), every 2 weeks, monthly (on a date, or the 1st–5th or last weekday), every 3 months, yearly, with an optional end date.

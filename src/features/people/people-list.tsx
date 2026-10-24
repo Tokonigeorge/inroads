@@ -25,6 +25,8 @@ type Props = {
   showSpaces: boolean;
   tags: string[];
   circles: { id: string; name: string }[];
+  /** People from imports waiting to be sorted. */
+  toSort: number;
 };
 
 const ROW = 60;
@@ -42,7 +44,7 @@ function trailing(p: PersonListItem, today: string) {
 }
 
 /** Virtualised, keyset-paged list. Handles 10,000+ people without slowing down. */
-export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circles }: Props) {
+export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circles, toSort }: Props) {
   const capture = useCapture();
   const router = useRouter();
   const params = useParams<{ id?: string }>();
@@ -114,6 +116,12 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
             </Button>
           </div>
         </div>
+        {toSort > 0 ? (
+          <Link href="/people/triage" className="flex items-center justify-between rounded-md bg-accent-soft px-3 py-2 text-small font-[550] text-accent hover:underline">
+            Sort {toSort.toLocaleString("en-GB")} new {toSort === 1 ? "person" : "people"}
+            <span aria-hidden>→</span>
+          </Link>
+        ) : null}
         <Input
           ref={search}
           type="search"

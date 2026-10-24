@@ -4,7 +4,7 @@ import { ListDetailShell } from "@/features/shell/list-detail-shell";
 
 function ListSkeleton() {
   return (
-    <div className="grid gap-2 p-4" aria-busy="true" aria-label="Loading rooms">
+    <div className="grid gap-2 p-4" role="status" aria-busy="true" aria-label="Loading rooms">
       <div className="h-8 w-32 rounded-md bg-sunken" />
       {Array.from({ length: 6 }, (_, i) => (
         <div key={i} className="h-12 rounded-md bg-sunken" />

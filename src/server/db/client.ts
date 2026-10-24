@@ -23,3 +23,9 @@ function getDb(): Db {
 export const db: Pick<Db, "withUser"> = {
   withUser: (userId, fn) => getDb().withUser(userId, fn),
 };
+
+/**
+ * Bypasses RLS. Only for work with no signed-in user or that touches secrets users can't read:
+ * OAuth tokens, job progress, scheduled clean-up. Import it only from `src/server/system/`.
+ */
+export const getSystemDb = () => getDb().unsafeSystem;

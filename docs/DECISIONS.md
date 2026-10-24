@@ -2,6 +2,20 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 5
+
+44. **Connected-account secrets are encrypted in the app (AES-256-GCM, keys in `TOKEN_ENC_KEYS`, versioned for rotation)**, and only a system-level store (`src/server/system/connections.ts`) decrypts them. Users can read their connection's status through RLS, but not the encrypted columns. Calendar links count as secrets too, so only the host and a short fingerprint are stored in the clear.
+45. **Import order: external id → email → phone → name.** A name-only match never merges; it raises a "possible duplicate" suggestion (merge UI in milestone 8). Existing people only gain missing details; nothing they have is overwritten.
+46. **New people from an import land in triage with a suggested sort.** Starred in Google or several recent meetings → Priority; a name and a company or role → Keep; a bare number or email → Not now. One button accepts every suggestion; the queue lets you go one by one (keys `1 2 3`). Not now archives the person (searchable, no reminders).
+47. **Calendar imports log past meetings as touches and turn events into rooms.** Up to 12 guests per event and 200 new people per sync come from calendars; bigger meetings only link people you already have. *Why:* an all-hands invite shouldn't add 400 people to triage.
+48. **Google contact deletions are ignored.** Deleting someone in Google doesn't delete them in Inroads, where you may have notes about them.
+49. **Undo removes the people, rooms and touches an import created. Details it filled in on people you already had stay.** Undoing a connected account's import keeps its sync position, so the same people don't come straight back; disconnect to stop syncing.
+50. **Disconnecting forgets the tokens (and revokes them at Google).** People and rooms already imported stay.
+51. **Background syncs are one Inngest step per sync, with progress written to the `jobs` table and polled by the page once a second.** Supabase Realtime push (#9) is deferred; polling is simple and works through flaky networks. Without Inngest keys, a sync runs right after the request (`after()`), so local development and small deployments need no extra service.
+52. **Outlook events are read in the user's time zone** (`Prefer: outlook.timezone`). Graph doesn't return the organiser's zone, so a meeting set in another zone shows at the right time but is stored in yours.
+53. **Onboarding is two steps (about you, then connect), and can be skipped.** Today shows "Finish setting up" until it's done. Email sign-up and Google sign-in both land on Today.
+54. **Phone contacts use the browser's Contact Picker (Chrome on Android).** Only the contacts the user picks are sent. Other phones get a note to use a contacts file (file importers arrive in milestone 8).
+
 ## 2026-10-24: milestone 4
 
 39. **Repeats are stored as canonical RRULE text plus a separate `until_on` date.** The rule never carries UNTIL; COUNT from calendar feeds is turned into an end date when imported. *Why:* one obvious place for "when does it end", and the rule text stays stable.

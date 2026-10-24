@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { ExampleDataForm } from "@/features/settings/example-data-form";
 import { SpacesSettings } from "@/features/spaces/spaces-settings";
@@ -38,6 +39,17 @@ async function Settings() {
       </Section>
 
       <SpacesSettings spaces={spaces} />
+
+      <Section title="Connections">
+        <div className="grid gap-3">
+          <p className="text-muted">Bring in contacts and meetings from Google, Outlook, a calendar link or your phone.</p>
+          <div>
+            <Button asChild>
+              <Link href="/settings/connections">Manage connections</Link>
+            </Button>
+          </div>
+        </div>
+      </Section>
 
       <Section title="Data">
         <div id="data" className="grid gap-3">

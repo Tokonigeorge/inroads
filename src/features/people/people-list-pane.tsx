@@ -1,17 +1,23 @@
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { pendingTriageCount } from "@/server/repos/connections";
 import { listCircles, listTags } from "@/server/repos/people";
 import { userContext } from "@/server/user-context";
 import { PeopleList } from "./people-list";
 
 export async function PeopleListPane() {
   const user = await requireUser();
-  const { view, tags, circles, today } = await db.withUser(user.id, async (tx) => {
+  const { view, tags, circles, today, toSort } = await db.withUser(user.id, async (tx) => {
     const view = await loadSpaceView(tx);
     const spaceId = view.selected?.id ?? null;
-    const [tags, circles, ctx] = await Promise.all([listTags(tx, spaceId), spaceId ? listCircles(tx, spaceId) : Promise.resolve([]), userContext(tx)]);
-    return { view, tags: tags.map((t) => t.tag), circles: circles.map((c) => ({ id: c.id, name: c.name })), today: ctx.today };
+    const [tags, circles, ctx, toSort] = await Promise.all([
+      listTags(tx, spaceId),
+      spaceId ? listCircles(tx, spaceId) : Promise.resolve([]),
+      userContext(tx),
+      pendingTriageCount(tx, spaceId),
+    ]);
+    return { view, tags: tags.map((t) => t.tag), circles: circles.map((c) => ({ id: c.id, name: c.name })), today: ctx.today, toSort };
   });
   return (
     <PeopleList
@@ -22,6 +28,7 @@ export async function PeopleListPane() {
       showSpaces={view.spaces.length > 1}
       tags={tags}
       circles={circles}
+      toSort={toSort}
     />
   );
 }

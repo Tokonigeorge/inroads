@@ -40,6 +40,12 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_URL: FAKE_SUPABASE_URL,
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "e2e-anon-key",
         APP_URL: `http://localhost:${PORT}`,
+        // Google is played by the fake services server; tokens are encrypted with a test-only key.
+        TEST_FAKE_PROVIDERS_URL: FAKE_SUPABASE_URL,
+        GOOGLE_CLIENT_ID: "e2e-google-client",
+        GOOGLE_CLIENT_SECRET: "e2e-google-secret",
+        TOKEN_ENC_KEYS: JSON.stringify({ e2e: Buffer.alloc(32, 7).toString("base64") }),
+        TOKEN_ENC_CURRENT: "e2e",
       },
     },
   ],
