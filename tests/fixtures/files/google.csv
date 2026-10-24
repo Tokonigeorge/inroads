@@ -1,0 +1,4 @@
+First Name,Middle Name,Last Name,Nickname,Birthday,Notes,Labels,E-mail 1 - Label,E-mail 1 - Value,E-mail 2 - Value,Phone 1 - Label,Phone 1 - Value,Organization Name,Organization Title,Website 1 - Value,Address 1 - City
+Tunde,,Bakare,,--05-14,"Line one
+line two",* myContacts ::: Clients,Work,tunde@meridian.example ::: t.bakare@gmail.com,,Mobile,+234 803 999 0000 ::: 01 234 5678,Meridian Telecoms,Head of Procurement,https://x.com/tunde,Lagos
+,,,,,,* myContacts,,,,Mobile,0805 111 2222,,,,

@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792795782497,
+      "tag": "20261023224942_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792795784515,
+      "tag": "20261023224944_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792795824183,
+      "tag": "20261023225024_functions_and_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792796205208,
+      "tag": "20261023225645_goals_example",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792798409573,
+      "tag": "20261023233329_research_guardrail_all_non_work",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792836182212,
+      "tag": "20261024100302_import_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792836183397,
+      "tag": "20261024100303_import_tracking_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792845554888,
+      "tag": "20261024123914_data_exports",
+      "breakpoints": true
+    }
+  ]
+}

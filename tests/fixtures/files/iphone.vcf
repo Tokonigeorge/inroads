@@ -1,0 +1,32 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Adebayo;Kemi;;;
+FN:Kemi Adebayo
+ORG:Paystack;
+TITLE:Head of Partnerships
+EMAIL;type=INTERNET;type=WORK;type=pref:Kemi@Paystack.example
+TEL;type=CELL;type=VOICE;type=pref:0803 123 4567
+item1.URL;type=pref:https://www.linkedin.com/in/kemi
+item1.X-ABLabel:_$!<HomePage>!$_
+ADR;type=WORK:;;12 Admiralty Way;Lagos;Lagos State;;Nigeria
+BDAY:1990-03-14
+NOTE:Met at Lagos Startup Week\, keen on fintech
+CATEGORIES:Investors,starred
+END:VCARD
+BEGIN:VCARD
+VERSION:2.1
+N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Nwos=C3=BA;Ifeoma;;;
+FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Ifeoma Nwos=C3=BA
+TEL;CELL:+234 812 345 6789
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+TEL;TYPE=CELL:08098765432
+END:VCARD
+BEGIN:VCARD
+VERSION:4.0
+FN:Folded
+  Name
+EMAIL:folded@example.com
+BDAY:--0601
+END:VCARD

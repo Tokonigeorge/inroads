@@ -1,0 +1,129 @@
+# Decisions
+
+Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
+
+## 2026-10-24: milestone 10 (Settings)
+
+86. **Exports are kept in Postgres (`exports`, a zip per user), not Storage, and downloaded through `/api/v1/exports/[id]`** under RLS, so only the signed-in owner can fetch one. A new export replaces the old one, and exports are deleted after 7 days. *Why:* nothing else uses Storage (files are parsed in memory, #70), and a session-checked download is safer than a signed link that works for anyone holding it. *Reverse:* write the zip to a private bucket and hand out a short-lived signed URL.
+87. **The export has every table as `inroads.json` plus four CSVs** (people with one row per Space, touches, promises, rooms). Connection secrets never leave the database; staging rows, jobs, nudge states and AI usage are left out as housekeeping. CSV cells that a spreadsheet would run as a formula are prefixed with `'`, but phone numbers like `+234…` are left alone.
+88. **Deleting an account** asks for the email typed exactly (case doesn't matter), asks Google to revoke its tokens, forgets every stored secret, then deletes the sign-in through the Supabase Admin API (or the `auth.users` row directly without a service key), which cascades to every row. There is no grace period: the confirmation step is the safeguard, and the copy points to Export first.
+89. **Daily briefs are prepared at your brief time only in Spaces where you wrote a brief in the last week.** A scheduled job (every 30 minutes, with Inngest) checks each person's brief time in their own zone. *Why:* briefs cost AI calls; preparing them for people who never read them would use up the app's monthly budget. Briefs still appear on demand from Today.
+90. **Profile fields** (what you do, where you're based, background, what you can offer, industries) are optional and feed AI context only. Time zone, phone country and brief time share their pickers with onboarding.
+
+## 2026-10-24: milestone 9 (AI)
+
+77. **Every AI call goes through one server-side runner** (`src/server/ai/run.ts`). It checks the daily and monthly limits, picks the model tier, records tokens and cost in `ai_usage`, and turns failures into plain messages. The key and model ids never reach the browser.
+78. **Structured outputs only when no web tools are used.** Research, Look up and Suggested rooms search the web, so their reply is read as JSON from the text, missing fields are filled leniently, and a reply in the wrong shape is repaired once by the fast model. If that fails, the person sees "Couldn't read the result. Try again." *Reverse:* drop the extraction path once structured outputs work alongside web tools.
+79. **The strong tier asks for server-side fallbacks**, so a busy model doesn't fail a research run. The fast tier doesn't.
+80. **Get to know and Check they're real are stored like research**, as dossier versions for that one Space, and can be deleted. Dating never offers full research, only these two.
+81. **Nothing AI writes lands silently.** Research, chat imports and scoring produce suggestions (a field, a social link, a goal link, a touch, a promise, interests or a note) with Accept, Edit and Discard. Research summaries and briefs are shown as AI output, not stored as facts.
+82. **Chat imports and card scans run while you wait and keep no raw text or image**; only accepted suggestions are saved. A card scan prefills the Add person form.
+83. **Drafts are written in one go, not streamed** to the browser. They are short, and this keeps the client free of model plumbing. Sending one offers to log a touch.
+84. **Long AI jobs (research, Look up, Suggested rooms, briefs, scoring) run as background jobs** with progress, through Inngest when it is set up and right after the request otherwise (pages that start them allow 300 seconds).
+85. **Warm paths from Look up are checked against your own people in that Space**; names the model invents are dropped.
+
+## 2026-10-24: milestone 8
+
+70. **Files are read on the server straight from the upload and never stored.** The plan said Storage first; on Vercel's free tier a request body is capped at about 4.5 MB, which fits 5,000+ contacts as a vCard, so the upload is parsed in memory instead. Up to 4 MB per upload (several files or a .zip). Bigger exports: upload in parts, or unzip and pick the contacts file.
+71. **Parsed files wait for review in `import_items`, then are deleted.** The review page shows what will happen (new people, details filled in, already up to date, possible duplicates, calendar events) and the first new people. Nothing touches your people until you press Import. Reviews left for two days are cancelled by the daily clean-up.
+72. **File contacts get a fingerprint id** (name, emails, phones), so importing the same file again adds nothing. Matching is still external id → email → phone → name suggestion.
+73. **LinkedIn connections keep where and when you met:** "LinkedIn" and the "Connected On" date. Notes from vCards and CSVs go to the person's notes in that Space.
+74. **Zip archives are read up to 40 MB unpacked**, only .vcf, .csv and .ics entries, and nested zips are ignored. Text is UTF-8, or Windows-1252 when it isn't valid UTF-8 (older Outlook and phone exports).
+75. **Merging keeps one person and soft-deletes the other** (`merged_into_id`). You pick who to keep and, for each differing single detail, which value. Emails, phones and profiles are combined. Touches, promises, goals, rooms, links, research and scores move across; where both had the same Space, goal or room, the kept one's stays and the other's details fill its gaps (notes are joined). Every moved and removed row is recorded, so Undo restores both people exactly, for 30 days.
+76. **Possible duplicates show as a link in People and one card on Today.** "Keep both" dismisses the pair for good.
+
+## 2026-10-24: milestone 7
+
+62. **Reminders follow the plan's rules (TECH_PLAN §4.5)**: birthdays within a week; promises you owe that are overdue, due within 3 days or undated; promises they owe you once late; people due by the reminder you set; prep for anyone you meet in the next 3 days; rooms from tomorrow to a week out (not 1:1 meetings); context for people you added by hand in the last 14 days; and one "Sort 5 new people" card a day while imports wait. At most 20 cards.
+63. **One card per person.** If someone is due and also has a promise, a meeting or a birthday coming, only the sharper card shows.
+64. **Unsorted and archived people never get reminders**, and example people don't get "add context" cards.
+65. **Prep cards say who, when, your last touch and what you owe.** "Research" and "Look up" buttons join them with AI (milestone 9).
+66. **Snooze and dismiss are stored with an expiry** (`nudge_states`), and the daily clean-up deletes expired rows. Dismissing a dated card (a birthday, a session) keeps the row 30 days past that date; undated ones 180 days. Every hide has Undo.
+67. **Today follows the Space switcher.** "All Spaces" merges every Space's reminders and rooms in the list only; nothing is combined for AI (#1).
+68. **⌘K palette searches names of people, rooms and goals across all Spaces** and runs commands (capture, add a room or goal, sort, connect, switch Space, go to a section). `g` then `t p r g s` jumps to a section; `?` lists every shortcut. On a phone the palette opens from the search button in the header.
+69. **The daily and weekly AI brief arrives with milestone 9.** Today has no empty brief box until then.
+
+## 2026-10-24: milestone 6
+
+55. **A goal uses its Space's pipeline stages unless you give it its own.** Changing either is refused if it would leave someone at a stage that no longer exists; the message names the stage and how many people are at it.
+56. **Weekly progress counts three things, all from explicit links** (fixes brief bugs 7 and 8): touches in the goal's Space with people on the goal, sessions you went to of rooms tied to the goal, and stage moves. The meter is touches plus rooms against the weekly target; moves are reported beside it ("2 moved forward · 1 won"). Weeks run Monday to Sunday in your time zone.
+57. **Moving to the first end stage (usually "Won") counts as won; moving to a later end stage ("Closed") doesn't count as progress.** Moving back is recorded but not counted.
+58. **People join a goal only when you add them**: from the goal, from their page, or as a new person ("Someone you want to meet"), who is created in the goal's Space. Being added to a goal also sorts them out of the import queue.
+59. **No drag and drop in the pipeline yet.** Each person has a stage picker, and on desktop `[` and `]` move the focused person (TECH_PLAN §7.2; drag is P2). On a phone, stages are stacked and empty ones are hidden.
+60. **Pause, archive and delete are separate.** Paused goals stay listed but don't count or appear as choices on people's pages; archived goals leave the list (still viewable under "Archived goals"); deleting removes the pipeline but keeps the people and unties the rooms.
+61. **"People to meet" suggestions (brief §4.2) come with AI in milestone 9.** For now you add them by name.
+
+## 2026-10-24: milestone 5
+
+44. **Connected-account secrets are encrypted in the app (AES-256-GCM, keys in `TOKEN_ENC_KEYS`, versioned for rotation)**, and only a system-level store (`src/server/system/connections.ts`) decrypts them. Users can read their connection's status through RLS, but not the encrypted columns. Calendar links count as secrets too, so only the host and a short fingerprint are stored in the clear.
+45. **Import order: external id → email → phone → name.** A name-only match never merges; it raises a "possible duplicate" suggestion (merge UI in milestone 8). Existing people only gain missing details; nothing they have is overwritten.
+46. **New people from an import land in triage with a suggested sort.** Starred in Google or several recent meetings → Priority; a name and a company or role → Keep; a bare number or email → Not now. One button accepts every suggestion; the queue lets you go one by one (keys `1 2 3`). Not now archives the person (searchable, no reminders).
+47. **Calendar imports log past meetings as touches and turn events into rooms.** Up to 12 guests per event and 200 new people per sync come from calendars; bigger meetings only link people you already have. *Why:* an all-hands invite shouldn't add 400 people to triage.
+48. **Google contact deletions are ignored.** Deleting someone in Google doesn't delete them in Inroads, where you may have notes about them.
+49. **Undo removes the people, rooms and touches an import created. Details it filled in on people you already had stay.** Undoing a connected account's import keeps its sync position, so the same people don't come straight back; disconnect to stop syncing.
+50. **Disconnecting forgets the tokens (and revokes them at Google).** People and rooms already imported stay.
+51. **Background syncs are one Inngest step per sync, with progress written to the `jobs` table and polled by the page once a second.** Supabase Realtime push (#9) is deferred; polling is simple and works through flaky networks. Without Inngest keys, a sync runs right after the request (`after()`), so local development and small deployments need no extra service.
+52. **Outlook events are read in the user's time zone** (`Prefer: outlook.timezone`). Graph doesn't return the organiser's zone, so a meeting set in another zone shows at the right time but is stored in yours.
+53. **Onboarding is two steps (about you, then connect), and can be skipped.** Today shows "Finish setting up" until it's done. Email sign-up and Google sign-in both land on Today.
+54. **Phone contacts use the browser's Contact Picker (Chrome on Android).** Only the contacts the user picks are sent. Other phones get a note to use a contacts file (file importers arrive in milestone 8).
+
+## 2026-10-24: milestone 4
+
+39. **Repeats are stored as canonical RRULE text plus a separate `until_on` date.** The rule never carries UNTIL; COUNT from calendar feeds is turned into an end date when imported. *Why:* one obvious place for "when does it end", and the rule text stays stable.
+40. **Occurrences are calculated on wall-clock dates in the room's own time zone, then converted to the user's zone.** A room at 8pm in New York shows on the next day in Lagos. All-day rooms stay on their date in every zone.
+41. **Attendance is three-state per session: went, didn't go, or not answered.** "Went N of M" counts the last six past sessions.
+42. **Database rule violations inside a request run in a savepoint**, so a refused link (e.g. a person from another Space) becomes a message without aborting the rest of the request.
+43. **Rooms reuse the People list/detail layout** (`ListDetailShell`). A tiny route-aware marker in the layout plus CSS decides which pane shows on mobile. An earlier version wrapped the pages in a loading fallback, which streamed every detail page twice; a marker inside the pages also fails because Next 16 keeps the previous page mounted (hidden) after navigation.
+
+## 2026-10-24: milestone 3
+
+32. **Quick capture goes through one idempotent endpoint (`POST /api/v1/capture`) with ids created on the phone.** Edits that need a connection anyway (contact details, relationship details, archive, delete) use server actions. *Why:* captures must work offline and replay safely; edits are rare and easier to get right online.
+33. **Archive applies to a person in every Space at once.** Removing someone from a single Space is a separate, explicit action that deletes what you logged there.
+34. **"Due" uses the most recent touch in any Space and the shortest reminder across their Spaces** (repeats DECISIONS #18 in code).
+35. **After bulk inserts (imports), run `ANALYZE` on `people` and `person_spaces`.** Without fresh statistics the list query took 40 s at 10,000 rows; with them, about 20 ms.
+36. **"Today" in capture forms comes from the phone's clock and time zone.** Server-side pages use the profile's time zone.
+37. **Deleting a touch or promise is immediate, with no undo** (they're small). Deleting a person has Undo and a 30-day restore window. The purge job arrives with background jobs (milestone 5).
+38. **The ⌘K command palette is deferred to milestone 7 (Today).** Single-key shortcuts (`/ j k l e c`) work now.
+
+## 2026-10-24: milestone 2
+
+27. **New Spaces pick a type (Work, Personal, Dating or Other), and the type is fixed.** You can have several Work-type Spaces (e.g. "Agency clients"), each with full research. Other Spaces follow the Personal rules: Get to know or Off. *Why:* otherwise renaming a Space or creating a custom one could get round the research guardrail.
+28. **Deleting a Space only works when it's empty.** Otherwise you archive it, which hides it from lists and reminders and keeps everything. You always keep at least one active Space.
+29. **Removing a pipeline stage that people are at is blocked.** Renaming is always safe because stages keep their internal key.
+30. **The selected Space is stored in a cookie (`inroads-space`)**, so lists render on the server already filtered, and the choice follows you between pages. AI features never use this choice; they always take an explicit Space.
+31. **Per-Space copy and goal templates are deferred** to milestone 6 (Goals), where they're first used.
+
+## 2026-10-23: milestone 1
+
+21. **Next.js 16 instead of 15.** It's the current stable release. It brings Cache Components (static shell plus streamed per-user content, good on slow networks) and `proxy.ts` in place of middleware.
+22. **Migrations run through Drizzle's migrator (`pnpm db:migrate`), not the Supabase CLI.** One path for local, CI and production. Files still live in `supabase/migrations`.
+23. **Tests run on plain Postgres with a Supabase stand-in** (`supabase/tests/supabase-stub.sql`), and end-to-end tests use a fake auth server that signs real ES256 tokens. *Why:* no Docker or hosted project needed for CI, and the real token-verification code path still runs.
+24. **The browser never queries tables directly.** `anon` has no table access, and OAuth token columns aren't readable by `authenticated`. All data goes through server code.
+25. **Prototype moved to `prototype/index.html`.**
+26. **Service worker is hand-written and small for now** (static assets plus an offline page). Offline capture with a queued-writes store arrives with People (milestone 3).
+
+## 2026-10-23: answers from Step 1 review
+
+14. **Google connections are built early**: milestone 5, right after People and Rooms.
+15. **Free tiers only for now; no domain.** Google sign-in only (magic link built, switched off). Google data runs in Testing mode (100 named users, reconnect weekly) until there is a domain. See TECH_PLAN §12.
+16. ~~Hidden per-user AI safety cap only.~~ Superseded by #19.
+17. **Import triage is pre-sorted and one-tap** (TECH_PLAN §4.3a), with no AI cost.
+18. **People are a graph.** One node per real person, which can be in several Spaces through `person_spaces`. Identity (name, contacts, company, role, city, birthday, socials) is shared. Relationship context (notes, tags, where met, cadence, circle, touches, promises, goals, rooms) belongs to one Space. Person-to-person links (`introduced_by`, `works_with`, …) are stored now to power warm paths and intros later. *Why:* owner decision; this also stops duplicates when the same person is imported into two Spaces.
+19. **Usage limits** (TECH_PLAN §5.4): per-feature daily caps, about $2 per user per month, and about $25 for the whole app per month. All configurable. *Why:* the API is the one paid service. I first misread "no targets yet" as "no limits", and the owner corrected me.
+20. **App URL:** `inroads.vercel.app` (fallback name if it's taken).
+
+## 2026-10-23: Step 1 planning
+
+1. **AI calls are always made per Space.** "All spaces" views on Today merge lists in the UI only. Briefs, Look up, Radar and scoring each read exactly one Space. *Why:* brief §4.0 says Spaces are private from each other and Dating must never leak into Work. *Reverse:* would need a new guardrail design; not recommended.
+2. ~~Get to know uses `web_fetch` restricted to saved links, with no `web_search`.~~ **Superseded 2026-10-23 by owner decision:** Personal and Dating research has web search. Searches are anchored to saved handles/links and saved context; output stays conversation starters only, with the banned categories excluded by prompt and schema. This relaxes brief §4.0 ("never runs a name search across the open web").
+3. **"Decode" is renamed "Look up", and "Radar" is renamed "Suggested rooms".** *Why:* brief §5 bans "decode" in copy, and these names say what the features do.
+4. **Cadence `0` means never nudge. `null` inherits** person → circle → Space default. *Why:* one column covers "Dormant: never" without a separate flag.
+5. **Imported people start in `triage_state = pending`, with no cadence until triaged.** Triage sets `cadence_anchor_on = today`, so "due" works without any logged touch. *Why:* fixes "imported contacts disappear" without flooding Today with 2,000 nudges.
+6. **Name-only matches never merge.** They become merge suggestions. *Why:* bug 1 in the brief.
+7. **Soft delete (`deleted_at`) with a 30-day purge, separate from archive (`archived_at`).** *Why:* undo for deletes, plus a way to hide people without losing them.
+8. **Drizzle queries run inside a transaction that sets the `authenticated` role and JWT claims**, so Postgres RLS applies to server code too. *Why:* defence in depth; a forgotten `where user_id` can't leak data.
+9. **Inngest for background jobs, with progress persisted in a `jobs` table and pushed over Supabase Realtime (polling fallback).** *Why:* durable steps fit Vercel limits; persisted progress survives closed tabs and flaky networks.
+10. **Google sign-in asks only for identity. Contacts and Calendar are a separate, incremental consent.** *Why:* sign-in works before OAuth verification, and scopes stay minimal.
+11. **Recurrence is stored as a canonical RRULE subset (`rrule`), with the original kept in `rrule_source` when we can't represent it.** Occurrence maths runs on calendar dates in the event's own timezone. *Why:* round-trips with calendar feeds; the ported `occurrences()` keeps its date-based semantics.
+12. **Model IDs live in config:** fast = `claude-haiku-5-5`, strong = `claude-opus-5-5`, both overridable by env. *Why:* brief §7 tiers; pending confirmation (TECH_PLAN Q8).
+13. **Spaces: three built-in, plus your own.** Every account starts with Work, Personal and Dating (empty), and the user can add more (e.g. "Church", "Alumni"). There is no fixed master list. ~~Every person lives in exactly one Space.~~ Superseded by #18. The Space switcher only appears once a second Space has people in it, so a work-only user never sees it.
