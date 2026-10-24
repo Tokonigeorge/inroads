@@ -2,6 +2,13 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 16 (Intro requests)
+
+112. **An intro request is a promise the connector owes you** (`commitments.kind = 'intro'`, `about_person_id` = who you want to meet, optional `goal_id`), as planned in TECH_PLAN §2.4. It reads "Introduce you to Tunde Bakare", is due in a week, and shows on Today like any late promise. The database checks that both people and the goal are in the same Space.
+113. **Warm paths come from your own data in that Space:** people you've linked to them, people at the same company, and people linked to the same rooms. Each comes with its reason. Anyone else in the Space can be picked too. Dating Spaces don't offer intros.
+114. **The ask is consent-first** ("Would you be open to asking if they'd be happy to be introduced?"), written from a template and editable, then opened in WhatsApp or email, or copied. Inroads never sends it. "I've asked" logs a touch with the connector.
+115. **Goals move with the intro.** Asking moves the person to "Warm path found" (adding them to the goal if needed), and ticking the intro done moves them to "Introduced", but only forward, and only if the goal has those stages. Done also records who introduced you, which shows up as a warm path later.
+
 ## 2026-10-24: P2 plan and milestone 15 (Pipeline drag and fit)
 
 108. **P2 is built as M15 Pipeline drag and fit, M16 Intro requests, M17 Room ROI, M18 Ask your network.** The daily brief by email waits for a sending domain (decision #15: no domain yet). Resend can only send to the account owner's own address without one.

@@ -432,13 +432,19 @@ export const commitments = pgTable(
     doneAt: timestamp("done_at", { withTimezone: true }),
     source: text("source").notNull().default("manual"),
     interactionId: uuid("interaction_id").references(() => interactions.id, { onDelete: "set null" }),
+    /** Null for an ordinary promise; "intro" when `person` agreed to introduce you to `aboutPersonId` (P2). */
+    kind: text("kind"),
+    aboutPersonId: uuid("about_person_id").references((): AnyPgColumn => people.id, { onDelete: "cascade" }),
+    goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index("commitments_open_idx").on(t.userId, t.dueOn).where(sql`${t.doneAt} is null`),
     index("commitments_person_idx").on(t.personId),
+    index("commitments_about_idx").on(t.aboutPersonId).where(sql`${t.aboutPersonId} is not null`),
     check("commitments_owner_check", sql`${t.owner} in ('me', 'them')`),
+    check("commitments_kind_check", sql`${t.kind} is null or (${t.kind} = 'intro' and ${t.aboutPersonId} is not null)`),
     ...ownerPolicies("commitments"),
   ],
 );

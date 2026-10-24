@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
-import { type MembershipInput, type PersonIdentityInput } from "@/contracts/people";
+import { type IntroRequestInput, type MembershipInput, type PersonIdentityInput } from "@/contracts/people";
 import type { FormState } from "@/features/forms";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -16,6 +16,7 @@ import {
   setPersonArchived,
   updatePersonIdentity,
 } from "@/server/repos/people";
+import { requestIntro } from "@/server/repos/intros";
 import { userContext } from "@/server/user-context";
 
 const id = z.string().uuid();
@@ -73,4 +74,12 @@ export async function deletePromiseAction(promiseId: string) {
   const user = await requireUser();
   await db.withUser(user.id, (tx) => deletePromise(tx, id.parse(promiseId)));
   refresh();
+}
+
+export async function requestIntroAction(input: IntroRequestInput): Promise<FormState> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, async (tx) => requestIntro(tx, user.id, input, (await userContext(tx)).today));
+  if (!r.ok) return { message: r.message };
+  refresh();
+  return { ok: true };
 }

@@ -1,5 +1,6 @@
 import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
 import type { Metadata } from "next";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -10,13 +11,16 @@ import { formatPhone, whatsappDigits } from "@/domain/normalise";
 import { dueOn, dueState, effectiveCadence, personCadence, warmth } from "@/domain/relationship";
 import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
+import { IntroAsk, type IntroSpace } from "@/features/people/intro-ask";
 import { DeleteButton, PersonActions, PromiseCheck, RemoveFromSpaceButton } from "@/features/people/person-actions";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { readSelectedSpaceId } from "@/server/space-selection";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import * as t from "@/server/db/schema";
 import { getPerson, type PersonDetail } from "@/server/repos/people";
 import { goalOptionsForPerson, stagesOf } from "@/server/repos/goals";
+import { introsAbout, warmPaths } from "@/server/repos/intros";
 import { roomsForPerson } from "@/server/repos/rooms";
 import { roomRoleLabels } from "@/contracts/rooms";
 import { userContext } from "@/server/user-context";
@@ -79,12 +83,26 @@ async function Person({ params }: { params: Promise<{ id: string }> }) {
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
     const detail = await getPerson(tx, id);
-    if (!detail) return { detail, ctx, rooms: [], goalOptions: [] };
-    const [rooms, goalOptions] = await Promise.all([roomsForPerson(tx, id, ctx.today), goalOptionsForPerson(tx, id)]);
-    return { detail, ctx, rooms, goalOptions };
+    if (!detail) return { detail, ctx, rooms: [], goalOptions: [], introSpaces: [], intros: [] };
+    // Intros are for Work, Personal and your own Spaces; never Dating.
+    const introable = detail.memberships.filter((m) => !m.archivedAt && !m.space.archived && m.space.kind !== "dating").map((m) => m.space);
+    const [rooms, goalOptions, intros, goals, ...paths] = await Promise.all([
+      roomsForPerson(tx, id, ctx.today),
+      goalOptionsForPerson(tx, id),
+      introsAbout(tx, id),
+      introable.length
+        ? tx
+            .select({ id: t.goals.id, text: t.goals.text, spaceId: t.goals.spaceId })
+            .from(t.goals)
+            .where(and(inArray(t.goals.spaceId, introable.map((s) => s.id)), eq(t.goals.active, true), isNull(t.goals.archivedAt)))
+        : Promise.resolve([]),
+      ...introable.map((s) => warmPaths(tx, id, s.id)),
+    ]);
+    const introSpaces: IntroSpace[] = introable.map((s, i) => ({ id: s.id, name: s.name, goals: goals.filter((g) => g.spaceId === s.id), paths: paths[i] }));
+    return { detail, ctx, rooms, goalOptions, introSpaces, intros };
   });
   if (!data.detail) notFound();
-  const { detail: d, ctx, rooms, goalOptions } = data;
+  const { detail: d, ctx, rooms, goalOptions, introSpaces, intros } = data;
   return (
     <PersonView
       d={d}
@@ -92,6 +110,8 @@ async function Person({ params }: { params: Promise<{ id: string }> }) {
       selectedSpaceId={selectedSpaceId}
       rooms={rooms}
       goalOptions={goalOptions}
+      introSpaces={introSpaces}
+      intros={intros}
       ai={
         <PersonAi
           userId={user.id}
@@ -105,8 +125,27 @@ async function Person({ params }: { params: Promise<{ id: string }> }) {
 }
 
 type PersonRooms = Awaited<ReturnType<typeof roomsForPerson>>;
+type PersonIntros = Awaited<ReturnType<typeof introsAbout>>;
 
-function PersonView({ d, today, selectedSpaceId, rooms, goalOptions, ai }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms; goalOptions: GoalOption[]; ai: ReactNode }) {
+function PersonView({
+  d,
+  today,
+  selectedSpaceId,
+  rooms,
+  goalOptions,
+  introSpaces,
+  intros,
+  ai,
+}: {
+  d: PersonDetail;
+  today: string;
+  selectedSpaceId: string | null;
+  rooms: PersonRooms;
+  goalOptions: GoalOption[];
+  introSpaces: IntroSpace[];
+  intros: PersonIntros;
+  ai: ReactNode;
+}) {
   const p = d.person;
   const active = d.memberships.filter((m) => !m.archivedAt && !m.space.archived);
   const archived = d.memberships.length > 0 && d.memberships.every((m) => m.archivedAt);
@@ -225,6 +264,31 @@ function PersonView({ d, today, selectedSpaceId, rooms, goalOptions, ai }: { d: 
           </details>
         ) : null}
       </Block>
+
+      {introSpaces.length ? (
+        <Block title="Introductions" action={<IntroAsk target={{ id: p.id, name: p.name }} targetDetail={[p.position, p.company].filter(Boolean).join(" at ")} spaces={introSpaces} />}>
+          {intros.length ? (
+            <ul className="grid gap-2">
+              {intros.map((i) => (
+                <li key={i.id}>
+                  <Link href={`/people/${i.connectorId}`} className="font-[550] hover:underline">
+                    {i.connector}
+                  </Link>{" "}
+                  <span className="text-muted">
+                    {i.doneAt
+                      ? "introduced you"
+                      : `said they'd introduce you${i.dueOn ? (i.dueOn < today ? ` · overdue since ${formatLongDate(i.dueOn, today)}` : ` · by ${formatLongDate(i.dueOn, today)}`) : ""}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-small text-muted">
+              Want to meet {first(p.name)}? Ask someone you both know. Inroads tracks it as a promise they owe you and moves {first(p.name)} along your goal.
+            </p>
+          )}
+        </Block>
+      ) : null}
 
       <Block title="Timeline">
         {d.touches.length ? (

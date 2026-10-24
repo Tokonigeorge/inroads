@@ -298,7 +298,7 @@ export async function deleteGoal(tx: Tx, id: string) {
   await tx.delete(t.goals).where(eq(t.goals.id, id));
 }
 
-async function goalWithStages(tx: Tx, goalId: string) {
+export async function goalWithStages(tx: Tx, goalId: string) {
   if (!isUuid(goalId)) return null;
   const [g] = await tx.select().from(t.goals).where(eq(t.goals.id, goalId));
   if (!g) return null;

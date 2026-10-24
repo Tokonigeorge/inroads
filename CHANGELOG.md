@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 16 (Intro requests)
+- "Ask for an intro" on a person's page: see who in that Space could introduce you and why (they know them, they work at the same company, you've seen them at the same rooms), or pick anyone.
+- A consent-first message to send by WhatsApp or email, or to copy. Pick a goal and the person moves to "Warm path found".
+- The intro is tracked as a promise the connector owes you, with a reminder on Today if it's late. Tick it done when it happens: the person moves to "Introduced" and Inroads remembers who introduced you.
+
 ### Added: milestone 15 (Pipeline drag and fit)
 - On desktop, drag people between stages of a goal's pipeline. The stage picker and `[` / `]` still work.
 - A person's fit for the goal shows on their card with the reason, and you can order each stage by best fit, recently moved or name.
