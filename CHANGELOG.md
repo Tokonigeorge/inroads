@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 18 (Ask your network)
+- Ask a question about the people you know, in your own words ("Who do I know in fintech in Accra who's raised before?"), in People or from ⌘K.
+- You get up to 8 people with a reason for each, citing what you've recorded about them. Only one Space is searched at a time.
+- With AI set up, the question is widened and the results are ranked by the model (20 a day); without it, Inroads matches the words in your question.
+
 ### Added: milestone 17 (Room ROI)
 - A room's page shows what it has led to: the people you met there, how many you've kept in touch with (and in the last 60 days), and who has moved forward on your goals since, person by person.
 - Repeating and past rooms in the list show "Met 6 · 4 in touch".

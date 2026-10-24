@@ -20,13 +20,14 @@ export const aiConfig = () => ({
     chat: Number(process.env.AI_LIMIT_CHAT ?? 10),
     score: Number(process.env.AI_LIMIT_SCORE ?? 3),
     capture: Number(process.env.AI_LIMIT_CAPTURE ?? 60),
+    ask: Number(process.env.AI_LIMIT_ASK ?? 20),
   } as Record<AiFeature, number>,
   /** Estimated spend caps in US dollars. */
   userMonthlyUsd: Number(process.env.AI_USER_MONTHLY_USD ?? 2),
   appMonthlyUsd: Number(process.env.AI_APP_MONTHLY_USD ?? 25),
 });
 
-export const aiFeatures = ["research", "lookup", "radar", "brief", "draft", "card", "chat", "score", "capture"] as const;
+export const aiFeatures = ["research", "lookup", "radar", "brief", "draft", "card", "chat", "score", "capture", "ask"] as const;
 export type AiFeature = (typeof aiFeatures)[number];
 export type Tier = "fast" | "strong";
 
@@ -40,6 +41,7 @@ export const aiFeatureLabels: Record<AiFeature, string> = {
   chat: "Chat imports",
   score: "Goal fit scores",
   capture: "Quick captures",
+  ask: "Ask your network",
 };
 
 /** Dollars per million tokens, and per web search. Estimates for the usage meter only. */

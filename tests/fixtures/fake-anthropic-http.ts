@@ -26,8 +26,17 @@ function captureReply(p: string): FakeReply {
   };
 }
 
+/** Ask your network: widen to the question's own words, then rank people who mention "fintech" first. */
+function askRankReply(p: string): FakeReply {
+  const people = JSON.parse(p.split("PEOPLE (JSON):\n")[1] ?? "[]") as { id: string; name: string; notes?: string; interests?: string[] }[];
+  const fits = people.filter((x) => JSON.stringify(x).toLowerCase().includes("fintech"));
+  return { json: { matches: fits.map((x) => ({ id: x.id, why: `Your notes on ${x.name.split(" ")[0]} mention fintech${x.notes ? `: ${x.notes}` : ""}` })) } };
+}
+
 export function e2eReply(req: FakeRequest): FakeReply {
   const p = promptText(req);
+  if (p.includes("I'm searching my own contacts")) return { json: { terms: ["fintech", "payments", "accra"] } };
+  if (p.includes("I asked a question about my own network")) return askRankReply(p);
   if (p.includes("I jotted down one line")) return captureReply(p);
   if (p.includes("relationship-intelligence researcher")) {
     return {

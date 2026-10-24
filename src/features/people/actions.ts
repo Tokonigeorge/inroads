@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { type IntroRequestInput, type MembershipInput, type PersonIdentityInput } from "@/contracts/people";
-import type { FormState } from "@/features/forms";
+import { fieldErrors, type FormState } from "@/features/forms";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import {
@@ -17,6 +17,7 @@ import {
   updatePersonIdentity,
 } from "@/server/repos/people";
 import { requestIntro } from "@/server/repos/intros";
+import { askNetwork, type AskResult } from "@/server/search/ask";
 import { userContext } from "@/server/user-context";
 
 const id = z.string().uuid();
@@ -82,4 +83,17 @@ export async function requestIntroAction(input: IntroRequestInput): Promise<Form
   if (!r.ok) return { message: r.message };
   refresh();
   return { ok: true };
+}
+
+const askSchema = z.object({ spaceId: z.string().uuid("Choose a Space."), question: z.string().trim().min(3, "Ask a question, like “who do I know in fintech in Accra?”").max(300, "Keep the question under 300 characters.") });
+
+export type AskState = FormState & { result?: AskResult; question?: string };
+
+/** Ask your network: one Space at a time (DECISIONS #1). */
+export async function askNetworkAction(_prev: AskState, formData: FormData): Promise<AskState> {
+  const user = await requireUser();
+  const parsed = askSchema.safeParse({ spaceId: formData.get("spaceId"), question: formData.get("question") });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const result = await db.withUser(user.id, (tx) => askNetwork(tx, {}, user.id, parsed.data));
+  return { ok: true, result, question: parsed.data.question };
 }

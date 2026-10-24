@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 18 (Ask your network)
+
+118. **Ask your network searches one Space at a time** (decision #1), across what you've recorded there: name, role, company and city, your notes, interests, tags, where you met and opportunities, the latest research, and recent touch summaries. People from other Spaces are never candidates and never reach the model.
+119. **Two fast-model calls, counted as one use** (limit 20 a day): the first widens your question into search terms (synonyms, related words), and the second ranks up to 30 Postgres matches, picks at most 8 and gives a reason that cites what you recorded. Ids the model returns are checked against the candidates, so it can't invent people. Without AI, or past the limit, you get the best word matches with the words they matched.
+120. **The email brief (P2) waits for a sending domain**, so P2 ships with M15–M18. When there's a domain: Resend, the brief time from Settings, and an unsubscribe link.
+
 ## 2026-10-24: milestone 17 (Room ROI)
 
 116. **"What it's led to" counts only what you recorded.** People you marked as met there (M12), touches with them after the day you met (the debrief's own touch doesn't count), whether the latest is in the last 60 days, and forward moves or wins on goals in that Space since you met. Nothing is inferred from who was merely invited. A room with nothing recorded says how to start.
