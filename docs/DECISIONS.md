@@ -2,6 +2,14 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-24: milestone 4
+
+39. **Repeats are stored as canonical RRULE text plus a separate `until_on` date.** The rule never carries UNTIL; COUNT from calendar feeds is turned into an end date when imported. *Why:* one obvious place for "when does it end", and the rule text stays stable.
+40. **Occurrences are calculated on wall-clock dates in the room's own time zone, then converted to the user's zone.** A room at 8pm in New York shows on the next day in Lagos. All-day rooms stay on their date in every zone.
+41. **Attendance is three-state per session: went, didn't go, or not answered.** "Went N of M" counts the last six past sessions.
+42. **Database rule violations inside a request run in a savepoint**, so a refused link (e.g. a person from another Space) becomes a message without aborting the rest of the request.
+43. **Rooms reuse the People list/detail layout** (`ListDetailShell`). A tiny route-aware marker in the layout plus CSS decides which pane shows on mobile. An earlier version wrapped the pages in a loading fallback, which streamed every detail page twice; a marker inside the pages also fails because Next 16 keeps the previous page mounted (hidden) after navigation.
+
 ## 2026-10-24: milestone 3
 
 32. **Quick capture goes through one idempotent endpoint (`POST /api/v1/capture`) with ids created on the phone.** Edits that need a connection anyway (contact details, relationship details, archive, delete) use server actions. *Why:* captures must work offline and replay safely; edits are rare and easier to get right online.

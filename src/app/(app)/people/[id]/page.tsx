@@ -14,6 +14,8 @@ import { readSelectedSpaceId } from "@/server/space-selection";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { getPerson, type PersonDetail } from "@/server/repos/people";
+import { roomsForPerson } from "@/server/repos/rooms";
+import { roomRoleLabels } from "@/contracts/rooms";
 import { userContext } from "@/server/user-context";
 import { EmptyState } from "@/ui/layout";
 import { Avatar } from "@/ui/list-row";
@@ -71,13 +73,19 @@ function Block({ title, children, action }: { title: string; children: ReactNode
 
 async function Person({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, user, selectedSpaceId] = await Promise.all([params, requireUser(), readSelectedSpaceId()]);
-  const data = await db.withUser(user.id, async (tx) => ({ detail: await getPerson(tx, id), ctx: await userContext(tx) }));
+  const data = await db.withUser(user.id, async (tx) => {
+    const ctx = await userContext(tx);
+    const detail = await getPerson(tx, id);
+    return { detail, ctx, rooms: detail ? await roomsForPerson(tx, id, ctx.today) : [] };
+  });
   if (!data.detail) notFound();
-  const { detail: d, ctx } = data;
-  return <PersonView d={d} today={ctx.today} selectedSpaceId={selectedSpaceId} />;
+  const { detail: d, ctx, rooms } = data;
+  return <PersonView d={d} today={ctx.today} selectedSpaceId={selectedSpaceId} rooms={rooms} />;
 }
 
-function PersonView({ d, today, selectedSpaceId }: { d: PersonDetail; today: string; selectedSpaceId: string | null }) {
+type PersonRooms = Awaited<ReturnType<typeof roomsForPerson>>;
+
+function PersonView({ d, today, selectedSpaceId, rooms }: { d: PersonDetail; today: string; selectedSpaceId: string | null; rooms: PersonRooms }) {
   const p = d.person;
   const active = d.memberships.filter((m) => !m.archivedAt && !m.space.archived);
   const archived = d.memberships.length > 0 && d.memberships.every((m) => m.archivedAt);
@@ -278,6 +286,24 @@ function PersonView({ d, today, selectedSpaceId }: { d: PersonDetail; today: str
           ) : null}
         </Block>
       ))}
+
+      {rooms.length ? (
+        <Block title="Rooms">
+          <ul className="grid gap-2">
+            {rooms.map((r) => (
+              <li key={`${r.id}:${r.role}`} className="flex justify-between gap-3">
+                <Link href={`/rooms/${r.id}`} className="hover:underline">
+                  {r.title}
+                </Link>
+                <span className="text-small text-muted">
+                  {roomRoleLabels[r.role]}
+                  {r.next ? ` · ${formatLongDate(r.next, today)}` : r.repeats ? "" : ` · ${formatLongDate(r.first, today)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Block>
+      ) : null}
 
       {d.goals.length ? (
         <Block title="Goals">

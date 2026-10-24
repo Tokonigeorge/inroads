@@ -32,7 +32,7 @@ test.describe.serial("signed in", () => {
     await expectAccessible(page);
 
     await page.goto("/rooms");
-    await expect(page.getByText("Founders Breakfast")).toBeVisible();
+    await expect(page.getByText("Founders Breakfast").first()).toBeVisible();
     await page.goto("/goals");
     await expect(page.getByText("Raise a $500k pre-seed round")).toBeVisible();
 

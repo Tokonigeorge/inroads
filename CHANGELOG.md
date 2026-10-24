@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 4 (Rooms)
+- Repeating rooms, ported from the prototype's `occurrences()` and `nthWeekday()`:
+  - Weekly (on several days), every 2 weeks, monthly (on a date, or the 1st–5th or last weekday), every 3 months, yearly, with an optional end date.
+  - Calendar repeat rules (RRULE) are read and written, including UNTIL, COUNT and BYSETPOS. Rules Inroads can't represent are kept as-is and flagged.
+  - Tests compare the port against the prototype's own code on 3,000 random series, and run in several time zones.
+- Time zones: every room has its own zone, and times are shown in yours, e.g. "1am (8pm New York)", correctly across daylight-saving changes.
+- Rooms screens (list on the left, room on the right on desktop):
+  - Upcoming (next 60 days, by day), Repeating (with "went 4 of 6"), and Past.
+  - Room page with people by role (going, met there, speaking, organising), "Did you go?" for each past session, the next dates, notes and the goal it serves.
+  - Add or edit a room with a repeat builder (days of the week, nth weekday, until) and a time-zone picker.
+  - Delete with Undo.
+- Linking people to rooms only offers people from the room's Space. Moving a room with people in it to another Space is refused.
+- A person's page lists their rooms. The capture sheet's "Add a room" now works.
+
+### Fixed
+- Faded Delete and Remove buttons failed colour contrast. They now use the standard muted colour.
+- People and Rooms pages were sent to the browser twice while loading (once inside a loading fallback). The list/detail layout now decides which pane to show with a small marker and CSS, so each page is rendered once, which matters on slow connections.
+
+
 ### Added: milestone 3 (People)
 - People list built for 10,000+ people:
   - Pages load as you scroll, and only the rows on screen are drawn.

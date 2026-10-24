@@ -14,7 +14,7 @@ test.describe.serial("People", () => {
   });
   test.afterAll(async () => {
     const { sql, userId } = e2eDb();
-    await sql`delete from people where user_id = ${userId} and name like '% desktop' or name like '% mobile'`;
+    await sql`delete from people where user_id = ${userId} and (name like '% desktop' or name like '% mobile')`;
     await sql.end();
   });
 
@@ -87,11 +87,15 @@ test.describe.serial("People", () => {
 
   test("quick capture from anywhere", async ({ page, isMobile }) => {
     await page.goto("/today");
-    if (isMobile) await page.getByRole("button", { name: "Capture" }).click();
-    else {
-      await page.locator("body").click();
-      await page.keyboard.press("c");
-    }
+    // Retry the first tap: on a slow device it can land before the page is interactive.
+    await expect(async () => {
+      if (isMobile) await page.getByRole("button", { name: "Capture" }).click();
+      else {
+        await page.locator("body").click();
+        await page.keyboard.press("c");
+      }
+      await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    }).toPass();
     await sheet(page).getByRole("button", { name: "Add a person" }).click();
     await sheet(page).getByLabel("Name").fill(`Tobi Quick ${isMobile ? "mobile" : "desktop"}`);
     await sheet(page).getByLabel("Phone or email").fill("+44 20 7946 0958");

@@ -106,7 +106,7 @@ export function DeleteButton({ kind, id, label }: { kind: "touch" | "promise"; i
       type="button"
       disabled={pending}
       aria-label={`Delete ${label}`}
-      className="shrink-0 rounded-md px-2 py-1 text-small text-muted opacity-70 hover:bg-sunken hover:opacity-100"
+      className="shrink-0 rounded-md px-2 py-1 text-small text-muted hover:bg-sunken hover:text-text"
       onClick={() =>
         start(async () => {
           await (kind === "touch" ? deleteTouchAction(id) : deletePromiseAction(id));

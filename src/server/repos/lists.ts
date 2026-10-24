@@ -1,19 +1,10 @@
 import "server-only";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 
 // Interim lists so the app shows real rows. Milestones 3–6 replace these with paginated
 // views. `spaceId` null means "All spaces".
-
-export function listEventsPreview(tx: Tx, spaceId: string | null, limit = 50) {
-  return tx
-    .select({ id: t.events.id, title: t.events.title, startsOn: t.events.startsOn, location: t.events.location, rrule: t.events.rrule })
-    .from(t.events)
-    .where(and(isNull(t.events.deletedAt), spaceId ? eq(t.events.spaceId, spaceId) : undefined))
-    .orderBy(desc(t.events.startsOn))
-    .limit(limit);
-}
 
 export function listGoalsPreview(tx: Tx, spaceId: string | null) {
   return tx

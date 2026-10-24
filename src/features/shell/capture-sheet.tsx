@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { AddPromiseForm, LogTouchForm, type PickedPerson } from "@/features/people/capture-forms";
 import { PersonPicker } from "@/features/people/person-picker";
@@ -22,7 +23,6 @@ const titles: Record<Mode, string> = { menu: "Capture", person: "Add a person", 
 
 // Wired to their flows as each milestone lands: rooms (M4), card scan and chat import (M9).
 const later = [
-  { label: "Add a room", when: "Rooms" },
   { label: "Scan a business card", when: "AI features" },
   { label: "Import a chat", when: "AI features" },
 ];
@@ -56,6 +56,11 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
                 </button>
               </li>
             ))}
+            <li>
+              <Link href="/rooms/new" onClick={close} className="flex min-h-11 w-full items-center rounded-md px-3 text-left font-[550] hover:bg-sunken">
+                Add a room
+              </Link>
+            </li>
             {later.map((a) => (
               <li key={a.label}>
                 <button type="button" disabled className="flex min-h-11 w-full items-center justify-between rounded-md px-3 text-left text-muted">

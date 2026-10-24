@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { PeopleListPane } from "@/features/people/people-list-pane";
-import { PeopleShell, PeopleShellView } from "@/features/people/people-shell";
+import { ListDetailShell } from "@/features/shell/list-detail-shell";
 
 function ListSkeleton() {
   return (
@@ -20,9 +20,5 @@ export default function PeopleLayout({ children }: LayoutProps<"/people">) {
       <PeopleListPane />
     </Suspense>
   );
-  return (
-    <Suspense fallback={<PeopleShellView list={list} detailOpen={false}>{children}</PeopleShellView>}>
-      <PeopleShell list={list}>{children}</PeopleShell>
-    </Suspense>
-  );
+  return <ListDetailShell list={list}>{children}</ListDetailShell>;
 }
