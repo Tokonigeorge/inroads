@@ -87,8 +87,13 @@ test.describe.serial("AI features (against a fake Claude)", () => {
 
   test("look up a company and see who can introduce you", async ({ page }) => {
     await page.goto("/rooms/lookup");
-    await page.getByLabel("Company").check({ force: true });
-    await page.getByLabel("Name", { exact: true }).fill("Kestrel Ventures");
+    // Click the visible label (the radio itself is visually hidden), retrying until the page has hydrated.
+    await expect(async () => {
+      await page.getByRole("group", { name: "What is it" }).getByText("Company", { exact: true }).click();
+      await page.getByLabel("Name", { exact: true }).fill("Kestrel Ventures");
+      await expect(page.getByRole("radio", { name: "Company" })).toBeChecked({ timeout: 1000 });
+      await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Kestrel Ventures", { timeout: 1000 });
+    }).toPass();
     await page.getByRole("button", { name: "Look it up" }).click();
     await expect(page.getByRole("heading", { name: "Kestrel Ventures", level: 1 })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("link", { name: "Adaeze Okafor" })).toBeVisible();
