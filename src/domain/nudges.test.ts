@@ -55,7 +55,14 @@ describe("buildNudges", () => {
   it("due for a touch, worded from the last touch and the reminder", () => {
     const [n] = buildNudges({ ...empty(), due: [{ ...kemi, dueOn: "2026-10-20", lastTouchedOn: "2026-09-20", cadenceDays: 30 }] });
     expect(n).toMatchObject({ key: "due:p-kemi:2026-10-20", title: "Last spoke with Kemi Adebayo 5 weeks ago", body: "Partner at Kestrel. You aim to be in touch every month." });
-    expect(n.actions.map((a) => a.type)).toEqual(["log_touch", "snooze", "open_person"]);
+    expect(n.actions.map((a) => a.type)).toEqual(["draft", "log_touch", "snooze", "open_person"]);
+  });
+
+  it("meeting someone you haven't researched offers it first; birthdays and due cards offer a draft", () => {
+    const [prep] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: null, lastTouch: null, promise: null, spaceId: "s1", researched: false }] });
+    expect(prep.actions[0]).toEqual({ type: "research", personId: kemi.id, spaceId: "s1", label: "Research now" });
+    const [done] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: null, lastTouch: null, promise: null, spaceId: "s1", researched: true }] });
+    expect(done.actions.map((a) => a.type)).toEqual(["open_person", "open_room"]);
   });
 
   it("a sharper reason replaces the plain 'due' card for the same person", () => {

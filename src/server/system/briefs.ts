@@ -48,3 +48,16 @@ export async function radarDue(sys: Database = getSystemDb(), now: Date = new Da
     limit 200`);
   return [...rows].map((r) => ({ userId: r.user_id, spaceId: r.space_id }));
 }
+
+/** People whose brief time is now and who signed in within 30 days (for daily background prep). */
+export async function usersAtBriefTime(sys: Database = getSystemDb(), now: Date = new Date()) {
+  const at = now.toISOString();
+  const rows = await sys.execute<{ user_id: string }>(sql`
+    select p.user_id
+    from profiles p
+    join auth.users u on u.id = p.user_id
+    where u.last_sign_in_at > ${at}::timestamptz - interval '30 days'
+      and mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
+    limit 500`);
+  return [...rows].map((r) => r.user_id);
+}

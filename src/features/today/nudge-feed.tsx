@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Nudge, NudgeAction } from "@/domain/nudges";
+import { startAiJobAction } from "@/features/ai/actions";
+import { DraftSheet } from "@/features/ai/draft-sheet";
 import { sendCapture } from "@/features/offline/outbox";
 import { useCapture } from "@/features/shell/capture-sheet";
 import { Button } from "@/ui/button";
@@ -10,11 +12,13 @@ import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
 import { dismissNudgeAction, snoozeNudgeAction, undoNudgeAction } from "./actions";
 
-type Props = { nudges: Nudge[]; spaces: Record<string, { id: string; name: string }[]> };
+type Props = { nudges: Nudge[]; spaces: Record<string, { id: string; name: string }[]>; aiEnabled?: boolean };
 
 /** Today's reminders. Every action hides the card at once; snooze, done and dismiss can be undone. */
-export function NudgeFeed({ nudges, spaces }: Props) {
+export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [draft, setDraft] = useState<{ personId: string; name: string; purpose: string } | null>(null);
+  const [researching, setResearching] = useState<Set<string>>(() => new Set());
   const [, start] = useTransition();
   const router = useRouter();
   const capture = useCapture();
@@ -44,6 +48,24 @@ export function NudgeFeed({ nudges, spaces }: Props) {
         return router.push("/people/duplicates");
       case "review_suggestions":
         return router.push("/people/suggestions");
+      case "draft":
+        return setDraft({ personId: a.personId, name: n.person?.name ?? "", purpose: a.purpose });
+      case "research":
+        setResearching((s) => new Set(s).add(a.personId));
+        return start(async () => {
+          const r = await startAiJobAction({ kind: "research", personId: a.personId, spaceId: a.spaceId, mode: "research" });
+          toast.show(
+            r.jobId
+              ? `Researching ${n.person?.name.split(/\s+/)[0] ?? "them"}. Talking points will be on their page and here in a minute.`
+              : (r.message ?? "Couldn't start the research."),
+          );
+          if (!r.jobId)
+            setResearching((s) => {
+              const next = new Set(s);
+              next.delete(a.personId);
+              return next;
+            });
+        });
       case "log_touch":
         return capture.open({ mode: "touch", person: { id: a.personId, name: n.person?.name ?? "", spaces: spaces[a.personId] ?? [] } });
       case "promise_done":
@@ -93,30 +115,53 @@ export function NudgeFeed({ nudges, spaces }: Props) {
   }
 
   return (
-    <ul className="grid gap-3" aria-label="Follow up">
-      {visible.map((n) => (
-        <li key={n.key}>
-          <article aria-labelledby={`n-${n.key}`} className="grid gap-3 rounded-md border border-border bg-surface p-4">
-            <div className="flex items-start gap-3">
-              {n.person ? <Avatar name={n.person.name} /> : null}
-              <div className="grid min-w-0 gap-0.5">
-                <p className={`text-small font-[550] ${n.kind === "promise" && n.priority === 0 ? "text-danger" : "text-muted"}`}>{n.label}</p>
-                <h3 id={`n-${n.key}`} className="font-semibold">
-                  {n.title}
-                </h3>
-                <p className="text-small text-muted">{n.body}</p>
+    <>
+      <ul className="grid gap-3" aria-label="Follow up">
+        {visible.map((n) => (
+          <li key={n.key}>
+            <article aria-labelledby={`n-${n.key}`} className="grid gap-3 rounded-md border border-border bg-surface p-4">
+              <div className="flex items-start gap-3">
+                {n.person ? <Avatar name={n.person.name} /> : null}
+                <div className="grid min-w-0 gap-0.5">
+                  <p className={`text-small font-[550] ${n.kind === "promise" && n.priority === 0 ? "text-danger" : "text-muted"}`}>{n.label}</p>
+                  <h3 id={`n-${n.key}`} className="font-semibold">
+                    {n.title}
+                  </h3>
+                  <p className="text-small text-muted">{n.body}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {n.actions.map((a, i) => (
-                <Button key={`${a.type}-${i}`} size="sm" variant={i === 0 ? "secondary" : "ghost"} onClick={() => run(n, a)}>
-                  {a.label}
-                </Button>
-              ))}
-            </div>
-          </article>
-        </li>
-      ))}
-    </ul>
+              <div className="flex flex-wrap gap-2">
+                {n.actions
+                  .filter((a) => aiEnabled || (a.type !== "draft" && a.type !== "research"))
+                  .map((a, i) => (
+                    <Button
+                      key={`${a.type}-${i}`}
+                      size="sm"
+                      variant={i === 0 ? "secondary" : "ghost"}
+                      disabled={a.type === "research" && researching.has(a.personId)}
+                      onClick={() => run(n, a)}
+                    >
+                      {a.type === "research" && researching.has(a.personId) ? "Researching…" : a.label}
+                    </Button>
+                  ))}
+              </div>
+            </article>
+          </li>
+        ))}
+      </ul>
+      {draft ? (
+        <DraftSheet
+          key={`${draft.personId}:${draft.purpose}`}
+          open
+          onOpenChange={(o) => {
+            if (!o) setDraft(null);
+          }}
+          personId={draft.personId}
+          name={draft.name}
+          spaces={spaces[draft.personId] ?? []}
+          initialPurpose={draft.purpose}
+        />
+      ) : null}
+    </>
   );
 }

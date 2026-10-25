@@ -18,8 +18,36 @@ const purposes = [
 /** Draft a message, edit it, open it in WhatsApp or email, then log it as a touch. */
 export function DraftButton({ personId, name, spaces, aiEnabled }: { personId: string; name: string; spaces: { id: string; name: string }[]; aiEnabled: boolean }) {
   const [open, setOpen] = useState(false);
+  if (!spaces.length) return null;
+  return (
+    <>
+      <Button variant="ghost" disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
+        Draft a message
+      </Button>
+      <DraftSheet open={open} onOpenChange={setOpen} personId={personId} name={name} spaces={spaces} />
+    </>
+  );
+}
+
+/** Write a message with AI, edit it, then open WhatsApp or email (or copy). Used on a person's page and from Today's cards. */
+export function DraftSheet({
+  open,
+  onOpenChange,
+  personId,
+  name,
+  spaces,
+  initialPurpose = "checkin",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  personId: string;
+  name: string;
+  spaces: { id: string; name: string }[];
+  initialPurpose?: string;
+}) {
+  const setOpen = onOpenChange;
   const [spaceId, setSpaceId] = useState(spaces[0]?.id ?? "");
-  const [purpose, setPurpose] = useState<string>("checkin");
+  const [purpose, setPurpose] = useState<string>(initialPurpose);
   const [text, setText] = useState("");
   const [contact, setContact] = useState<{ phone?: string | null; email?: string | null }>({});
   const [sent, setSent] = useState(false);
@@ -38,9 +66,6 @@ export function DraftButton({ personId, name, spaces, aiEnabled }: { personId: s
   if (!spaces.length) return null;
   return (
     <>
-      <Button variant="ghost" disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
-        Draft a message
-      </Button>
       <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSent(false); }} title={`Message ${first}`} description="Edit it before you send. Nothing is sent from Inroads.">
         <div className="grid gap-4" aria-busy={pending}>
           {spaces.length > 1 ? <Segmented legend="Which side of your life" name="draft-space" value={spaceId} onChange={setSpaceId} options={spaces.map((s) => ({ value: s.id, label: s.name }))} /> : null}

@@ -130,7 +130,13 @@ describe("Today's agenda", () => {
     const agenda = await as((tx) => todayAgenda(tx, ctx()));
     const coffee = agenda.find((a) => a.eventId === ids.meeting)!;
     expect(coffee).toMatchObject({ title: "Coffee with Adaeze", time: "23:30" });
-    expect(coffee.attendees).toEqual([{ id: ids.due, name: "Adaeze Okafor", detail: "", lastTouch: { on: addDays(TODAY, -40), summary: "Talked about the round" }, promise: null }]);
+    expect(coffee.attendees).toEqual([{ id: ids.due, name: "Adaeze Okafor", detail: "", lastTouch: { on: addDays(TODAY, -40), summary: "Talked about the round" }, promise: null, spaceId: work, researched: false, talkingPoints: [] }]);
     expect(agenda.find((a) => a.eventId === ids.meetup)).toBeUndefined();
+  });
+
+  it("once they're researched, their top two talking points come with them", async () => {
+    await sql`insert into dossiers (user_id, person_id, space_id, version, mode, model, prompt_version, payload, sources) values (${user.id}, ${ids.due}, ${work}, 1, 'full', 'test', 'test', ${JSON.stringify({ talkingPoints: ["Ask about the round", "Congratulate her on the hire", "Third point"] })}::text::jsonb, '[]'::jsonb)`;
+    const agenda = await as((tx) => todayAgenda(tx, ctx()));
+    expect(agenda.find((a) => a.eventId === ids.meeting)!.attendees[0]).toMatchObject({ researched: true, talkingPoints: ["Ask about the round", "Congratulate her on the hire"] });
   });
 });

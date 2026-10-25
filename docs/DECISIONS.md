@@ -2,6 +2,17 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-25: milestone 20 (Walk in prepared, follow up in one tap)
+
+128. **Built from a comparison with the prototype.** A feature-by-feature check of `prototype/index.html` against the app found five gaps that matter most for meeting investors and clients at events. M20 closes them; the smaller ones (dossier sections, place suggestions, Telegram chat import, restore from backup, "Where your network gathers") are listed for later.
+129. **Today's agenda carries talking points.** Each person you'll see today shows the top two talking points from their latest research in that room's Space, or a "Research them before you go" button. Rooms that aren't plain meetings link to their plan ("Prepare for this room" or "Your plan for this room"). The "You meet X soon" card offers **Research now** first when they haven't been researched.
+130. **People you're meeting in the next two days are researched at your brief time**, at most three a day, within the Space's research mode and the daily limit, for people who signed in within 30 days. *Why:* calendar-synced attendees are never auto-researched on import (decision #122); this researches just the few you're actually about to see.
+131. **Calendar events that are events become rooms.** An upcoming entry in your own calendar whose title says what it is ("… Conference", "… Summit", "… Mixer", "… Meetup", "Founders breakfast", "… Hackathon") becomes a room of that kind even with no other guests. Meetings with others stay rooms of kind "meeting", and appointments ("Dentist", "Lunch with Kemi") stay out. A sync then prepares up to two such rooms happening in the next three weeks that have no plan yet. The title rules live in `domain/room-kind.ts`.
+132. **Look up their world** (Work Spaces) runs a person look-up from their page with everything saved about them, and opens the result. **Give Inroads more to work with** takes pasted text (LinkedIn About, a bio, a speaker page) for that research or look-up only; it isn't stored.
+133. **Cards offer a draft:** "Draft a message" when someone's due, "Draft a note" on a birthday, "Draft a nudge" when they owe you. The draft opens in the same sheet as on a person's page, ready for WhatsApp, email or copying. Without AI these buttons don't show.
+134. **Goals are part of set-up** (About you → What are you working towards → Bring in your people). Pick from common goals or write your own; they're saved in Work. Today asks once there are no real goals ("Set your goals"), and from there the step returns to Goals. *Why:* look-up openings, fit, briefs and suggested rooms are generic without goals.
+135. **The research section shows more of what research found:** company, career, shared ground and what matched your saved details. These were already generated and stored, just not shown.
+
 ## 2026-10-25: milestone 19 (Proactive: rooms prepare themselves, people get researched)
 
 121. **Inroads does the research first; you keep what's right.** Owner feedback from the first real test: "people don't want to fill forms… it should find it and suggest what to keep." So typing a name is enough. Everything found still arrives as suggestions or a plan to act on; nothing is saved without a tap (as with research suggestions since M9).

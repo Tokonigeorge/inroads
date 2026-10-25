@@ -130,7 +130,7 @@ export async function saveAboutYouAction(_prev: FormState, formData: FormData): 
       .set({ name: parsed.data.name, timezone: parsed.data.timezone, defaultRegion: parsed.data.region })
       .where(eq(t.profiles.userId, user.id)),
   );
-  redirect("/onboarding?step=connect");
+  redirect("/onboarding?step=goals");
 }
 
 export async function finishOnboardingAction(next: string = "/today") {

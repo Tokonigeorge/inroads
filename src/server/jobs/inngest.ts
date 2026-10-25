@@ -6,7 +6,8 @@ import * as t from "@/server/db/schema";
 import { runConnectionSync } from "@/server/sync/run-sync";
 import { runExport } from "@/server/account/export";
 import { aiJobSchema, runAiJob } from "./ai-jobs";
-import { briefsDue, radarDue } from "@/server/system/briefs";
+import { briefsDue, radarDue, usersAtBriefTime } from "@/server/system/briefs";
+import { researchUpcomingAttendees } from "@/server/ai/auto-research";
 import { connectionsStore } from "@/server/system/connections";
 import { jobsStore } from "@/server/system/jobs";
 
@@ -76,7 +77,10 @@ export const prepareBriefs = inngest.createFunction({ id: "prepare-briefs", trig
     const jobId = await step.run(`radar-job-${r.spaceId}`, () => jobsStore().create(r.userId, "ai:radar", "Queued"));
     await step.sendEvent(`radar-send-${r.spaceId}`, { name: AI_EVENT, data: { userId: r.userId, jobId, job } satisfies AiEventData });
   }
-  return { scheduled: due.length, radar: radar.length };
+  // Research the people you're meeting in the next two days, so Today has talking points.
+  const users = await step.run("find-prep-users", () => usersAtBriefTime());
+  for (const userId of users) await step.run(`prep-people-${userId}`, () => researchUpcomingAttendees(userId));
+  return { scheduled: due.length, radar: radar.length, prepUsers: users.length };
 });
 
 /** Daily clean-up: purge things deleted more than 30 days ago and expired nudge states. */
