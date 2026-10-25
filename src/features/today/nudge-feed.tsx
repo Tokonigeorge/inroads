@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { Nudge, NudgeAction } from "@/domain/nudges";
 import { startAiJobAction } from "@/features/ai/actions";
 import { DraftSheet } from "@/features/ai/draft-sheet";
@@ -27,11 +27,21 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   const capture = useCapture();
   const toast = useToast();
   const visible = nudges.filter((n) => !hidden.has(n.key));
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const hide = (key: string) => {
     setLeaving((s) => new Set(s).add(key));
-    setTimeout(() => setHidden((s) => new Set(s).add(key)), 200);
+    timers.current.set(
+      key,
+      setTimeout(() => {
+        timers.current.delete(key);
+        setHidden((s) => new Set(s).add(key));
+      }, 200),
+    );
   };
   const show = (key: string) => {
+    // An undo straight after can beat the slide-out: cancel it so the card doesn't vanish again.
+    clearTimeout(timers.current.get(key));
+    timers.current.delete(key);
     const without = (s: Set<string>) => {
       const next = new Set(s);
       next.delete(key);
