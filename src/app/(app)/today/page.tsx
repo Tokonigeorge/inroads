@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { addDays, formatLongDate } from "@/domain/dates";
 import { formatTime } from "@/domain/zoned";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { Briefs, loadBriefs } from "@/features/ai/briefs";
+import { AiJobButton } from "@/features/ai/ai-job-button";
 import type { RoomIdea } from "@/features/ai/room-ideas";
 import { ForYourGoals, type GoalRooms } from "@/features/today/for-your-goals";
 import { NudgeFeed } from "@/features/today/nudge-feed";
@@ -53,8 +54,14 @@ async function Today() {
       const briefSpaces = (view.selected ? [view.selected] : view.spaces.filter((s) => s.people > 0)).map((s) => ({ id: s.id, name: s.name }));
       const briefs = await loadBriefs(tx, briefSpaces, ctx.today);
       const steps = await dueGoalSteps(tx, addDays(ctx.today, 2), c.spaceId);
+      // Rooms on today's agenda that already have a plan (the rest get a Prepare link).
+      const agendaIds = [...new Set(agenda.map((a) => a.eventId))];
+      const planned = agendaIds.length
+        ? new Set((await tx.selectDistinct({ id: t.searches.eventId }).from(t.searches).where(inArray(t.searches.eventId, agendaIds))).map((r) => r.id!))
+        : new Set<string>();
       const goalRooms = await loadGoalRooms(tx, view, ctx.today);
-      return { agenda, nudges, spaces, briefSpaces, briefs, steps, goalRooms, today: ctx.today, spaceName: view.selected?.name ?? null };
+      const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false))).limit(1);
+      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
@@ -74,11 +81,22 @@ async function Today() {
           </div>
         </section>
       ) : null}
+      {!setUp && !data.hasGoals ? (
+        <section aria-label="Set your goals" className="mb-8 grid gap-3 rounded-md border border-border bg-surface p-4">
+          <h2 className="font-semibold">Tell Inroads what you&apos;re working towards</h2>
+          <p className="text-muted">Raising, winning clients, hiring: goals decide who Inroads suggests you meet, which rooms it finds for you and what your briefs focus on.</p>
+          <div>
+            <Button asChild variant="primary" size="sm">
+              <Link href="/onboarding?step=goals">Set your goals</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       {counts.people > 0 ? <Briefs spaces={data.briefSpaces} briefs={data.briefs} /> : null}
       <div className="grid gap-8 md:grid-cols-[3fr_2fr]">
         <Section title="Today's rooms">
           {data.agenda.length ? (
-            <Agenda items={data.agenda} today={data.today} />
+            <Agenda items={data.agenda} today={data.today} planned={data.planned} aiEnabled={isAiConfigured()} />
           ) : (
             <EmptyState
               action={
@@ -103,7 +121,7 @@ async function Today() {
               Add the people you know and Inroads will tell you who to get back to.
             </EmptyState>
           ) : (
-            <NudgeFeed nudges={data.nudges} spaces={data.spaces} />
+            <NudgeFeed nudges={data.nudges} spaces={data.spaces} aiEnabled={isAiConfigured()} />
           )}
         </Section>
       </div>
@@ -143,7 +161,7 @@ async function loadGoalRooms(tx: Tx, view: Awaited<ReturnType<typeof loadSpaceVi
   return { spaceId: space.id, rooms: { searchId: latest.id, spaceId: space.id, items } };
 }
 
-function Agenda({ items, today }: { items: AgendaEntry[]; today: string }) {
+function Agenda({ items, today, planned, aiEnabled }: { items: AgendaEntry[]; today: string; planned: Set<string>; aiEnabled: boolean }) {
   return (
     <ol className="grid gap-4">
       {items.map((a) => (
@@ -158,6 +176,11 @@ function Agenda({ items, today }: { items: AgendaEntry[]; today: string }) {
                 {a.title}
               </Link>
               {a.location ? <p className="text-small text-muted">{a.location}</p> : null}
+              {a.kind !== "meeting" ? (
+                <Link href={`/rooms/${a.eventId}`} className="text-small font-[550] text-accent hover:underline">
+                  {planned.has(a.eventId) ? "Your plan for this room" : "Prepare for this room"}
+                </Link>
+              ) : null}
             </div>
             {a.attendees.length ? (
               <ul className="grid gap-3" aria-label={`Who you'll see at ${a.title}`}>
@@ -175,6 +198,17 @@ function Agenda({ items, today }: { items: AgendaEntry[]; today: string }) {
                         {p.lastTouch ? `Last: ${formatLongDate(p.lastTouch.on, today)}${p.lastTouch.summary ? ` · ${p.lastTouch.summary}` : ""}` : "No touches logged yet"}
                       </p>
                       {p.promise ? <p>You owe: {p.promise}</p> : null}
+                      {p.talkingPoints.length ? (
+                        <ul className="grid list-disc gap-0.5 pl-4" aria-label={`Talk to ${p.name.split(/\s+/)[0]} about`}>
+                          {p.talkingPoints.map((x) => (
+                            <li key={x}>{x}</li>
+                          ))}
+                        </ul>
+                      ) : !p.researched && aiEnabled ? (
+                        <div>
+                          <AiJobButton aiEnabled variant="ghost" job={{ kind: "research", personId: p.id, spaceId: p.spaceId, mode: "research" }} label={`Research ${p.name.split(/\s+/)[0]} before you go`} />
+                        </div>
+                      ) : null}
                     </div>
                   </li>
                 ))}

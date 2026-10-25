@@ -29,6 +29,12 @@ test.describe.serial("Connecting Google", () => {
     await page.getByLabel("Country for phone numbers").selectOption("NG");
     await page.getByRole("button", { name: "Continue" }).click();
 
+    // Goals come next, so every suggestion has a point.
+    await expect(page.getByRole("heading", { name: "What are you working towards?", level: 1 })).toBeVisible();
+    await expectAccessible(page);
+    await page.getByRole("button", { name: "Raise capital" }).click();
+    await page.getByRole("button", { name: "Save and continue" }).click();
+
     await expect(page.getByRole("heading", { name: "Bring in your people", level: 1 })).toBeVisible();
     await expectAccessible(page);
     await page.getByRole("link", { name: "Connect Google" }).click();

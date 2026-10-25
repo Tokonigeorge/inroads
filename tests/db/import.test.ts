@@ -109,6 +109,19 @@ describe("importing contacts and a calendar", () => {
     expect(att2.n).toBe(4); // you accepted the series, so the past sessions count as attended
   });
 
+  it("events you put in your own calendar become rooms of their kind, ready to be prepared; appointments don't", async () => {
+    const summary = await as((tx) =>
+      applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source: "google", meEmails: ["me@example.com"], connectionId: null }, [
+        event({ uid: "summit", summary: "Lagos Fintech Summit", location: "Eko Hotel", start: { date: "2026-11-05", time: "09:00", tz: "Africa/Lagos" } }),
+        event({ uid: "dentist", summary: "Dentist", start: { date: "2026-11-06", time: "09:00", tz: "Africa/Lagos" } }),
+      ]),
+    );
+    expect(summary.rooms).toBe(1);
+    expect(summary.eventRooms).toMatchObject([{ title: "Lagos Fintech Summit", kind: "conference", startsOn: "2026-11-05" }]);
+    expect(await sql`select kind, location from events where user_id = ${user.id} and external_id = 'summit'`).toEqual([{ kind: "conference", location: "Eko Hotel" }]);
+    expect(await sql`select id from events where user_id = ${user.id} and external_id = 'dentist'`).toEqual([]);
+  });
+
   it("running the calendar again logs nothing new", async () => {
     const summary = await as((tx) =>
       applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source: "google", meEmails: ["me@example.com"], connectionId: null }, [

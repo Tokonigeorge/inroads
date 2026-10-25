@@ -1,11 +1,11 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import type { GoalInput } from "@/contracts/goals";
+import { goalTypes, type GoalInput } from "@/contracts/goals";
 import type { Stage } from "@/contracts/spaces";
 import type { FormState } from "@/features/forms";
 import { autoResearch } from "@/server/ai/auto-research";
@@ -120,4 +120,25 @@ export async function deleteGoalStepAction(stepId: string) {
   const user = await requireUser();
   await db.withUser(user.id, (tx) => deleteGoalStep(tx, id.parse(stepId)));
   refresh();
+}
+
+const onboardingGoal = z.object({ text: z.string().trim().min(1).max(140), type: z.enum(goalTypes) });
+
+/** Goals picked during set-up, saved in your Work Space (or your first Space if Work is gone). */
+export async function saveOnboardingGoalsAction(goals: z.input<typeof onboardingGoal>[]): Promise<FormState> {
+  const user = await requireUser();
+  const list = z.array(onboardingGoal).max(6).parse(goals);
+  const r = await db.withUser(user.id, async (tx) => {
+    const spaces = await tx.select({ id: t.spaces.id, kind: t.spaces.kind }).from(t.spaces).where(isNull(t.spaces.archivedAt)).orderBy(t.spaces.position);
+    const space = spaces.find((sp) => sp.kind === "work") ?? spaces[0];
+    if (!space) return { ok: false as const, message: "Create a Space first." };
+    for (const [i, g] of list.entries()) {
+      const created = await createGoal(tx, user.id, { text: g.text, spaceId: space.id, type: g.type, priority: i === 0 ? 1 : 2, weeklyTarget: 3, stages: null });
+      if (!created.ok) return created;
+    }
+    return { ok: true as const };
+  });
+  if (!r.ok) return { message: r.message };
+  refresh();
+  return { ok: true };
 }

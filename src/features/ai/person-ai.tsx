@@ -14,6 +14,7 @@ import { ChatImportButton } from "./chat-import";
 import { DeleteResearchButton } from "./delete-research";
 import { DraftButton } from "./draft-sheet";
 import { JobStatus } from "./job-status";
+import { ResearchControls } from "./research-controls";
 import { SuggestionList, type SuggestionView } from "./suggestion-list";
 
 type Space = { id: string; name: string; kind: SpaceKind; researchMode: "full" | "get_to_know" | "off" };
@@ -149,7 +150,11 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                     <>
                       {p.summary ? <p>{String(p.summary)}</p> : null}
                       {p.identity ? <p className="text-small text-muted">{String(p.identity)}</p> : null}
+                      {p.company ? <p className="text-small">{String(p.company)}</p> : null}
                       <List title="Talking points" items={(p.talkingPoints as string[]) ?? []} />
+                      <List title="Career" items={(p.career as string[]) ?? []} />
+                      <List title="Shared ground" items={(p.sharedInterests as string[]) ?? []} />
+                      <List title="Matches what you saved" items={(p.matched as string[]) ?? []} />
                       <List title="Opportunities" items={(p.opportunities as string[]) ?? []} />
                       <List title="Recent signals" items={(p.signals as string[]) ?? []} />
                       <List title="Doesn't match what you saved" items={(p.conflicts as string[]) ?? []} />
@@ -181,14 +186,19 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                   <Sources list={(verify.sources as Src[]) ?? []} />
                 </div>
               ) : null}
-              <div className="flex flex-wrap gap-2">
-                <AiJobButton
-                  aiEnabled={aiEnabled}
-                  job={{ kind: "research", personId, spaceId: s.id, mode: "research" }}
-                  label={s.researchMode === "full" ? (latest ? "Research again" : `Research ${first}`) : latest ? "Look again" : "Get to know"}
-                />
-                {s.kind !== "work" ? <AiJobButton aiEnabled={aiEnabled} variant="ghost" job={{ kind: "research", personId, spaceId: s.id, mode: "verify" }} label="Check they're real" /> : null}
-              </div>
+              <ResearchControls
+                personId={personId}
+                spaceId={s.id}
+                name={name}
+                aiEnabled={aiEnabled}
+                canLookUp={s.kind === "work"}
+                label={s.researchMode === "full" ? (latest ? "Research again" : `Research ${first}`) : latest ? "Look again" : "Get to know"}
+              />
+              {s.kind !== "work" ? (
+                <div>
+                  <AiJobButton aiEnabled={aiEnabled} variant="ghost" job={{ kind: "research", personId, spaceId: s.id, mode: "verify" }} label="Check they're real" />
+                </div>
+              ) : null}
             </div>
           </Block>
         );

@@ -19,7 +19,18 @@ export type NudgeSnapshot = {
   /** Open promises they made you, past their date. */
   owedToMe: { id: string; person: NudgePerson; text: string; dueOn: IsoDate }[];
   /** People you're meeting in the next 3 days, one row per person and session. */
-  meetings: { person: NudgePerson; eventId: string; title: string; date: IsoDate; time: string | null; lastTouch: { on: IsoDate; summary: string } | null; promise: string | null }[];
+  meetings: {
+    person: NudgePerson;
+    eventId: string;
+    title: string;
+    date: IsoDate;
+    time: string | null;
+    lastTouch: { on: IsoDate; summary: string } | null;
+    promise: string | null;
+    /** The room's Space, and whether they've been researched there (optional for older callers). */
+    spaceId?: string;
+    researched?: boolean;
+  }[];
   /** People added by hand in the last 14 days with no context yet. */
   needContext: (NudgePerson & { createdOn: IsoDate })[];
   /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow. */
@@ -46,6 +57,8 @@ export type NudgeAction =
   | { type: "sort"; label: string }
   | { type: "review_duplicates"; label: string }
   | { type: "review_suggestions"; label: string }
+  | { type: "draft"; personId: string; purpose: "checkin" | "birthday" | "followup"; label: string }
+  | { type: "research"; personId: string; spaceId: string; label: string }
   | { type: "snooze"; days: number; label: string }
   | { type: "dismiss"; label: string };
 
@@ -111,6 +124,7 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       body: `${formatLongDate(b, t)}. A short, specific note lands better than a generic one.`,
       person: who(p),
       actions: [
+        { type: "draft", personId: p.id, purpose: "birthday", label: "Draft a note" },
         { type: "log_touch", personId: p.id, label: "Log a touch" },
         { type: "dismiss", label: "Done" },
       ],
@@ -148,7 +162,7 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       person: who(c.person),
       actions: [
         { type: "promise_done", commitmentId: c.id, label: "They did it" },
-        { type: "log_touch", personId: c.person.id, label: "Log a touch" },
+        { type: "draft", personId: c.person.id, purpose: "followup", label: "Draft a nudge" },
         { type: "snooze", days: 7, label: "Snooze a week" },
       ],
     });
@@ -168,6 +182,7 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       body: bits.join(" "),
       person: who(m.person),
       actions: [
+        ...(m.spaceId && m.researched === false ? [{ type: "research" as const, personId: m.person.id, spaceId: m.spaceId, label: "Research now" }] : []),
         { type: "open_person", personId: m.person.id, label: "Open" },
         { type: "open_room", eventId: m.eventId, label: "See the room" },
       ],
@@ -185,6 +200,7 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       body: `${p.detail ? `${p.detail}. ` : ""}You aim to be in touch every ${p.cadenceDays === 7 ? "week" : p.cadenceDays === 30 ? "month" : `${p.cadenceDays} days`}.`,
       person: who(p),
       actions: [
+        { type: "draft", personId: p.id, purpose: "checkin", label: "Draft a message" },
         { type: "log_touch", personId: p.id, label: "Log a touch" },
         { type: "snooze", days: 14, label: "Snooze 2 weeks" },
         { type: "open_person", personId: p.id, label: "Open" },

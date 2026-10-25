@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 20 (Walk in prepared, follow up in one tap)
+- **Today's agenda prepares you:** each person you'll see has two talking points from their research, or a button to research them before you go. Rooms link to their plan. The "You meet X soon" card offers **Research now**.
+- **People you're meeting in the next two days are researched automatically** at your brief time (up to three a day).
+- **Conferences, mixers and dinners in your calendar become rooms** even with no other guests, and the next ones get a plan after a sync.
+- **Look up their world** on a person's page, and **Give Inroads more to work with**: paste a bio or LinkedIn About to sharpen research.
+- **Draft from Today's cards:** due, birthday and "they owe you" cards draft a message ready for WhatsApp.
+- **Goals in set-up:** a new step asks what you're working towards (pick or write), and Today asks if you have none.
+- The research section shows company, career, shared ground and what matched your saved details.
+
 ### Added: milestone 19 (Proactive: rooms prepare themselves, people get researched)
 - Add someone by name (form, quick capture, share, "Who did you meet?", a goal) and Inroads researches them straight away. Their role, company, city, profiles and the goal they fit come back as suggestions to keep or dismiss. Their page shows the research running.
 - Add a room by name and press **Find details**: the web fills in the date, time, venue and event page, and the same search becomes the room's plan. Rooms you add by hand without it are prepared in the background.

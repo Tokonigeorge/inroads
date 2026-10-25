@@ -16,6 +16,7 @@ import { fetchIcsUrl, IcsUrlError } from "@/server/integrations/ics-url";
 import { fetchMicrosoftContacts, fetchMicrosoftEvents, microsoftAccessToken } from "@/server/integrations/microsoft";
 import { connectionsStore, type SyncState } from "@/server/system/connections";
 import { jobsStore } from "@/server/system/jobs";
+import { prepareSyncedRooms } from "@/server/ai/auto-research";
 import { userContext } from "@/server/user-context";
 
 export type SyncDeps = {
@@ -25,6 +26,8 @@ export type SyncDeps = {
   /** Resolver for ICS hosts (tests). */
   resolve?: (host: string) => Promise<string[]>;
   env?: Record<string, string | undefined>;
+  /** Don't start plans for event rooms after the sync (tests). */
+  skipPrep?: boolean;
 };
 
 export type SyncSummary = { contacts: ContactsSummary | null; calendar: CalendarSummary | null; importId: string };
@@ -120,10 +123,12 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
       const imp = await startImport(tx, { userId, spaceId, type: conn.provider, connectionId, jobId });
       const ictx = { userId, importId: imp.id, spaceId, today: ctx.today, source: conn.provider === "apple_ics" ? "calendar" : conn.provider };
       const c = contacts.length ? await applyContacts(tx, ictx, contacts) : null;
-      const cal = events.length ? await applyCalendar(tx, { ...ictx, meEmails: [...meEmails, ...profileEmails], connectionId }, events) : null;
+      const applied = events.length ? await applyCalendar(tx, { ...ictx, meEmails: [...meEmails, ...profileEmails], connectionId }, events) : null;
+      const { eventRooms = [], ...cal } = applied ?? {};
+      const calendar = applied ? (cal as CalendarSummary) : null;
       await computeTriageSuggestions(tx, { today: ctx.today, importId: imp.id });
-      await finishImport(tx, imp.id, { contacts: c, calendar: cal });
-      return { contacts: c, calendar: cal, importId: imp.id };
+      await finishImport(tx, imp.id, { contacts: c, calendar });
+      return { contacts: c, calendar, importId: imp.id, eventRooms };
     });
 
     // Fresh planner statistics after bulk writes keep the people list fast (DECISIONS #35).
@@ -134,7 +139,9 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
 
     await store.saveSync(connectionId, { ...next, lastImportId: result.importId, lastJobId: jobId, lastSummary: { contacts: result.contacts, calendar: result.calendar } });
     await jobs.done(jobId, { step: "Done", summary: { contacts: result.contacts, calendar: result.calendar } }, { importId: result.importId, connectionId });
-    return result;
+    // Conferences and mixers from the calendar get a plan, like rooms you add by hand (P3).
+    if (!deps.skipPrep) await prepareSyncedRooms(userId, spaceId, result.eventRooms, ctx.today).catch((e) => console.error("room prep after sync failed", e));
+    return { contacts: result.contacts, calendar: result.calendar, importId: result.importId };
   } catch (e) {
     const message =
       e instanceof ReauthRequired

@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { isNull } from "drizzle-orm";
+import { roomKindFromTitle } from "@/domain/room-kind";
 import { addDays } from "@/domain/dates";
 import { nameKey } from "@/domain/normalise";
 import { fromRRule, occurrences, toRRule } from "@/domain/recurrence";
@@ -10,6 +11,8 @@ import type { Tx } from "@/server/db/with-user";
 import type { ImportContext } from "./contacts";
 
 export type CalendarSummary = { events: number; skipped: number; logged: number; peopleTouched: number; newPeople: number; rooms: number };
+/** Rooms this sync saved that are events rather than meetings, for preparing a plan. */
+export type CalendarEventRoom = { id: string; title: string; kind: string; startsOn: string };
 
 const PAST_DAYS = 183;
 const FUTURE_DAYS = 92;
@@ -21,7 +24,9 @@ const MAX_NEW_PEOPLE = 200;
  * Calendar import, ported from the prototype's importCalendars():
  *  - past meetings (last 6 months) are logged as touches on the people who were there;
  *  - guests you don't have yet become people waiting to be sorted, with those touches;
- *  - upcoming meetings with other people become rooms, linked to the people you know.
+ *  - upcoming meetings with other people become rooms, linked to the people you know;
+ *  - upcoming events you've put in your own calendar ("… Conference", "… Mixer") become rooms too,
+ *    of that kind, even with no other guests (P3: they get a plan like rooms you add by hand).
  * Declined, cancelled and moved single sessions are skipped. Re-running is safe: touches are
  * keyed by event and date, rooms by the calendar's event id.
  */
@@ -29,7 +34,7 @@ export async function applyCalendar(
   tx: Tx,
   ctx: ImportContext & { meEmails: string[]; connectionId: string | null },
   events: IcsEvent[],
-): Promise<CalendarSummary> {
+): Promise<CalendarSummary & { eventRooms: CalendarEventRoom[] }> {
   const me = new Set(ctx.meEmails.map((e) => e.toLowerCase()));
   const from = addDays(ctx.today, -PAST_DAYS);
   const to = addDays(ctx.today, FUTURE_DAYS);
@@ -95,14 +100,15 @@ export async function applyCalendar(
       }
     }
 
-    if (next.length && others.length) {
+    const kind = roomKindFromTitle(summary);
+    if (next.length && (others.length || kind)) {
       const supported = !rec.unsupported;
       rooms.push({
         row: {
           userId: ctx.userId,
           spaceId: ctx.spaceId,
           title: summary.slice(0, 200),
-          kind: "meeting",
+          kind: kind ?? "meeting",
           startsOn: ev.start.date,
           startTime: ev.start.time,
           allDay: ev.allDay,
@@ -146,6 +152,7 @@ export async function applyCalendar(
     logged += inserted.length;
   }
 
+  const eventRooms: CalendarEventRoom[] = [];
   for (const r of rooms) {
     const [saved] = await tx
       .insert(t.events)
@@ -154,7 +161,8 @@ export async function applyCalendar(
         target: [t.events.userId, t.events.source, t.events.externalId],
         set: { title: r.row.title, startsOn: r.row.startsOn, startTime: r.row.startTime, allDay: r.row.allDay, tz: r.row.tz, location: r.row.location, rrule: r.row.rrule, rruleSource: r.row.rruleSource, untilOn: r.row.untilOn, deletedAt: null },
       })
-      .returning({ id: t.events.id });
+      .returning({ id: t.events.id, kind: t.events.kind });
+    if (saved.kind !== "meeting") eventRooms.push({ id: saved.id, title: r.row.title, kind: saved.kind, startsOn: r.row.startsOn });
     if (r.people.length) {
       await tx.insert(t.eventPeople).values(r.people.map((personId) => ({ userId: ctx.userId, eventId: saved.id, personId, role: "attendee" }))).onConflictDoNothing();
     }
@@ -173,5 +181,6 @@ export async function applyCalendar(
     peopleTouched: new Set(touches.map((x) => x.personId)).size,
     newPeople: fresh.length,
     rooms: rooms.length,
+    eventRooms,
   };
 }

@@ -14,7 +14,24 @@ const detailOf = (position: string | null, company: string | null) => [position,
 
 type Ctx = { spaceId: string | null; today: IsoDate; tz: string };
 
-export type PrepPerson = NudgePerson & { lastTouch: { on: IsoDate; summary: string } | null; promise: string | null };
+export type PrepPerson = NudgePerson & {
+  lastTouch: { on: IsoDate; summary: string } | null;
+  promise: string | null;
+  /** The room's Space, and what research in it suggests talking about (empty if none yet). */
+  spaceId: string;
+  researched: boolean;
+  talkingPoints: string[];
+};
+
+/** Up to two talking points from the latest research in that Space (full research or Get to know). */
+function talkingPointsOf(payload: unknown): string[] {
+  const p = (payload ?? {}) as { talkingPoints?: unknown; thingsToAsk?: unknown };
+  const list = Array.isArray(p.talkingPoints) ? p.talkingPoints : Array.isArray(p.thingsToAsk) ? p.thingsToAsk : [];
+  return list
+    .map((x) => (typeof x === "string" ? x : x && typeof x === "object" && "text" in x ? String((x as { text: unknown }).text) : ""))
+    .filter(Boolean)
+    .slice(0, 2);
+}
 export type AgendaEntry = UpcomingItem & { attendees: PrepPerson[] };
 
 /** People linked to each session (whole series or that date), with their last touch and what you owe them. */
@@ -29,7 +46,7 @@ async function sessionPeople(tx: Tx, sessions: UpcomingItem[]) {
     .innerJoin(t.events, eq(t.events.id, t.eventPeople.eventId))
     .where(and(inArray(t.eventPeople.eventId, ids), isNull(t.people.deletedAt)));
   const personIds = [...new Set(links.map((l) => l.id))];
-  const [touches, promises] = personIds.length
+  const [touches, promises, dossiers] = personIds.length
     ? await Promise.all([
         tx
           .selectDistinctOn([t.interactions.personId, t.interactions.spaceId], {
@@ -47,8 +64,13 @@ async function sessionPeople(tx: Tx, sessions: UpcomingItem[]) {
           .from(t.commitments)
           .where(and(inArray(t.commitments.personId, personIds), isNull(t.commitments.doneAt), eq(t.commitments.owner, "me")))
           .orderBy(sql`${t.commitments.dueOn} asc nulls last`),
+        tx
+          .selectDistinctOn([t.dossiers.personId, t.dossiers.spaceId], { personId: t.dossiers.personId, spaceId: t.dossiers.spaceId, payload: t.dossiers.payload })
+          .from(t.dossiers)
+          .where(and(inArray(t.dossiers.personId, personIds), sql`${t.dossiers.mode} <> 'verify'`))
+          .orderBy(t.dossiers.personId, t.dossiers.spaceId, desc(t.dossiers.version)),
       ])
-    : [[], []];
+    : [[], [], []];
   for (const s of sessions) {
     const seen = new Set<string>();
     const people: PrepPerson[] = [];
@@ -62,11 +84,22 @@ async function sessionPeople(tx: Tx, sessions: UpcomingItem[]) {
         detail: detailOf(l.position, l.company),
         lastTouch: last ? { on: last.on, summary: last.summary ?? "" } : null,
         promise: promises.find((p) => p.personId === l.id && p.spaceId === l.spaceId)?.text ?? null,
+        spaceId: l.spaceId,
+        ...((d) => ({ researched: Boolean(d), talkingPoints: talkingPointsOf(d?.payload) }))(dossiers.find((x) => x.personId === l.id && x.spaceId === l.spaceId)),
       });
     }
     out.set(`${s.eventId}:${s.occurrenceOn}`, people);
   }
   return out;
+}
+
+/** Everyone linked to sessions from today to `days` ahead, once each (for researching ahead of time). */
+export async function upcomingAttendees(tx: Tx, ctx: Ctx, days: number): Promise<PrepPerson[]> {
+  const sessions = await listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, days);
+  const people = await sessionPeople(tx, sessions);
+  const seen = new Map<string, PrepPerson>();
+  for (const s of sessions) for (const p of people.get(`${s.eventId}:${s.occurrenceOn}`) ?? []) if (!seen.has(`${p.id}:${p.spaceId}`)) seen.set(`${p.id}:${p.spaceId}`, p);
+  return [...seen.values()];
 }
 
 /** Today's sessions, in the user's zone, with prep for each person you'll see. */
@@ -156,6 +189,8 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
         time: s.time,
         lastTouch: p.lastTouch,
         promise: p.promise,
+        spaceId: p.spaceId,
+        researched: p.researched,
       })),
     ),
     rooms: upcoming.filter((s) => s.kind !== "meeting").map((s) => ({ eventId: s.eventId, title: s.title, date: s.date, time: s.time, location: s.location })),
