@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { providerLabels, type ProviderKind } from "@/contracts/connections";
@@ -60,7 +61,7 @@ export function ConnectionsPanel({ connections, spaces, imports, configured, ini
       ) : null}
 
       <ul className="grid gap-4">
-        {(["google", "microsoft"] as const).map((p) => (
+        {(["google", "microsoft"] as const).filter((p) => configured[p]).map((p) => (
           <OAuthCard
             key={p}
             provider={p}
@@ -70,12 +71,23 @@ export function ConnectionsPanel({ connections, spaces, imports, configured, ini
             onJob={setJobId}
           />
         ))}
-        <IcsCard accounts={connections.filter((c) => c.provider === "apple_ics")} spaceId={spaceId} onJob={setJobId} />
-        <PhoneCard spaceId={spaceId} />
-        <Card title="Files" what="Contacts or calendar files you've exported. You'll see what will change before anything is saved.">
-          <FileImport spaceId={spaceId} />
-        </Card>
       </ul>
+
+      {/* Most people only need Google; the rest stay folded away unless there's nothing else to use. */}
+      <details open={(!configured.google && !configured.microsoft) || connections.some((c) => c.provider === "apple_ics")} className="group">
+        <summary className="cursor-pointer list-none rounded-sm font-[550] [&::-webkit-details-marker]:hidden">
+          <ChevronRight size={16} aria-hidden className="mr-1 inline-block align-[-2px] transition-transform group-open:rotate-90" />
+          Other ways to add people
+          <span className="block text-small font-normal text-muted">Optional. For an Apple calendar, your phone&apos;s address book, or a file you&apos;ve exported.</span>
+        </summary>
+        <ul className="mt-4 grid gap-4">
+          <IcsCard accounts={connections.filter((c) => c.provider === "apple_ics")} spaceId={spaceId} onJob={setJobId} />
+          <PhoneCard spaceId={spaceId} />
+          <Card title="Files" what="Contacts or calendar files you've exported. You'll see what will change before anything is saved.">
+            <FileImport spaceId={spaceId} />
+          </Card>
+        </ul>
+      </details>
 
       <ImportsList imports={imports} />
     </div>
