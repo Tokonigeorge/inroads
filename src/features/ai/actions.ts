@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { draftMessage, importChat, readCard } from "@/server/ai/features";
+import { autoResearch } from "@/server/ai/auto-research";
 import { AiLimitError } from "@/server/ai/limits";
 import { draftPurposes } from "@/server/ai/prompts/writing";
 import { AiError } from "@/server/ai/run";
@@ -14,6 +15,7 @@ import * as t from "@/server/db/schema";
 import { aiJobSchema } from "@/server/jobs/ai-jobs";
 import { enqueueAiJob } from "@/server/jobs/enqueue";
 import { logTouch } from "@/server/repos/people";
+import { keepOpening, keepStakeholder } from "@/server/repos/prep";
 import { acceptSuggestion, discardSuggestion } from "@/server/repos/suggestions";
 import { userContext } from "@/server/user-context";
 
@@ -118,4 +120,30 @@ export async function hideRoomIdeaAction(searchId: string, itemId: string) {
     await tx.update(t.searches).set({ result: { ...result, items: result.items.filter((i) => i.id !== itemId) } }).where(eq(t.searches.id, searchId));
   });
   refresh();
+}
+
+/** Save someone a plan named (or reuse your contact), add them to the goal and the room, then research them. */
+export async function keepStakeholderAction(searchId: string, index: number, goalId: string | null): Promise<{ ok: boolean; personId?: string; message?: string }> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, async (tx) =>
+    keepStakeholder(tx, user.id, { searchId: id.parse(searchId), index: z.number().int().min(0).max(20).parse(index), goalId: goalId ? id.parse(goalId) : null }, (await userContext(tx)).today),
+  );
+  if (!r.ok) return { ok: false, message: r.message };
+  if (r.data.created) {
+    const [s] = await db.withUser(user.id, (tx) => tx.select({ spaceId: t.searches.spaceId }).from(t.searches).where(eq(t.searches.id, searchId)));
+    if (s) await autoResearch(user.id, r.data.personId, s.spaceId);
+  }
+  refresh();
+  return { ok: true, personId: r.data.personId };
+}
+
+/** Add a plan's first move as a step on a goal. */
+export async function keepOpeningAction(searchId: string, index: number, goalId: string): Promise<{ ok: boolean; message?: string }> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, async (tx) =>
+    keepOpening(tx, user.id, { searchId: id.parse(searchId), index: z.number().int().min(0).max(20).parse(index), goalId: id.parse(goalId) }, (await userContext(tx)).today),
+  );
+  if (!r.ok) return { ok: false, message: r.message };
+  refresh();
+  return { ok: true };
 }

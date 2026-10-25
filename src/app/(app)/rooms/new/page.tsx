@@ -4,6 +4,7 @@ import { FormPage } from "@/features/people/form-page";
 import { RoomForm } from "@/features/rooms/room-form";
 import { loadRoomSpaceChoices } from "@/features/rooms/space-choices";
 import { LoadingRows } from "@/features/shell/page-frame";
+import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { readSelectedSpaceId } from "@/server/space-selection";
@@ -36,6 +37,7 @@ async function Form({ searchParams }: { searchParams: PageProps<"/rooms/new">["s
     <RoomForm
       roomId={null}
       spaces={spaces}
+      aiEnabled={isAiConfigured()}
       values={{ spaceId, title: one("title")?.slice(0, 120) ?? "", kind: "meetup", startsOn: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ctx.today, startTime: time && /^\d{2}:\d{2}$/.test(time) ? time : "18:00", endTime: null, allDay: false, tz: ctx.timezone, location: one("location"), url: one("url"), notes: one("notes"), freq: "none", byDays: null, nth: null, untilOn: null, goalId: null }}
     />
   );

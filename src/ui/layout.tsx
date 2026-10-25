@@ -29,7 +29,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("pb-8", className)}>
+    <section aria-label={title} className={cn("pb-8", className)}>
       <div className="flex items-center justify-between gap-3 pb-3">
         <h2 className="text-title font-semibold">{title}</h2>
         {action}

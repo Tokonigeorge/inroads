@@ -8,10 +8,12 @@ import { formatLongDate } from "@/domain/dates";
 import { progressMeter, progressSummary } from "@/domain/goal-progress";
 import { instantInZone } from "@/domain/zoned";
 import { GoalActions } from "@/features/goals/goal-actions";
+import { GoalSteps } from "@/features/goals/goal-steps";
 import { Pipeline } from "@/features/goals/pipeline";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
 import { getGoal, type GoalDetail } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
 import { PageHeader, Section } from "@/ui/layout";
@@ -36,13 +38,14 @@ async function Goal({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, user] = await Promise.all([params, requireUser()]);
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
-    return { goal: await getGoal(tx, id, ctx.today, ctx.timezone), ctx };
+    const goal = await getGoal(tx, id, ctx.today, ctx.timezone);
+    return { goal, ctx, steps: goal ? await listGoalSteps(tx, goal.id) : [] };
   });
   if (!data.goal) notFound();
-  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} />;
+  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} />;
 }
 
-function GoalView({ g, today, tz }: { g: GoalDetail; today: string; tz: string }) {
+function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: string; steps: GoalStep[] }) {
   const m = progressMeter(g.progress);
   const label = (key: string | null) => (key ? (g.stages.find((s) => s.key === key)?.label ?? "a removed stage") : "");
   const subtitle = [
@@ -75,6 +78,12 @@ function GoalView({ g, today, tz }: { g: GoalDetail; today: string; tz: string }
           <Meter value={m.done} max={m.target} label="This week" valueText={`${m.done} of ${m.target}`} />
           <p className="text-small text-muted">{progressSummary(g.progress)}</p>
         </section>
+      ) : null}
+
+      {!g.archived ? (
+        <Section title="Next steps" className="max-w-[720px]">
+          <GoalSteps goalId={g.id} today={today} steps={steps.map((s) => ({ id: s.id, text: s.text, dueOn: s.dueOn, done: Boolean(s.doneAt), fromPrep: s.fromPrep }))} />
+        </Section>
       ) : null}
 
       <Section title={`Pipeline · ${g.people === 1 ? "1 person" : `${g.people} people`}`}>

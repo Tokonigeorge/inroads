@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { ReactNode } from "react";
 import type { SpaceKind } from "@/contracts/spaces";
 import { formatLongDate } from "@/domain/dates";
@@ -7,11 +7,13 @@ import { isAiConfigured } from "@/server/ai/config";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { pendingForPerson } from "@/server/repos/suggestions";
+import { researchJobKind } from "@/server/jobs/ai-jobs";
 import { userContext } from "@/server/user-context";
 import { AiJobButton } from "./ai-job-button";
 import { ChatImportButton } from "./chat-import";
 import { DeleteResearchButton } from "./delete-research";
 import { DraftButton } from "./draft-sheet";
+import { JobStatus } from "./job-status";
 import { SuggestionList, type SuggestionView } from "./suggestion-list";
 
 type Space = { id: string; name: string; kind: SpaceKind; researchMode: "full" | "get_to_know" | "off" };
@@ -90,16 +92,23 @@ const List = ({ title, items }: { title: string; items: (string | { text: string
 /** Research, suggestions, drafts and chat import on a person's page, per Space. */
 export async function PersonAi({ userId, personId, name, spaces }: { userId: string; personId: string; name: string; spaces: Space[] }) {
   const aiEnabled = isAiConfigured();
-  const { dossiers, suggestions, ctx, me } = await db.withUser(userId, async (tx) => {
-    const [dossiers, suggestions, ctx, [me]] = await Promise.all([
+  const { dossiers, suggestions, ctx, me, running } = await db.withUser(userId, async (tx) => {
+    const [dossiers, suggestions, ctx, [me], [running]] = await Promise.all([
       spaces.length
         ? tx.select().from(t.dossiers).where(and(eq(t.dossiers.personId, personId), inArray(t.dossiers.spaceId, spaces.map((s) => s.id)))).orderBy(desc(t.dossiers.version))
         : Promise.resolve([]),
       pendingForPerson(tx, personId),
       userContext(tx),
       tx.select({ name: t.profiles.name }).from(t.profiles),
+      // Research started for them (by hand or automatically when they were added) and still going.
+      tx
+        .select({ id: t.jobs.id })
+        .from(t.jobs)
+        .where(and(eq(t.jobs.kind, researchJobKind(personId)), inArray(t.jobs.status, ["queued", "running"]), sql`${t.jobs.createdAt} > now() - interval '15 minutes'`))
+        .orderBy(desc(t.jobs.createdAt))
+        .limit(1),
     ]);
-    return { dossiers, suggestions, ctx, me };
+    return { dossiers, suggestions, ctx, me, running };
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
@@ -120,7 +129,8 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         </Block>
       ) : null}
 
-      {researchable.map((s) => {
+      {researchable.map((s, i) => {
+        const live = i === 0 ? running : undefined;
         const mine = dossiers.filter((d) => d.spaceId === s.id);
         const latest = mine.find((d) => d.mode !== "verify");
         const verify = mine.find((d) => d.mode === "verify");
@@ -129,6 +139,7 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         return (
           <Block key={s.id} title={researchable.length > 1 ? `${s.researchMode === "full" ? "Research" : "Get to know"} · ${s.name}` : s.researchMode === "full" ? "Research" : "Get to know"}>
             <div className="grid gap-4">
+              {live ? <JobStatus jobId={live.id} /> : null}
               {latest ? (
                 <div className="grid gap-3">
                   <p className="text-small text-muted">
@@ -155,7 +166,7 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                   <Sources list={(latest.sources as Src[]) ?? []} />
                   {latest.mode !== "example" ? <DeleteResearchButton dossierId={latest.id} /> : null}
                 </div>
-              ) : (
+              ) : live ? null : (
                 <p className="text-small text-muted">
                   {s.researchMode === "full"
                     ? `A short profile of ${first}'s public professional life, with sources, talking points and how they fit your goals.`

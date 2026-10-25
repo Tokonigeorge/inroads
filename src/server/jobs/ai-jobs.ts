@@ -9,12 +9,22 @@ import { jobsStore } from "@/server/system/jobs";
 const uuid = z.string().uuid();
 export const aiJobSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("research"), personId: uuid, spaceId: uuid, mode: z.enum(["research", "verify"]), pasted: z.string().max(12000).optional() }),
-  z.object({ kind: z.literal("lookup"), spaceId: uuid, type: z.enum(lookupTypes), q: z.string().trim().min(2).max(200), context: z.string().max(12000).optional(), personId: uuid.optional() }),
+  z.object({ kind: z.literal("lookup"), spaceId: uuid, type: z.enum(lookupTypes), q: z.string().trim().min(2).max(200), context: z.string().max(12000).optional(), personId: uuid.optional(), eventId: uuid.optional() }),
   z.object({ kind: z.literal("radar"), spaceId: uuid }),
   z.object({ kind: z.literal("brief"), spaceId: uuid, briefKind: z.enum(["daily", "weekly"]) }),
   z.object({ kind: z.literal("score"), spaceId: uuid }),
 ]);
 export type AiJob = z.infer<typeof aiJobSchema>;
+
+export const researchJobKind = (personId: string) => `ai:research:${personId}`;
+export const prepJobKind = (eventId: string) => `ai:prep:${eventId}`;
+
+/** The `jobs.kind` for a job: research and room prep name what they're about, so its page can show them running. */
+export function jobKindFor(job: AiJob) {
+  if (job.kind === "research") return researchJobKind(job.personId);
+  if (job.kind === "lookup" && job.eventId) return prepJobKind(job.eventId);
+  return `ai:${job.kind}`;
+}
 
 export const aiJobFeature = { research: "research", lookup: "lookup", radar: "radar", brief: "brief", score: "score" } as const;
 

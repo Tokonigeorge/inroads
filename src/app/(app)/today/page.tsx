@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { formatLongDate } from "@/domain/dates";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { addDays, formatLongDate } from "@/domain/dates";
 import { formatTime } from "@/domain/zoned";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { Briefs, loadBriefs } from "@/features/ai/briefs";
+import type { RoomIdea } from "@/features/ai/room-ideas";
+import { ForYourGoals, type GoalRooms } from "@/features/today/for-your-goals";
 import { NudgeFeed } from "@/features/today/nudge-feed";
 import { requireUser } from "@/server/auth";
+import { isAiConfigured } from "@/server/ai/config";
 import { db } from "@/server/db/client";
+import * as t from "@/server/db/schema";
+import type { Tx } from "@/server/db/with-user";
+import { dueGoalSteps } from "@/server/repos/goal-steps";
 import { getAccountOverview } from "@/server/repos/account";
 import { listNudges, personSpacesFor, todayAgenda, type AgendaEntry } from "@/server/repos/nudges";
 import { userContext } from "@/server/user-context";
@@ -45,7 +52,9 @@ async function Today() {
       // Briefs: the selected Space, or each Space with people in it.
       const briefSpaces = (view.selected ? [view.selected] : view.spaces.filter((s) => s.people > 0)).map((s) => ({ id: s.id, name: s.name }));
       const briefs = await loadBriefs(tx, briefSpaces, ctx.today);
-      return { agenda, nudges, spaces, briefSpaces, briefs, today: ctx.today, spaceName: view.selected?.name ?? null };
+      const steps = await dueGoalSteps(tx, addDays(ctx.today, 2), c.spaceId);
+      const goalRooms = await loadGoalRooms(tx, view, ctx.today);
+      return { agenda, nudges, spaces, briefSpaces, briefs, steps, goalRooms, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
@@ -98,8 +107,40 @@ async function Today() {
           )}
         </Section>
       </div>
+      <ForYourGoals
+        steps={data.steps}
+        rooms={data.goalRooms.rooms}
+        today={data.today}
+        canSearch={data.goalRooms.rooms || !data.goalRooms.spaceId ? null : { spaceId: data.goalRooms.spaceId, aiEnabled: isAiConfigured() }}
+      />
     </>
   );
+}
+
+/**
+ * Rooms for your goals this week: the newest weekly search (from the last 10 days) for the
+ * Space you're looking at, or your first Space with goals. Dated ones this week first.
+ */
+async function loadGoalRooms(tx: Tx, view: Awaited<ReturnType<typeof loadSpaceView>>, today: string): Promise<{ spaceId: string | null; rooms: GoalRooms }> {
+  const candidates = view.selected ? [view.selected] : view.spaces;
+  const withGoals = await tx
+    .selectDistinct({ spaceId: t.goals.spaceId })
+    .from(t.goals)
+    .where(and(eq(t.goals.active, true), isNull(t.goals.archivedAt), eq(t.goals.example, false)));
+  const space = candidates.find((sp) => withGoals.some((g) => g.spaceId === sp.id));
+  if (!space) return { spaceId: null, rooms: null };
+  const [latest] = await tx
+    .select({ id: t.searches.id, result: t.searches.result })
+    .from(t.searches)
+    .where(and(eq(t.searches.type, "radar"), eq(t.searches.spaceId, space.id), sql`${t.searches.createdAt} > now() - interval '10 days'`))
+    .orderBy(desc(t.searches.createdAt))
+    .limit(1);
+  if (!latest) return { spaceId: space.id, rooms: null };
+  const week = addDays(today, 7);
+  const items = ((latest.result as { items?: RoomIdea[] }).items ?? [])
+    .filter((i) => (i.date ? i.date >= today && i.date <= week : i.confidence !== "idea"))
+    .slice(0, 3);
+  return { spaceId: space.id, rooms: { searchId: latest.id, spaceId: space.id, items } };
 }
 
 function Agenda({ items, today }: { items: AgendaEntry[]; today: string }) {

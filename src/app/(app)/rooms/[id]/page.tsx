@@ -1,3 +1,4 @@
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,9 +10,16 @@ import type { RoomRoi } from "@/domain/room-roi";
 import { recurrenceLabel } from "@/domain/recurrence";
 import { expandAgenda, formatTime, zoneCity } from "@/domain/zoned";
 import { AttendanceToggle, RoomActions, UnlinkButton } from "@/features/rooms/room-actions";
+import { AiJobButton } from "@/features/ai/ai-job-button";
+import { JobStatus } from "@/features/ai/job-status";
+import { PlanView } from "@/features/ai/plan";
 import { LoadingRows } from "@/features/shell/page-frame";
+import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import * as t from "@/server/db/schema";
+import { prepJobKind } from "@/server/jobs/ai-jobs";
+import { latestPrepId, loadPlan, type Plan } from "@/server/repos/prep";
 import { roomImpact } from "@/server/repos/room-impact";
 import { getRoom, type RoomDetail } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
@@ -35,7 +43,7 @@ export default function RoomPage({ params }: PageProps<"/rooms/[id]">) {
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border py-6">
+    <section aria-label={title} className="border-t border-border py-6">
       <h2 className="pb-3 text-title font-semibold">{title}</h2>
       {children}
     </section>
@@ -47,10 +55,18 @@ async function Room({ params }: { params: Promise<{ id: string }> }) {
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
     const room = await getRoom(tx, id, ctx.today);
-    return { room, ctx, impact: room ? await roomImpact(tx, room.room.id, ctx.today) : null };
+    if (!room) return null;
+    const prepId = await latestPrepId(tx, room.room.id);
+    const [running] = await tx
+      .select({ id: t.jobs.id })
+      .from(t.jobs)
+      .where(and(eq(t.jobs.kind, prepJobKind(room.room.id)), inArray(t.jobs.status, ["queued", "running"]), sql`${t.jobs.createdAt} > now() - interval '15 minutes'`))
+      .limit(1);
+    return { room, ctx, impact: await roomImpact(tx, room.room.id, ctx.today), plan: prepId ? await loadPlan(tx, prepId) : null, running: running?.id ?? null };
   });
-  if (!data.room || !data.impact) notFound();
-  return <RoomView d={data.room} today={data.ctx.today} userTz={data.ctx.timezone} impact={data.impact} />;
+  if (!data) notFound();
+  const prep = <Prep roomId={data.room.room.id} spaceId={data.room.space.id} title={data.room.room.title} plan={data.plan} running={data.running} />;
+  return <RoomView d={data.room} today={data.ctx.today} userTz={data.ctx.timezone} impact={data.impact} prep={prep} />;
 }
 
 function when(d: RoomDetail, date: string, today: string, userTz: string) {
@@ -62,7 +78,7 @@ function when(d: RoomDetail, date: string, today: string, userTz: string) {
   return `${formatLongDate(item.date, today)} · ${formatTime(item.time)}${end}${item.localTimeLabel ? ` (${item.localTimeLabel})` : ""}`;
 }
 
-function RoomView({ d, today, userTz, impact }: { d: RoomDetail; today: string; userTz: string; impact: RoomRoi }) {
+function RoomView({ d, today, userTz, impact, prep }: { d: RoomDetail; today: string; userTz: string; impact: RoomRoi; prep: ReactNode }) {
   const e = d.room;
   const repeats = d.recurrence.freq !== "none";
   const headlineDate = d.next[0] ?? e.startsOn;
@@ -99,6 +115,8 @@ function RoomView({ d, today, userTz, impact }: { d: RoomDetail; today: string; 
         </div>
         <RoomActions roomId={e.id} title={e.title} spaceId={d.space.id} />
       </header>
+
+      {d.next.length ? prep : null}
 
       <Block title="People">
         {d.people.length ? (
@@ -167,6 +185,38 @@ function RoomView({ d, today, userTz, impact }: { d: RoomDetail; today: string; 
         </Block>
       ) : null}
     </article>
+  );
+}
+
+/** The room's plan: who to meet, openings, tips. Prepared automatically, or on request. */
+function Prep({ roomId, spaceId, title, plan, running }: { roomId: string; spaceId: string; title: string; plan: Plan | null; running: string | null }) {
+  const aiEnabled = isAiConfigured();
+  if (!plan && !aiEnabled) return null;
+  const job = { kind: "lookup", spaceId, type: "event", q: title.slice(0, 200), eventId: roomId };
+  return (
+    <Block title="Your plan">
+      {running ? (
+        <div className="pb-4">
+          <JobStatus jobId={running} />
+        </div>
+      ) : null}
+      {plan ? (
+        <>
+          <PlanView plan={plan} compact />
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={`/rooms/lookup/${plan.id}`} className="text-small font-[550] text-accent hover:underline">
+              See the full plan
+            </Link>
+            {running ? null : <AiJobButton aiEnabled={aiEnabled} variant="ghost" job={job} label="Prepare again" />}
+          </div>
+        </>
+      ) : running ? null : (
+        <div className="grid gap-3">
+          <p className="text-small text-muted">Inroads can research this room on the web: who&apos;ll be there, who matters for your goals, who can introduce you, and what to do first.</p>
+          <AiJobButton aiEnabled={aiEnabled} variant="primary" job={job} label="Prepare" />
+        </div>
+      )}
+    </Block>
   );
 }
 

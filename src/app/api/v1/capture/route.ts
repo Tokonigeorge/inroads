@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { captureSchema } from "@/contracts/people";
+import { autoResearch } from "@/server/ai/auto-research";
 import { apiRoute, unprocessable } from "@/server/api";
 import { db } from "@/server/db/client";
 import { addPromise, createPerson, logTouch, setPromiseDone } from "@/server/repos/people";
@@ -28,5 +29,7 @@ export const POST = apiRoute(async (req, user) => {
     }
   });
   if (!result.ok) return unprocessable(result.message, result.field);
+  // Someone new, added by hand: research them now (a replayed offline capture isn't new).
+  if (c.kind === "person" && result.data && "created" in result.data && result.data.created) await autoResearch(user.id, c.data.id, c.data.membership.spaceId);
   return NextResponse.json({ ok: true, id: result.data.id });
 });

@@ -18,7 +18,7 @@ const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
  * met there (new people are added to the room's Space); each gets a touch dated that session and,
  * if you chose, a follow-up you owe in a day or two. Saving twice adds nothing new.
  */
-export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefInput, today: IsoDate): Promise<Result<{ people: number }>> {
+export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefInput, today: IsoDate): Promise<Result<{ people: number; created: string[]; spaceId: string }>> {
   const parsed = roomDebriefSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.");
   const d = parsed.data;
@@ -32,6 +32,7 @@ export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefIn
     .onConflictDoUpdate({ target: [t.eventAttendance.eventId, t.eventAttendance.occurrenceOn], set: { attended: true } });
 
   let saved = 0;
+  const created: string[] = [];
   for (const m of d.met) {
     let personId: string;
     let name: string;
@@ -49,6 +50,7 @@ export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefIn
       if (!r.ok) return r;
       personId = r.data.id;
       name = m.name;
+      if (r.data.created) created.push(personId);
     }
     await tx.insert(t.eventPeople).values({ eventId: e.id, personId, userId, role: "met_there", occurrenceOn: d.occurrenceOn }).onConflictDoNothing();
     // One touch per person per session, whatever happens on a second save.
@@ -64,7 +66,7 @@ export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefIn
     await tx.update(t.personSpaces).set({ triageState: "done" }).where(and(eq(t.personSpaces.personId, personId), eq(t.personSpaces.spaceId, e.spaceId)));
     saved++;
   }
-  return { ok: true, data: { people: saved } };
+  return { ok: true, data: { people: saved, created, spaceId: e.spaceId } };
 }
 
 /** "I didn't go": records it so the card goes away. */

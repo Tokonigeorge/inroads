@@ -49,9 +49,10 @@ describe("after the room", () => {
   it("saves who you met: attendance, met there, a touch each and follow-ups; saving again adds nothing", async () => {
     const input = { eventId: mixer, occurrenceOn: YESTERDAY, followUpInDays: 2 as const, met: [{ personId: ada, note: "Talked pricing" }, { id: randomUUID(), name: "Tola Adeyemi", company: "Kuda" }] };
     const r = await as((tx) => saveRoomDebrief(tx, user.id, input, TODAY));
-    expect(r).toEqual({ ok: true, data: { people: 2 } });
+    // Only Tola is new, so only Tola is researched; saving again creates (and researches) no one.
+    expect(r).toEqual({ ok: true, data: { people: 2, created: [input.met[1].id], spaceId: work } });
     const again = await as((tx) => saveRoomDebrief(tx, user.id, input, TODAY));
-    expect(again.ok).toBe(true);
+    expect(again).toMatchObject({ ok: true, data: { created: [] } });
 
     const [tola] = await sql`select p.id, p.company, ps.where_met, ps.met_on::text from people p join person_spaces ps on ps.person_id = p.id where p.user_id = ${user.id} and p.name = 'Tola Adeyemi'`;
     expect(tola).toMatchObject({ company: "Kuda", where_met: "Ikoyi Founders Mixer", met_on: YESTERDAY });

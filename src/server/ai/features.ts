@@ -3,6 +3,7 @@ import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { addDays, formatLongDate, type IsoDate } from "@/domain/dates";
 import { weekOf } from "@/domain/goal-progress";
 import { normalisePhone } from "@/domain/normalise";
+import { isValidTimeZone } from "@/domain/zoned";
 import { db as appDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import type { Database, Tx } from "@/server/db/with-user";
@@ -14,7 +15,7 @@ import { userContext } from "@/server/user-context";
 import type { AnthropicLike } from "./client";
 import { cell, identityRules, loadMe, meBlock, personBlock, webRules } from "./context/blocks";
 import { loadNetworkDigest, loadPersonContext, loadSpaceContext } from "./context/space-context";
-import { lookupPrompt, lookupSchema, LOOKUP_VERSION, lookupWhat, type LookupType } from "./prompts/lookup";
+import { lookupPrompt, lookupSchema, LOOKUP_VERSION, lookupWhat, type Lookup, type LookupType } from "./prompts/lookup";
 import { radarPrompt, radarSchema, RADAR_VERSION } from "./prompts/radar";
 import { getToKnowPrompt, getToKnowSchema, GET_TO_KNOW_VERSION, researchFullPrompt, researchFullSchema, RESEARCH_FULL_VERSION, verifyPrompt, verifySchema, VERIFY_VERSION } from "./prompts/research";
 import {
@@ -171,13 +172,18 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
 /* ======================================================================= look up */
 
 /** "Look up" a person, company, place or event: who matters there and how you're connected. */
-export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId: string; type: LookupType; q: string; context?: string; personId?: string }, progress: Progress = noop) {
+export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId: string; type: LookupType; q: string; context?: string; personId?: string; eventId?: string }, progress: Progress = noop) {
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
   const { network, known } = await data.withUser(userId, async (tx) => {
     const network = await loadNetworkDigest(tx, input.spaceId);
     let known = "";
-    if (input.type === "person" && input.personId) {
+    if (input.eventId) {
+      // A room's prep: what's saved about the room steers the search to the right event.
+      const room = await roomForPrep(tx, input.eventId, input.spaceId);
+      if (!room) throw new AiError("failed", "That room isn't in this Space.");
+      known = room;
+    } else if (input.type === "person" && input.personId) {
       const p = await loadPersonContext(tx, input.spaceId, input.personId);
       if (p) known = `IN MY NETWORK: ${p.identity.name}\n${personBlock(p, { history: true })}`;
     } else if (input.type === "company") {
@@ -239,14 +245,55 @@ export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId
     warmPaths: warmPaths.map((w) => ({ ...w, name: network.find((n) => n.id === w.contactId)?.name ?? "" })),
     opportunities: o.opportunities.filter((x) => x.idea).slice(0, 5),
     playbook: take(o.playbook, 6),
+    when: input.type === "event" ? cleanWhen(o.when, b.ctx.today) : null,
   };
   return data.withUser(userId, async (tx) => {
     const [row] = await tx
       .insert(t.searches)
-      .values({ userId, spaceId: input.spaceId, type: input.type, query: input.q.slice(0, 200), result, sources: mergeSources(o.sources, r.seen), model: r.model, promptVersion: LOOKUP_VERSION })
+      .values({ userId, spaceId: input.spaceId, type: input.type, query: input.q.slice(0, 200), result, sources: mergeSources(o.sources, r.seen), model: r.model, promptVersion: LOOKUP_VERSION, eventId: input.eventId ?? null })
       .returning({ id: t.searches.id });
     return { searchId: row.id };
   });
+}
+
+/** The model's dates and times, kept only when they're well-formed and not in the past. */
+export function cleanWhen(w: Lookup["when"], today: IsoDate) {
+  const time = (v: string) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(v.trim()) ? v.trim() : "");
+  const startsOn = isIso(w.startsOn.trim()) && w.startsOn.trim() >= today ? w.startsOn.trim() : "";
+  const endsOn = startsOn && isIso(w.endsOn.trim()) && w.endsOn.trim() >= startsOn ? w.endsOn.trim() : "";
+  return {
+    startsOn,
+    endsOn,
+    startTime: startsOn ? time(w.startTime) : "",
+    endTime: startsOn ? time(w.endTime) : "",
+    timezone: isValidTimeZone(w.timezone.trim()) ? w.timezone.trim() : "",
+    venue: w.venue.trim().slice(0, 200),
+    url: isHttp(w.url.trim()) ? w.url.trim() : "",
+  };
+}
+
+async function roomForPrep(tx: Tx, eventId: string, spaceId: string) {
+  const [room] = await tx
+    .select({ title: t.events.title, startsOn: t.events.startsOn, startTime: t.events.startTime, location: t.events.location, url: t.events.url, notes: t.events.notes })
+    .from(t.events)
+    .where(and(eq(t.events.id, eventId), eq(t.events.spaceId, spaceId), isNull(t.events.deletedAt)));
+  if (!room) return null;
+  const going = await tx
+    .select({ name: t.people.name, role: t.eventPeople.role })
+    .from(t.eventPeople)
+    .innerJoin(t.people, eq(t.people.id, t.eventPeople.personId))
+    .where(eq(t.eventPeople.eventId, eventId))
+    .limit(20);
+  return [
+    `ROOM ON MY LIST: ${room.title}`,
+    `Date I saved: ${room.startsOn}${room.startTime ? ` ${room.startTime.slice(0, 5)}` : ""}`,
+    room.location && `Where: ${room.location}`,
+    room.url && `Event page (open this first): ${room.url}`,
+    room.notes && `My notes: ${room.notes.slice(0, 2000)}`,
+    going.length && `People I've linked to it: ${going.map((g) => `${g.name} (${g.role})`).join(", ")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /* ======================================================================= suggested rooms */
