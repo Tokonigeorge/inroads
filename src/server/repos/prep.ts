@@ -41,6 +41,25 @@ async function loadSearch(tx: Tx, searchId: string) {
   return row && row.type !== "radar" ? { ...row, result: row.result as SavedLookup } : null;
 }
 
+/** What a look-up found, shaped to fill in a room. */
+export function roomDetailsOf(plan: Plan) {
+  const r = plan.result;
+  const named = r.stakeholders.filter((x) => x.name.trim());
+  // The goal the plan's openings serve, if it's one of yours.
+  const goal = r.opportunities.map((o) => matchGoal(plan.goals, o.goal)).find(Boolean) ?? null;
+  return {
+    title: r.title,
+    when: r.when ?? null,
+    website: r.website,
+    overview: r.overview,
+    facts: r.facts.slice(0, 5),
+    meet: named.slice(0, 3).map((x) => ({ name: x.name.trim(), role: x.role.trim() })),
+    people: named.length,
+    openings: r.opportunities.length,
+    goalId: goal?.id ?? null,
+  };
+}
+
 /** A look-up with what's already been kept from it, ready to act on. */
 export async function loadPlan(tx: Tx, searchId: string): Promise<Plan | null> {
   const s = await loadSearch(tx, searchId);

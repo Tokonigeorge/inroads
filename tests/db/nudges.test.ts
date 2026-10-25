@@ -79,8 +79,8 @@ describe("Today's reminders", () => {
     expect(k.some((x) => x.startsWith("them:"))).toBe(true);
     expect(k).toContain(`prep:${ids.promise}:${ids.meetup}:${addDays(TODAY, 1)}`);
     expect(k).toContain(`prep:${ids.due}:${ids.meeting}:${TODAY}`);
-    expect(k).toContain(`ev:${ids.meetup}:${addDays(TODAY, 1)}`);
-    expect(k).not.toContain(`ev:${ids.meeting}:${TODAY}`); // 1:1 meetings and today's rooms aren't "this week" cards
+    // Rooms coming up live in Today's "Coming up this week" list, not as follow-up cards.
+    expect(k.some((x) => x.startsWith("ev:"))).toBe(false);
     expect(k).toContain(`ctx:${ids.ctx}`);
     expect(k.some((x) => x.startsWith(`due:${ids.dating}:`))).toBe(true);
     // Adaeze is due, but the meeting today is the sharper reason.

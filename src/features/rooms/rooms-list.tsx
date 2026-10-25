@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -75,13 +75,17 @@ export function RoomsList({
             </Link>
           </Button>
         </div>
-        <div className="flex gap-3 text-small">
-          <Link href="/rooms/lookup" className="font-[550] text-muted hover:text-text">
-            Look up a person, company or event
-          </Link>
-          <Link href="/rooms/suggested" className="font-[550] text-muted hover:text-text">
-            Suggested rooms
-          </Link>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="ghost" className="px-2">
+            <Link href="/rooms/suggested" title="Events coming up that serve your goals, found on the web">
+              <Sparkles size={14} aria-hidden /> Find rooms for my goals
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost" className="px-2">
+            <Link href="/rooms/lookup" title="Research an event, company, person or place">
+              <Search size={14} aria-hidden /> Look something up
+            </Link>
+          </Button>
         </div>
         <div role="tablist" aria-label="Rooms" className="flex gap-1 border-b border-border">
           {tabs.map((t) => (

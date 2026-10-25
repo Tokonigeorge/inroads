@@ -5,7 +5,7 @@ const today = "2026-10-24"; // Saturday
 const kemi = { id: "p-kemi", name: "Kemi Adebayo", detail: "Partner at Kestrel" };
 const tunde = { id: "p-tunde", name: "Tunde Bakare", detail: "" };
 
-const empty = (): NudgeSnapshot => ({ today, birthdays: [], due: [], owed: [], owedToMe: [], meetings: [], needContext: [], rooms: [], triagePending: 0, hidden: new Set() });
+const empty = (): NudgeSnapshot => ({ today, birthdays: [], due: [], owed: [], owedToMe: [], meetings: [], needContext: [], triagePending: 0, hidden: new Set() });
 const keys = (s: Partial<NudgeSnapshot>) => buildNudges({ ...empty(), ...s }).map((n) => n.key);
 
 describe("nextBirthday", () => {
@@ -83,21 +83,16 @@ describe("buildNudges", () => {
     expect(keys({ meetings: [{ person: kemi, eventId: "e1", title: "x", date: "2026-10-28", time: null, lastTouch: null, promise: null }] })).toEqual([]);
   });
 
-  it("rooms from tomorrow to a week out; context for recent additions; one triage card a day", () => {
+  it("context for recent additions; one triage card a day (upcoming rooms live in Today's week list)", () => {
     expect(
       keys({
-        rooms: [
-          { eventId: "r1", title: "Founders Breakfast", date: "2026-10-29", time: "08:00", location: "Ikoyi" },
-          { eventId: "r2", title: "Too far", date: "2026-11-02", time: null, location: null },
-          { eventId: "r3", title: "Today", date: today, time: null, location: null },
-        ],
         needContext: [
           { ...kemi, createdOn: "2026-10-20" },
           { ...tunde, createdOn: "2026-09-01" },
         ],
         triagePending: 840,
       }),
-    ).toEqual(["triage:2026-10-24", "ev:r1:2026-10-29", "ctx:p-kemi"]);
+    ).toEqual(["triage:2026-10-24", "ctx:p-kemi"]);
     const [t] = buildNudges({ ...empty(), triagePending: 840 });
     expect(t).toMatchObject({ title: "Sort 5 new people", body: "840 waiting from your imports. About 20 seconds." });
   });

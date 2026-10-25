@@ -11,13 +11,16 @@ import { AiJobButton } from "@/features/ai/ai-job-button";
 import type { RoomIdea } from "@/features/ai/room-ideas";
 import { ForYourGoals, type GoalRooms } from "@/features/today/for-your-goals";
 import { NudgeFeed } from "@/features/today/nudge-feed";
+import { ThisWeek, type WeekRoom } from "@/features/today/this-week";
 import { requireUser } from "@/server/auth";
 import { isAiConfigured } from "@/server/ai/config";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
+import { prepJobKind } from "@/server/jobs/ai-jobs";
 import { dueGoalSteps } from "@/server/repos/goal-steps";
 import { getAccountOverview } from "@/server/repos/account";
+import { listUpcoming } from "@/server/repos/rooms";
 import { listNudges, personSpacesFor, todayAgenda, type AgendaEntry } from "@/server/repos/nudges";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
@@ -60,8 +63,9 @@ async function Today() {
         ? new Set((await tx.selectDistinct({ id: t.searches.eventId }).from(t.searches).where(inArray(t.searches.eventId, agendaIds))).map((r) => r.id!))
         : new Set<string>();
       const goalRooms = await loadGoalRooms(tx, view, ctx.today);
+      const week = await loadWeek(tx, c);
       const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false))).limit(1);
-      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, today: ctx.today, spaceName: view.selected?.name ?? null };
+      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, week, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
@@ -94,6 +98,7 @@ async function Today() {
       ) : null}
       {counts.people > 0 ? <Briefs spaces={data.briefSpaces} briefs={data.briefs} /> : null}
       <div className="grid gap-8 md:grid-cols-[3fr_2fr]">
+        <div className="grid content-start gap-8">
         <Section title="Today's rooms">
           {data.agenda.length ? (
             <Agenda items={data.agenda} today={data.today} planned={data.planned} aiEnabled={isAiConfigured()} />
@@ -105,10 +110,18 @@ async function Today() {
                 </Button>
               }
             >
-              Nothing on today. Rooms you add or sync from your calendar show here with notes on who you&apos;ll see.
+              {data.week.length
+                ? "Nothing on today. Your next rooms are below, with where each plan stands."
+                : "Nothing on today. Rooms you add or sync from your calendar show here with notes on who you'll see."}
             </EmptyState>
           )}
         </Section>
+        {data.week.length ? (
+          <Section title="Coming up this week">
+            <ThisWeek rooms={data.week} today={data.today} />
+          </Section>
+        ) : null}
+        </div>
         <Section title={data.nudges.length ? `Follow up · ${data.nudges.length}` : "Follow up"}>
           {counts.people === 0 ? (
             <EmptyState
@@ -159,6 +172,37 @@ async function loadGoalRooms(tx: Tx, view: Awaited<ReturnType<typeof loadSpaceVi
     .filter((i) => (i.date ? i.date >= today && i.date <= week : i.confidence !== "idea"))
     .slice(0, 3);
   return { spaceId: space.id, rooms: { searchId: latest.id, spaceId: space.id, items } };
+}
+
+/**
+ * Rooms (not 1:1 meetings) in the next seven days, after today, with where each plan stands:
+ * ready (and what it found), being prepared, or not started.
+ */
+async function loadWeek(tx: Tx, c: { spaceId: string | null; today: string; tz: string }): Promise<WeekRoom[]> {
+  const sessions = (await listUpcoming(tx, c.spaceId, c.today, c.tz, 7)).filter((s) => s.date > c.today && s.kind !== "meeting").slice(0, 6);
+  const ids = [...new Set(sessions.map((s) => s.eventId))];
+  if (!ids.length) return [];
+  const [plans, running] = await Promise.all([
+    tx
+      .selectDistinctOn([t.searches.eventId], { eventId: t.searches.eventId, result: t.searches.result })
+      .from(t.searches)
+      .where(inArray(t.searches.eventId, ids))
+      .orderBy(t.searches.eventId, desc(t.searches.createdAt)),
+    tx
+      .select({ kind: t.jobs.kind })
+      .from(t.jobs)
+      .where(and(inArray(t.jobs.kind, ids.map(prepJobKind)), inArray(t.jobs.status, ["queued", "running"]), sql`${t.jobs.createdAt} > now() - interval '15 minutes'`)),
+  ]);
+  const busy = new Set(running.map((r) => r.kind));
+  return sessions.map((s) => {
+    const p = plans.find((x) => x.eventId === s.eventId)?.result as { stakeholders?: unknown[]; opportunities?: unknown[] } | undefined;
+    const plan: WeekRoom["plan"] = p
+      ? { state: "ready", toMeet: p.stakeholders?.length ?? 0, openings: p.opportunities?.length ?? 0 }
+      : busy.has(prepJobKind(s.eventId))
+        ? { state: "preparing" }
+        : { state: "none" };
+    return { eventId: s.eventId, title: s.title, date: s.date, time: s.time, location: s.location, plan };
+  });
 }
 
 function Agenda({ items, today, planned, aiEnabled }: { items: AgendaEntry[]; today: string; planned: Set<string>; aiEnabled: boolean }) {

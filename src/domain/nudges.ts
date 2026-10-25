@@ -33,8 +33,6 @@ export type NudgeSnapshot = {
   }[];
   /** People added by hand in the last 14 days with no context yet. */
   needContext: (NudgePerson & { createdOn: IsoDate })[];
-  /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow. */
-  rooms: { eventId: string; title: string; date: IsoDate; time: string | null; location: string | null }[];
   /** Rooms (not 1:1 meetings) in the last 2 days you haven't said whether you went to. */
   afterRooms?: { eventId: string; title: string; date: IsoDate; occurrenceOn: IsoDate; people: number }[];
   triagePending: number;
@@ -273,24 +271,6 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       person: null,
       actions: [
         { type: "debrief_room", eventId: r.eventId, occurrenceOn: r.occurrenceOn, label: "Who I met" },
-        { type: "dismiss", label: "Hide" },
-      ],
-    });
-  }
-
-  for (const r of s.rooms) {
-    const n = diffDays(t, r.date);
-    if (n < 1 || n > 7) continue;
-    out.push({
-      key: `ev:${r.eventId}:${r.date}`,
-      kind: "room",
-      priority: 3,
-      label: "This week",
-      title: r.title,
-      body: [formatLongDate(r.date, t), r.time ? formatTime(r.time) : null, r.location].filter(Boolean).join(" · "),
-      person: null,
-      actions: [
-        { type: "open_room", eventId: r.eventId, label: "Open" },
         { type: "dismiss", label: "Hide" },
       ],
     });

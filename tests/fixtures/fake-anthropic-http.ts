@@ -141,6 +141,7 @@ function eventReply(p: string): FakeReply {
       stakeholders: [
         { name: "Tunde Bakare", role: "Partner at Kestrel, panel speaker", why: "Writes pre-seed cheques in fintech", url: "https://www.linkedin.com/in/tunde-bakare" },
         { name: "", role: "Investor relations lead", why: "Runs the investor lounge list", url: "" },
+        { name: "Bisi Adeyemi", role: "Angel investor", why: "Backs first-time fintech founders", url: "" },
       ],
       warmPaths: [],
       opportunities: [{ goal: "Raise a pre-seed round", idea: "Investor office hours on day two", firstMove: "Book an office-hours slot with Kestrel" }],

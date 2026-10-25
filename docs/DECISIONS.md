@@ -2,6 +2,14 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-25: milestone 21 (Always a next step)
+
+137. **Every screen that results from AI work says what to do next.** A plan opens with numbered steps and progress counts; Today lists the week's rooms with each plan's state. Feedback was "I'm not sure what to do next", so the next action is named, not implied.
+138. **One goal choice per plan, not per person.** A select beside every row read as a form to fill in. The plan's people share one choice (shown as a sentence when there is only one goal), with "Add all" and a per-person "Add to …" button.
+139. **Upcoming rooms live in Today's "Coming up this week", not in the follow-up feed.** A "This week" card with only Open/Hide duplicated the room and hid its plan state; the list shows ready / preparing / prepare instead.
+140. **Sidebar collapse is a per-browser preference** (localStorage), not a profile setting: it's about screen size, not the person. The server renders it open, so a collapsed sidebar can show open for a moment on load.
+141. **Clickable things show a pointer, globally.** Tailwind 4's preflight resets buttons to the default cursor; a base rule restores pointer on buttons, summaries, selects, checkboxes, radios and their labels, and not-allowed when disabled.
+
 ## 2026-10-25: testing allowance
 
 136. **`AI_UNLIMITED_EMAILS` lifts the daily and per-person monthly AI limits for listed sign-in emails**, so the owner can test without raising limits for every tester. The whole-app monthly cap (`AI_APP_MONTHLY_USD`) still applies to everyone, as the backstop on spend.
