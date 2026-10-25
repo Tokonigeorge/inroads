@@ -538,6 +538,31 @@ export const scores = pgTable(
   ],
 );
 
+/** Concrete next steps on a goal: typed in, or taken from a room's prep plan. */
+export const goalSteps = pgTable(
+  "goal_steps",
+  {
+    id: id(),
+    userId: userId(),
+    goalId: uuid("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    dueOn: date("due_on"),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    /** The prep it came from, if any. */
+    searchId: uuid("search_id").references((): AnyPgColumn => searches.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("goal_steps_goal_idx").on(t.goalId, t.doneAt),
+    index("goal_steps_due_idx").on(t.userId, t.dueOn).where(sql`${t.doneAt} is null`),
+    check("goal_steps_text_check", sql`char_length(${t.text}) between 1 and 300`),
+    ...ownerPolicies("goal_steps"),
+  ],
+);
+
 export const searches = pgTable(
   "searches",
   {
@@ -552,10 +577,13 @@ export const searches = pgTable(
     sources: jsonb("sources").notNull().default([]),
     model: text("model"),
     promptVersion: text("prompt_version"),
+    /** Set when the look-up was a room's prep (P3): the room it prepares for. */
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [
     index("searches_user_idx").on(t.userId, t.spaceId, t.createdAt),
+    index("searches_event_idx").on(t.eventId).where(sql`${t.eventId} is not null`),
     check("searches_type_check", sql`${t.type} in ('person', 'company', 'place', 'event', 'radar')`),
     ...ownerPolicies("searches"),
   ],

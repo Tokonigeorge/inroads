@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { socialKeys } from "@/contracts/people";
 import type { FormState } from "@/features/forms";
+import { autoResearch } from "@/server/ai/auto-research";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { createPerson } from "@/server/repos/people";
@@ -41,6 +42,7 @@ export async function addSharedPersonAction(input: z.input<typeof addSchema>): P
     return created;
   });
   if (!r.ok) return { message: r.message };
+  await autoResearch(user.id, r.data.id, d.spaceId);
   return { ok: true, personId: r.data.id };
 }
 

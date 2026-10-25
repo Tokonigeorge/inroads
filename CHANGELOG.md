@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 19 (Proactive: rooms prepare themselves, people get researched)
+- Add someone by name (form, quick capture, share, "Who did you meet?", a goal) and Inroads researches them straight away. Their role, company, city, profiles and the goal they fit come back as suggestions to keep or dismiss. Their page shows the research running.
+- Add a room by name and press **Find details**: the web fills in the date, time, venue and event page, and the same search becomes the room's plan. Rooms you add by hand without it are prepared in the background.
+- A room's page shows **Your plan**: who to meet and why, who can introduce you, openings for your goals with a first move, and tips. **Prepare** or **Prepare again** runs it on demand.
+- One tap turns the plan into action: **Add to goal** saves the person, puts them on the goal and links them to the room. **Add as a step** puts a first move on the goal.
+- Goals have **Next steps** you can tick off, and steps due soon are on **Today**.
+- Every week, at your brief time, Inroads looks for events that serve your goals and shows this week's on **Today**.
+
 ### Changed
 - Connections: Google comes first; a calendar link, phone contacts and files are folded under "Other ways to add people" (optional). Sources this server hasn't been set up for (such as Outlook without keys) are no longer shown. The calendar link says it isn't needed for Google Calendar.
 

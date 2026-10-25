@@ -24,3 +24,27 @@ export async function briefsDue(sys: Database = getSystemDb(), now: Date = new D
     limit 500`);
   return [...rows].map((r) => ({ userId: r.user_id, spaceId: r.space_id }));
 }
+
+/**
+ * Spaces due their weekly search for rooms (P3): they have an active goal, nobody searched in the
+ * last 7 days, the owner has signed in within 30 days, and it's their brief time. Limits still
+ * apply when the job runs.
+ */
+export async function radarDue(sys: Database = getSystemDb(), now: Date = new Date()) {
+  const at = now.toISOString();
+  const rows = await sys.execute<{ user_id: string; space_id: string }>(sql`
+    select distinct g.user_id, g.space_id
+    from goals g
+    join spaces s on s.id = g.space_id and s.archived_at is null
+    join profiles p on p.user_id = g.user_id
+    join auth.users u on u.id = g.user_id
+    where g.active and g.archived_at is null and not g.example
+      and u.last_sign_in_at > ${at}::timestamptz - interval '30 days'
+      and mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
+      and not exists (
+        select 1 from searches r
+        where r.space_id = g.space_id and r.type = 'radar' and r.created_at > ${at}::timestamptz - interval '7 days'
+      )
+    limit 200`);
+  return [...rows].map((r) => ({ userId: r.user_id, spaceId: r.space_id }));
+}

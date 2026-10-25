@@ -9,7 +9,9 @@ import { zoneCity } from "@/domain/zoned";
 import { Button } from "@/ui/button";
 import { Field, Input, Select, Textarea } from "@/ui/field";
 import { useToast } from "@/ui/toast";
-import { saveRoomAction } from "./actions";
+import { JobStatus } from "@/features/ai/job-status";
+import { startAiJobAction } from "@/features/ai/actions";
+import { roomDetailsAction, saveRoomAction } from "./actions";
 
 export type RoomFormValues = {
   spaceId: string;
@@ -44,13 +46,14 @@ function zoneOptions(current: string) {
   return { common: [...new Set([current, ...common])], rest: all.filter((z) => !common.includes(z) && z !== current) };
 }
 
-export function RoomForm({ roomId, values, spaces }: { roomId: string | null; values: RoomFormValues; spaces: SpaceChoice[] }) {
+export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId: string | null; values: RoomFormValues; spaces: SpaceChoice[]; aiEnabled?: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const [v, setV] = useState(values);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [prepId, setPrepId] = useState<string | null>(null);
   const set = <K extends keyof RoomFormValues>(k: K, val: RoomFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const zones = useMemo(() => zoneOptions(values.tz), [values.tz]);
   const space = spaces.find((s) => s.id === v.spaceId);
@@ -69,7 +72,7 @@ export function RoomForm({ roomId, values, spaces }: { roomId: string | null; va
       untilOn: v.freq === "none" ? null : v.untilOn,
     };
     setBusy(true);
-    const r = await saveRoomAction(roomId, input);
+    const r = await saveRoomAction(roomId, input, prepId);
     setBusy(false);
     setErrors(r.fieldErrors ?? {});
     setMessage(r.message ?? null);
@@ -86,6 +89,29 @@ export function RoomForm({ roomId, values, spaces }: { roomId: string | null; va
           <Input id={id} value={v.title} onChange={(e) => set("title", e.target.value)} maxLength={200} placeholder="Founders breakfast, fintech mixer…" aria-describedby={describedBy} aria-invalid={invalid} autoComplete="off" />
         )}
       </Field>
+      {roomId ? null : (
+        <FindDetails
+          title={v.title}
+          spaceId={v.spaceId}
+          aiEnabled={aiEnabled}
+          found={Boolean(prepId)}
+          onFound={(searchId, d) => {
+            setPrepId(searchId);
+            setV((s) => ({
+              ...s,
+              title: d.title.trim() ? d.title.trim().slice(0, 200) : s.title,
+              kind: d.when?.endsOn && d.when.endsOn !== d.when.startsOn ? "conference" : s.kind,
+              startsOn: d.when?.startsOn || s.startsOn,
+              startTime: d.when?.startsOn ? d.when.startTime || null : s.startTime,
+              endTime: d.when?.startsOn ? d.when.endTime || null : s.endTime,
+              allDay: d.when?.startsOn ? !d.when.startTime : s.allDay,
+              tz: d.when?.timezone || s.tz,
+              location: d.when?.venue || s.location,
+              url: d.when?.url || d.website || s.url,
+            }));
+          }}
+        />
+      )}
       <div className="grid gap-5 sm:grid-cols-2">
         {spaces.length > 1 ? (
           <Field label="Space" error={errors.spaceId}>
@@ -242,5 +268,67 @@ export function RoomForm({ roomId, values, spaces }: { roomId: string | null; va
         </Button>
       </div>
     </form>
+  );
+}
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+type Found = NonNullable<Awaited<ReturnType<typeof roomDetailsAction>>>;
+
+/** Type a name, and the web fills in the rest: date, venue, event page. The same search becomes the room's prep. */
+function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: string; spaceId: string; aiEnabled: boolean; found: boolean; onFound: (searchId: string, d: Found) => void }) {
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  if (!aiEnabled) return null;
+  const ready = title.trim().length >= 3;
+  return (
+    <div className="grid gap-2 rounded-md border border-border bg-surface p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          size="sm"
+          variant={found ? "ghost" : "secondary"}
+          disabled={!ready || Boolean(jobId)}
+          onClick={async () => {
+            setError(null);
+            setNote(null);
+            const r = await startAiJobAction({ kind: "lookup", spaceId, type: "event", q: title.trim() });
+            if (r.jobId) setJobId(r.jobId);
+            else setError(r.message ?? "Couldn't start the search.");
+          }}
+        >
+          {found ? "Search again" : "Find details"}
+        </Button>
+        <span className="text-small text-muted">{ready ? "Searches the web for the date, venue and event page, and prepares who to meet." : "Type the event's name, then let Inroads find the rest."}</span>
+      </div>
+      {jobId ? (
+        <JobStatus
+          jobId={jobId}
+          onDone={async (r) => {
+            setJobId(null);
+            const searchId = String(r.searchId ?? "");
+            const d = searchId ? await roomDetailsAction(searchId) : null;
+            if (!d) return setError("That search didn't come back. Fill it in by hand, or try again.");
+            onFound(searchId, d);
+            const bits = [d.when?.startsOn ? "the date" : null, d.when?.venue ? "the venue" : null, d.when?.url || d.website ? "the event page" : null].filter(Boolean);
+            setNote(
+              `${bits.length ? `Filled in ${bits.join(", ")}. Check them before saving.` : "Couldn't confirm a date or venue, so those are unchanged."} ${d.people || d.openings ? `Your plan (${count(d.people, "person", "people")} to meet, ${count(d.openings, "opening", "openings")}) is saved with the room.` : ""}`.trim(),
+            );
+          }}
+          onFailed={() => setJobId(null)}
+        />
+      ) : null}
+      {note ? (
+        <p role="status" className="text-small">
+          {note}
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-small text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

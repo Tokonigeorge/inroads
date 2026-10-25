@@ -4,18 +4,28 @@ import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 import { roomRoles, type RoomDebriefInput, type RoomInput, type RoomRole } from "@/contracts/rooms";
 import type { FormState } from "@/features/forms";
+import { autoPrepRoom, autoResearch } from "@/server/ai/auto-research";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { saveRoomDebrief, skipRoomSession } from "@/server/repos/debrief";
+import { attachPrep, loadPlan } from "@/server/repos/prep";
 import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, unlinkPerson, updateRoom } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 
 const id = z.string().uuid();
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-export async function saveRoomAction(roomId: string | null, input: RoomInput): Promise<FormState & { id?: string }> {
+export async function saveRoomAction(roomId: string | null, input: RoomInput, prepId?: string | null): Promise<FormState & { id?: string }> {
   const user = await requireUser();
-  const r = await db.withUser(user.id, (tx) => (roomId ? updateRoom(tx, id.parse(roomId), input).then((x) => (x.ok ? { ok: true as const, data: { id: roomId } } : x)) : createRoom(tx, user.id, input)));
+  const r = await db.withUser(user.id, async (tx) => {
+    if (roomId) return updateRoom(tx, id.parse(roomId), input).then((x) => (x.ok ? { ok: true as const, data: { id: roomId } } : x));
+    const created = await createRoom(tx, user.id, input);
+    // "Find details" already researched it: that look-up becomes the new room's prep.
+    if (created.ok && prepId) await attachPrep(tx, id.parse(prepId), created.data.id);
+    return created;
+  });
+  // Added without "Find details": prepare it in the background instead.
+  if (r.ok && !roomId && !prepId) await autoPrepRoom(user.id, { id: r.data.id, spaceId: input.spaceId, title: input.title, kind: input.kind ?? "meetup" });
   if (!r.ok) return r.field ? { fieldErrors: { [r.field]: r.message } } : { message: r.message };
   refresh();
   return { ok: true, id: r.data.id };
@@ -58,6 +68,7 @@ export async function saveRoomDebriefAction(input: RoomDebriefInput): Promise<Fo
   const user = await requireUser();
   const r = await db.withUser(user.id, async (tx) => saveRoomDebrief(tx, user.id, input, (await userContext(tx)).today));
   if (!r.ok) return { message: r.message };
+  for (const personId of r.data.created) await autoResearch(user.id, personId, r.data.spaceId);
   // Today's card and the room's people both change; this also refreshes pages visited before.
   revalidatePath("/today");
   revalidatePath(`/rooms/${input.eventId}`);
@@ -69,4 +80,13 @@ export async function skipRoomSessionAction(roomId: string, on: string) {
   await db.withUser(user.id, (tx) => skipRoomSession(tx, user.id, id.parse(roomId), date.parse(on)));
   revalidatePath("/today");
   revalidatePath(`/rooms/${roomId}`);
+}
+
+/** What "Find details" found about an event, to fill in the Add a room form. */
+export async function roomDetailsAction(searchId: string) {
+  const user = await requireUser();
+  const plan = await db.withUser(user.id, (tx) => loadPlan(tx, id.parse(searchId)));
+  if (!plan) return null;
+  const r = plan.result;
+  return { title: r.title, when: r.when ?? null, website: r.website, people: r.stakeholders.filter((x) => x.name).length, openings: r.opportunities.length };
 }

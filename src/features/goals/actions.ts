@@ -8,6 +8,8 @@ import { z } from "zod";
 import type { GoalInput } from "@/contracts/goals";
 import type { Stage } from "@/contracts/spaces";
 import type { FormState } from "@/features/forms";
+import { autoResearch } from "@/server/ai/auto-research";
+import { addGoalStep, deleteGoalStep, setGoalStepDone } from "@/server/repos/goal-steps";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { createGoal, deleteGoal, linkPeople, moveStage, restoreLink, setGoalState, setLinkNote, unlinkPerson, updateGoal } from "@/server/repos/goals";
@@ -62,9 +64,10 @@ export async function addNewPersonToGoalAction(goalId: string, name: string, sta
     const created = await createPerson(tx, user.id, { id: personId, identity: { name }, membership: { spaceId: goal.spaceId } }, ctx.today);
     if (!created.ok) return created;
     const linked = await linkPeople(tx, user.id, gid, [personId], stage);
-    return linked.ok ? { ok: true as const, data: { personId } } : linked;
+    return linked.ok ? { ok: true as const, data: { personId, spaceId: goal.spaceId } } : linked;
   });
   if (!r.ok) return { message: r.message };
+  await autoResearch(user.id, r.data.personId, r.data.spaceId);
   refresh();
   return { ok: true, personId: r.data.personId };
 }
@@ -96,5 +99,25 @@ export async function restoreLinkAction(link: RemovedLink) {
   const user = await requireUser();
   const parsed = z.object({ goalId: id, personId: id, stage: z.string().min(1).max(40), note: z.string().max(500).nullable() }).parse(link);
   await db.withUser(user.id, (tx) => restoreLink(tx, user.id, parsed));
+  refresh();
+}
+
+export async function addGoalStepAction(goalId: string, text: string, dueOn: string | null): Promise<FormState> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, (tx) => addGoalStep(tx, user.id, { goalId, text, dueOn }));
+  if (!r.ok) return { message: r.message };
+  refresh();
+  return { ok: true };
+}
+
+export async function setGoalStepDoneAction(stepId: string, done: boolean) {
+  const user = await requireUser();
+  await db.withUser(user.id, (tx) => setGoalStepDone(tx, id.parse(stepId), z.boolean().parse(done)));
+  refresh();
+}
+
+export async function deleteGoalStepAction(stepId: string) {
+  const user = await requireUser();
+  await db.withUser(user.id, (tx) => deleteGoalStep(tx, id.parse(stepId)));
   refresh();
 }

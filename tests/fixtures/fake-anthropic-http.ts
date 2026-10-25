@@ -78,6 +78,7 @@ export function e2eReply(req: FakeRequest): FakeReply {
       },
     };
   }
+  if (p.includes("You map the landscape") && p.includes("TARGET (event):")) return eventReply(p);
   if (p.includes("You map the landscape")) {
     const network = p.split("MY NETWORK IN THIS SPACE")[1] ?? "";
     return { json: { title: "Kestrel Ventures", kind: "company", overview: "A seed fund in Lagos.", facts: ["Founded 2019"], website: "https://kestrel.example", stakeholders: [{ name: "Adaeze Okafor", role: "Partner", why: "Leads fintech deals", url: "" }], warmPaths: uuids(network).slice(0, 1).map((id) => ({ contactId: id, how: "Works there", angle: "Ask for 20 minutes" })), opportunities: [], playbook: ["Lead with traction"], confidence: "high", verify: "", sources: [] } };
@@ -119,4 +120,35 @@ export function handleFakeAnthropic(body: string, res: ServerResponse) {
   sse(res, "message_delta", { type: "message_delta", delta: { stop_reason: msg.stop_reason, stop_sequence: null, stop_details: null }, usage: msg.usage });
   sse(res, "message_stop", { type: "message_stop" });
   res.end();
+}
+
+/** An event look-up: "Moonshot" gets a full plan with dates; any other room an empty one (so room tests stay quiet). */
+function eventReply(p: string): FakeReply {
+  const q = p.split("TARGET (event):")[1]?.split("\n")[0]?.trim() ?? "";
+  const today = /Today is (\d{4}-\d{2}-\d{2})/.exec(p)?.[1] ?? "2026-10-25";
+  const day = (n: number) => new Date(Date.parse(`${today}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  const empty = { startsOn: "", endsOn: "", startTime: "", endTime: "", timezone: "", venue: "", url: "" };
+  if (!/moonshot/i.test(q)) {
+    return { json: { title: q, kind: "event", overview: "", facts: [], website: "", stakeholders: [], warmPaths: [], opportunities: [], playbook: [], when: empty, confidence: "low", verify: "", sources: [] } };
+  }
+  return {
+    json: {
+      title: "Moonshot by TechCabal",
+      kind: "event",
+      overview: "Two days of Africa's tech founders and investors in Lagos.",
+      facts: ["Around 3,000 attendees"],
+      website: "https://moonshot.example",
+      stakeholders: [
+        { name: "Tunde Bakare", role: "Partner at Kestrel, panel speaker", why: "Writes pre-seed cheques in fintech", url: "https://www.linkedin.com/in/tunde-bakare" },
+        { name: "", role: "Investor relations lead", why: "Runs the investor lounge list", url: "" },
+      ],
+      warmPaths: [],
+      opportunities: [{ goal: "Raise a pre-seed round", idea: "Investor office hours on day two", firstMove: "Book an office-hours slot with Kestrel" }],
+      playbook: ["Go to the morning keynote; investors cluster there"],
+      when: { startsOn: day(10), endsOn: day(11), startTime: "09:00", endTime: "17:00", timezone: "Africa/Lagos", venue: "Landmark Centre, Lagos", url: "https://moonshot.example/tickets" },
+      confidence: "high",
+      verify: "",
+      sources: [{ title: "Moonshot", url: "https://moonshot.example" }],
+    },
+  };
 }

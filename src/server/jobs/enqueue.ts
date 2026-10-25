@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { runConnectionSync } from "@/server/sync/run-sync";
 import { jobsStore } from "@/server/system/jobs";
 import { checkLimit } from "@/server/ai/limits";
-import { aiJobFeature, runAiJob, type AiJob } from "./ai-jobs";
+import { aiJobFeature, jobKindFor, runAiJob, type AiJob } from "./ai-jobs";
 import { runExport } from "@/server/account/export";
 import { AI_EVENT, EXPORT_EVENT, inngest, SYNC_EVENT, type AiEventData, type ExportEventData, type SyncEventData } from "./inngest";
 
@@ -35,7 +35,7 @@ export async function enqueueSync(userId: string, connectionId: string, provider
  */
 export async function enqueueAiJob(userId: string, job: AiJob): Promise<string> {
   await checkLimit(userId, aiJobFeature[job.kind]);
-  const jobId = await jobsStore().create(userId, `ai:${job.kind}`, "Queued");
+  const jobId = await jobsStore().create(userId, jobKindFor(job), "Queued");
   if (process.env.INNGEST_EVENT_KEY) {
     await inngest.send({ name: AI_EVENT, data: { userId, jobId, job } satisfies AiEventData });
   } else {
