@@ -99,13 +99,8 @@ async function Goals({
   if (!goals.length) {
     return (
       <>
-        <EmptyState
-          action={
-            <Button asChild variant="primary">
-              <Link href="/goals/new">Add a goal</Link>
-            </Button>
-          }
-        >
+        {/* The header already has "Add a goal"; a second button here would just repeat it. */}
+        <EmptyState>
           Set a goal, like &quot;Raise a pre-seed round&quot; or &quot;Win three
           clients in Accra&quot;, then add the people who can help.
         </EmptyState>
