@@ -64,7 +64,7 @@ export function GoalForm({ spaces, goal, defaultSpaceId }: { spaces: GoalFormSpa
     <form onSubmit={submit} className="grid max-w-[560px] gap-6" noValidate>
       <Field label="Goal" hint="Something you can finish, e.g. Raise a pre-seed round by March." error={errors.text}>
         {({ id, describedBy, invalid }) => (
-          <Input id={id} value={text} onChange={(e) => setText(e.target.value)} maxLength={140} required aria-describedby={describedBy} aria-invalid={invalid} />
+          <Input id={id} value={text} onChange={(e) => setText(e.target.value)} maxLength={140} autoComplete="off" required aria-describedby={describedBy} aria-invalid={invalid} />
         )}
       </Field>
 
