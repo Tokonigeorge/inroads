@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Connections: Google comes first; a calendar link, phone contacts and files are folded under "Other ways to add people" (optional). Sources this server hasn't been set up for (such as Outlook without keys) are no longer shown. The calendar link says it isn't needed for Google Calendar.
 
 ### Fixed
+- Goals with nothing added yet showed "Add a goal" twice; the header button is enough.
 - Dropdowns have room on the right for their arrow, which now follows the theme. In forms, a field with a hint no longer pushes the fields beside it out of line (Add a room: Date, Starts, Ends).
 - Background jobs never ran in production: the sign-in check redirected Inngest's calls to `/api/inngest` to the sign-in page. That endpoint is now let through (Inngest signs every request).
 

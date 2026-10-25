@@ -20,7 +20,7 @@ test.describe.serial("Goals", () => {
     const person = `Goal Investor ${tag(info.project.name)}`;
 
     await page.goto("/goals");
-    await page.getByRole("link", { name: "Add a goal" }).first().click();
+    await page.getByRole("link", { name: "Add a goal" }).click();
     await page.getByLabel("Goal", { exact: true }).fill(goal);
     await page.getByLabel("Space").selectOption({ label: "Work" });
     await page.getByLabel("Kind of goal").selectOption({ label: "Raise capital" });
