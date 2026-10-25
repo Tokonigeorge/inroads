@@ -7,7 +7,7 @@ export type ProviderKind = (typeof providers)[number];
 export const providerLabels: Record<ProviderKind, { name: string; what: string }> = {
   google: { name: "Google", what: "Contacts and Calendar, read-only" },
   microsoft: { name: "Outlook", what: "Microsoft 365 or Outlook.com contacts and calendar, read-only" },
-  apple_ics: { name: "Calendar link", what: "Apple iCloud, Outlook or any calendar you can share as a link" },
+  apple_ics: { name: "Calendar link", what: "For Apple iCloud or any other calendar you share as a link. Not needed for Google Calendar: it comes with Google above." },
 };
 
 export const icsLinkSchema = z.object({
