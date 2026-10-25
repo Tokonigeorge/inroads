@@ -4,6 +4,27 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: milestone 22 (Less static)
+- **Work shows as it happens.** A running AI job lists its steps live ("Searching for …", "Reading …"), with earlier ones ticked and a shimmer bar. Results fade in one after another.
+- **Progress feels like progress.** Goal bars grow into place, and a goal that hits its weekly target gets a "Week done" badge. Ticking a step gives a small pop and "Step done. Nice."
+- **Motion.** Cards you can open lift on hover. Lists fade in with a short stagger. Dismissed follow-up cards slide away. All of it stops under the system's reduce-motion setting.
+- **Character.**
+  - People's initials sit on a colour tint picked from their name.
+  - Rooms carry an icon for their kind (conference, dinner, mixer…).
+  - Empty states are friendlier: "All caught up" when nothing needs you.
+  - Today greets you for the time of day and names what's ahead ("Big week: Moonshot on Wednesday, and 1 more room.").
+
+### Added: milestone 21 (Always a next step)
+- Today has **Coming up this week**: the next seven days' rooms, each with where its plan stands (ready, with how many people and openings it found; preparing; or "Prepare for this room"). Upcoming rooms no longer also appear as "This week" follow-up cards.
+- A plan opens with **What to do next**: numbered steps (add the people worth meeting, ask for intros, turn openings into goal steps, what happens on the day) with progress, each linking to its part of the plan.
+- **Who to meet** has one goal choice for everyone (not a picker per person), an **Add all** button, and a clear "Add to …" button on each person.
+- An event look-up that isn't a room yet offers **Add as a room**: the form opens filled in (name, dates, times, venue, event page, notes, goal) and the look-up becomes the room's plan.
+- The sidebar **collapses** to icons; the choice is remembered in this browser.
+
+### Changed: milestone 21
+- Everything you can click shows a pointer, and disabled controls show not-allowed (Tailwind 4's reset had dropped it on buttons).
+- Ghost buttons use the accent colour so they read as buttons; the Rooms page's "Find rooms for my goals" and "Look something up" are buttons with icons.
+
 ### Added
 - `AI_UNLIMITED_EMAILS`: sign-in emails exempt from the daily and per-person monthly AI limits (the owner while testing). The whole-app monthly cap still applies.
 

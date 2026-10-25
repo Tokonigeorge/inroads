@@ -71,6 +71,16 @@ Mobile body stays 15px (16px for inputs, to stop iOS zoom). Measure is capped at
 - Radius: `--radius-sm` 4px (inputs, small buttons), `--radius-md` 6px (buttons, rows on hover), `--radius-lg` 10px (cards, sheets, popovers), `--radius-full` only for avatars and the warmth dot.
 - Elevation: **none on surfaces at rest.** `--shadow-pop` (`0 4px 16px rgb(0 0 0 / .08), 0 0 0 1px var(--border)`) only for floating layers: menus, ⌘K, toasts, mobile sheets.
 - Motion: 120ms for hover/press, 180ms for sheet and pane transitions, `cubic-bezier(.2,.8,.2,1)`. Under `prefers-reduced-motion: reduce`, transitions become instant opacity changes and nothing slides.
+- Motion utilities (`globals.css`), calm and never bouncy:
+  - `rise`: arrive by fading up 6px in 260ms. Lists set `--i` to stagger 40ms apart (capped at 10).
+  - `lift`: cards that open lift 1px with a soft shadow on hover.
+  - `grow`: progress fills grow from the left.
+  - `pop`: a tick or badge pops in once; a ticked checkbox pops too.
+  - `leaving`: a dismissed card slides out (200ms) before it's removed.
+  - `shimmer`: a moving sheen while AI work runs.
+
+  All of them stop under reduced motion.
+- Work in progress is shown, not hidden. A running AI job lists its steps as it goes ("Searching for …", "Reading …"): earlier ones ticked, the current one spinning, with a shimmer bar.
 
 ### 2.5 Layout
 
@@ -89,7 +99,7 @@ Lucide icons at 16px (desktop) / 20px (mobile nav), 1.5px stroke, `currentColor`
 | **Button** | Variants: `primary` (accent fill), `secondary` (surface + border-strong), `ghost` (text only), `danger`. Sizes `sm` 32px / `md` 40px / `lg` 48px (mobile primary). Label is a verb. Loading state keeps width and shows inline text ("Saving…"). |
 | **Input / Textarea / Select / DateInput / TimeInput** | Label above, hint below in `--text-muted`, error in `--danger` with an icon and `aria-describedby`. 16px text on mobile. |
 | **Field group** | Groups fields with a sentence-case legend. No boxed fieldsets. |
-| **ListRow** | Primary line (name, `body-strong`), secondary line (role · company, `small` muted), trailing metadata (warmth label, due date), optional leading avatar (initials on `--sunken`, never coloured rings). Keyboard: roving focus, `j/k`, `enter`. |
+| **ListRow** | Primary line (name, `body-strong`), secondary line (role · company, `small` muted), trailing metadata (warmth label, due date), optional leading avatar (tinted initials, never coloured rings). Keyboard: roving focus, `j/k`, `enter`. |
 | **VirtualList** | Wraps ListRow with @tanstack/react-virtual, keyset "load more" sentinel, preserves scroll per route. |
 | **Pane** | Desktop detail container: sticky header (title + actions), scrollable body. Mobile: full-screen page with a back button. |
 | **Section** | Heading (`type-title`), optional trailing action as a ghost button, content. No border, just spacing. |
@@ -102,7 +112,9 @@ Lucide icons at 16px (desktop) / 20px (mobile nav), 1.5px stroke, `currentColor`
 | **CommandPalette** | cmdk: people, rooms, goals, actions, Space switch; shows shortcuts. |
 | **Toast** | Bottom-centre (mobile, above nav) / bottom-left (desktop). Text + optional Undo. `aria-live="polite"`. 6s, or 10s when it has Undo. |
 | **EmptyState** | One sentence that teaches the next action + one button. No illustration. |
-| **Avatar** | Initials, 24/32/40px, `--sunken` background, `--text-muted` initials. A photo if the user has added one. |
+| **Avatar** | Initials, 24/32/40px, on a soft tint whose hue comes from the name (so the same person always has the same colour). Lightness is set per theme (`--av-bg`, `--av-fg`) to keep contrast. A photo if the user has added one. |
+| **Room kind icon** | A 32px accent-soft tile with an icon per kind: coffee for a meeting, mic for a conference, party popper for a mixer, cutlery for a dinner, people for a meetup, handshake for a community, calendar for anything else. |
+| **Empty state** | Muted copy and the next action. The bigger ones (a page or a section's first use) get a soft accent circle with an icon and a dashed border. |
 | **WarmthIndicator** | Dot + label (see 2.1). |
 | **StageSelect** | Goal pipeline stage control: a menu on desktop, a sheet list on mobile, with keyboard `[` / `]` to move stages. |
 | **KeyHint** | `type-micro` key labels in menus and tooltips (desktop only). |

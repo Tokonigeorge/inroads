@@ -52,7 +52,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await expectAccessible(page);
 
     // One tap: Tunde is saved, put on the goal, linked to the room as a speaker.
-    await plan.getByRole("button", { name: 'Add to "Raise a pre-seed round"' }).click();
+    await plan.getByRole("listitem").filter({ hasText: "Tunde Bakare" }).getByRole("button", { name: 'Add to "Raise a pre-seed round"' }).click();
     await expect(plan.getByRole("link", { name: "In your people" })).toBeVisible();
     await expect(page.getByRole("region", { name: "People" }).getByRole("link", { name: /Tunde Bakare/ })).toBeVisible();
     await plan.getByRole("button", { name: "Add as a step" }).click();
@@ -107,7 +107,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await page.getByRole("button", { name: "Find rooms for my goals" }).click();
     await expect(page.getByRole("article", { name: "Fintech Founders Mixer" })).toBeVisible({ timeout: 20_000 });
     await due.getByRole("checkbox", { name: "Done: Send Tunde the deck" }).check();
-    await expect(page.getByRole("status").filter({ hasText: "Step done." })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Step done. Nice." })).toBeVisible();
     await expect(due.getByText("Send Tunde the deck")).toHaveCount(0);
   });
 });

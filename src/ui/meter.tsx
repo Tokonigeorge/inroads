@@ -11,7 +11,16 @@ export function Meter({ value, max, label, valueText }: { value: number; max: nu
       aria-valuetext={valueText}
       className="h-1.5 w-full overflow-hidden rounded-full bg-sunken"
     >
-      <div className="h-full rounded-full bg-accent transition-[width] duration-200 motion-reduce:transition-none" style={{ width: `${pct}%` }} />
+      <div className="grow h-full rounded-full bg-accent transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
     </div>
+  );
+}
+
+/** The week's target is met: a small badge that pops in once. */
+export function TargetHit() {
+  return (
+    <span className="pop inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-micro font-semibold text-on-accent">
+      <span aria-hidden>✓</span> Week done
+    </span>
   );
 }

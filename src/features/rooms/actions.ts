@@ -9,7 +9,7 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { saveRoomDebrief, skipRoomSession } from "@/server/repos/debrief";
 import { createGoal } from "@/server/repos/goals";
-import { attachPrep, loadPlan, matchGoal } from "@/server/repos/prep";
+import { attachPrep, loadPlan, roomDetailsOf } from "@/server/repos/prep";
 import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, unlinkPerson, updateRoom } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 
@@ -87,22 +87,7 @@ export async function skipRoomSessionAction(roomId: string, on: string) {
 export async function roomDetailsAction(searchId: string) {
   const user = await requireUser();
   const plan = await db.withUser(user.id, (tx) => loadPlan(tx, id.parse(searchId)));
-  if (!plan) return null;
-  const r = plan.result;
-  const named = r.stakeholders.filter((x) => x.name.trim());
-  // The goal the plan's openings serve, if it's one of yours.
-  const goal = r.opportunities.map((o) => matchGoal(plan.goals, o.goal)).find(Boolean) ?? null;
-  return {
-    title: r.title,
-    when: r.when ?? null,
-    website: r.website,
-    overview: r.overview,
-    facts: r.facts.slice(0, 5),
-    meet: named.slice(0, 3).map((x) => ({ name: x.name.trim(), role: x.role.trim() })),
-    people: named.length,
-    openings: r.opportunities.length,
-    goalId: goal?.id ?? null,
-  };
+  return plan ? roomDetailsOf(plan) : null;
 }
 
 /** A goal made from the room form ("+ New goal…"), so you don't have to leave it. */

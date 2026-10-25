@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { CalendarPlus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -9,6 +10,7 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { loadPlan } from "@/server/repos/prep";
+import { Button } from "@/ui/button";
 import { Pane, Section } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Look up" };
@@ -53,6 +55,18 @@ async function Result({ params }: { params: Promise<{ id: string }> }) {
         ) : null}
       </p>
       {r.overview ? <p className="pb-6">{r.overview}</p> : null}
+      {row.type === "event" && !plan.eventId ? (
+        <section aria-label="Going?" className="mb-6 flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface p-4">
+          <p className="min-w-0 flex-1">
+            <span className="font-semibold">Going?</span> <span className="text-muted">Add it as a room. The date, venue and this plan come with it, and Today reminds you before it starts.</span>
+          </p>
+          <Button asChild variant="primary" size="sm">
+            <Link href={`/rooms/new?prep=${plan.id}`}>
+              <CalendarPlus size={14} aria-hidden /> Add as a room
+            </Link>
+          </Button>
+        </section>
+      ) : null}
       <PlanView plan={plan} />
       {r.facts.length ? (
         <Section title="Facts">

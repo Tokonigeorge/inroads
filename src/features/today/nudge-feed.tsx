@@ -1,7 +1,8 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { Nudge, NudgeAction } from "@/domain/nudges";
 import { startAiJobAction } from "@/features/ai/actions";
 import { DraftSheet } from "@/features/ai/draft-sheet";
@@ -17,6 +18,8 @@ type Props = { nudges: Nudge[]; spaces: Record<string, { id: string; name: strin
 /** Today's reminders. Every action hides the card at once; snooze, done and dismiss can be undone. */
 export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  // Cards on their way out slide away for a moment before they're removed.
+  const [leaving, setLeaving] = useState<Set<string>>(() => new Set());
   const [draft, setDraft] = useState<{ personId: string; name: string; purpose: string } | null>(null);
   const [researching, setResearching] = useState<Set<string>>(() => new Set());
   const [, start] = useTransition();
@@ -24,13 +27,29 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   const capture = useCapture();
   const toast = useToast();
   const visible = nudges.filter((n) => !hidden.has(n.key));
-  const hide = (key: string) => setHidden((s) => new Set(s).add(key));
-  const show = (key: string) =>
-    setHidden((s) => {
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const hide = (key: string) => {
+    setLeaving((s) => new Set(s).add(key));
+    timers.current.set(
+      key,
+      setTimeout(() => {
+        timers.current.delete(key);
+        setHidden((s) => new Set(s).add(key));
+      }, 200),
+    );
+  };
+  const show = (key: string) => {
+    // An undo straight after can beat the slide-out: cancel it so the card doesn't vanish again.
+    clearTimeout(timers.current.get(key));
+    timers.current.delete(key);
+    const without = (s: Set<string>) => {
       const next = new Set(s);
       next.delete(key);
       return next;
-    });
+    };
+    setLeaving(without);
+    setHidden(without);
+  };
 
   const run = (n: Nudge, a: NudgeAction) => {
     switch (a.type) {
@@ -111,15 +130,22 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   };
 
   if (!visible.length) {
-    return <p className="text-muted">Nothing needs you right now. Follow-ups, birthdays and promises show up here.</p>;
+    return (
+      <div className="rise flex items-center gap-3 rounded-lg border border-dashed border-border p-4">
+        <span aria-hidden className="pop flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+          <Check size={18} />
+        </span>
+        <p className="text-muted">All caught up. Follow-ups, birthdays and promises show up here when they&apos;re due.</p>
+      </div>
+    );
   }
 
   return (
     <>
       <ul className="grid gap-3" aria-label="Follow up">
-        {visible.map((n) => (
-          <li key={n.key}>
-            <article aria-labelledby={`n-${n.key}`} className="grid gap-3 rounded-md border border-border bg-surface p-4">
+        {visible.map((n, i) => (
+          <li key={n.key} className={leaving.has(n.key) ? "leaving" : "rise"} style={{ ["--i" as string]: i }}>
+            <article aria-labelledby={`n-${n.key}`} className="grid gap-3 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong">
               <div className="flex items-start gap-3">
                 {n.person ? <Avatar name={n.person.name} /> : null}
                 <div className="grid min-w-0 gap-0.5">

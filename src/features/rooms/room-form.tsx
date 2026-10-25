@@ -46,14 +46,45 @@ function zoneOptions(current: string) {
   return { common: [...new Set([current, ...common])], rest: all.filter((z) => !common.includes(z) && z !== current) };
 }
 
-export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId: string | null; values: RoomFormValues; spaces: SpaceChoice[]; aiEnabled?: boolean }) {
+/** The form with what a look-up found filled in (blanks only for notes and goal). */
+function withFound(s: RoomFormValues, d: Found, goals: { id: string }[]): RoomFormValues {
+  return {
+    ...s,
+    notes: s.notes?.trim() ? s.notes : foundNotes(d),
+    goalId: s.goalId ?? (d.goalId && goals.some((g) => g.id === d.goalId) ? d.goalId : null),
+    title: d.title.trim() ? d.title.trim().slice(0, 200) : s.title,
+    kind: d.when?.endsOn && d.when.endsOn !== d.when.startsOn ? "conference" : s.kind,
+    startsOn: d.when?.startsOn || s.startsOn,
+    startTime: d.when?.startsOn ? d.when.startTime || null : s.startTime,
+    endTime: d.when?.startsOn ? d.when.endTime || null : s.endTime,
+    allDay: d.when?.startsOn ? !d.when.startTime : s.allDay,
+    tz: d.when?.timezone || s.tz,
+    location: d.when?.venue || s.location,
+    url: d.when?.url || d.website || s.url,
+  };
+}
+
+export function RoomForm({
+  roomId,
+  values,
+  spaces,
+  aiEnabled = false,
+  fromPrep = null,
+}: {
+  roomId: string | null;
+  values: RoomFormValues;
+  spaces: SpaceChoice[];
+  aiEnabled?: boolean;
+  /** A look-up to make this room from ("Add as a room"): it fills the form and becomes the room's plan. */
+  fromPrep?: { searchId: string; found: Found } | null;
+}) {
   const router = useRouter();
   const toast = useToast();
-  const [v, setV] = useState(values);
+  const [v, setV] = useState(() => (fromPrep ? withFound(values, fromPrep.found, spaces.find((x) => x.id === values.spaceId)?.goals ?? []) : values));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [prepId, setPrepId] = useState<string | null>(null);
+  const [prepId, setPrepId] = useState<string | null>(fromPrep?.searchId ?? null);
   const [newGoals, setNewGoals] = useState<{ id: string; text: string; spaceId: string }[]>([]);
   const set = <K extends keyof RoomFormValues>(k: K, val: RoomFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const zones = useMemo(() => zoneOptions(values.tz), [values.tz]);
@@ -99,20 +130,7 @@ export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId
           found={Boolean(prepId)}
           onFound={(searchId, d) => {
             setPrepId(searchId);
-            setV((s) => ({
-              ...s,
-              notes: s.notes?.trim() ? s.notes : foundNotes(d),
-              goalId: s.goalId ?? (d.goalId && goals.some((g) => g.id === d.goalId) ? d.goalId : null),
-              title: d.title.trim() ? d.title.trim().slice(0, 200) : s.title,
-              kind: d.when?.endsOn && d.when.endsOn !== d.when.startsOn ? "conference" : s.kind,
-              startsOn: d.when?.startsOn || s.startsOn,
-              startTime: d.when?.startsOn ? d.when.startTime || null : s.startTime,
-              endTime: d.when?.startsOn ? d.when.endTime || null : s.endTime,
-              allDay: d.when?.startsOn ? !d.when.startTime : s.allDay,
-              tz: d.when?.timezone || s.tz,
-              location: d.when?.venue || s.location,
-              url: d.when?.url || d.website || s.url,
-            }));
+            setV((s) => withFound(s, d, goals));
           }}
         />
       )}
@@ -274,7 +292,7 @@ export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-type Found = NonNullable<Awaited<ReturnType<typeof roomDetailsAction>>>;
+export type Found = NonNullable<Awaited<ReturnType<typeof roomDetailsAction>>>;
 
 /** Type a name, and the web fills in the rest: date, venue, event page. The same search becomes the room's prep. */
 function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: string; spaceId: string; aiEnabled: boolean; found: boolean; onFound: (searchId: string, d: Found) => void }) {

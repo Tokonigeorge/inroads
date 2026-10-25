@@ -193,7 +193,6 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
         researched: p.researched,
       })),
     ),
-    rooms: upcoming.filter((s) => s.kind !== "meeting").map((s) => ({ eventId: s.eventId, title: s.title, date: s.date, time: s.time, location: s.location })),
     afterRooms,
     triagePending,
     duplicates,

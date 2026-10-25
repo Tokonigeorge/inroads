@@ -38,6 +38,13 @@ export function ListRow({ href, leading, primary, secondary, trailing, selected,
   );
 }
 
+/** A hue for a name: the same person always gets the same tint. */
+export function hueOf(name: string) {
+  let h = 0;
+  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % 360;
+}
+
 export function Avatar({ name, size = 32 }: { name: string; size?: 24 | 32 | 40 }) {
   const initials =
     name
@@ -50,8 +57,8 @@ export function Avatar({ name, size = 32 }: { name: string; size?: 24 | 32 | 40 
   return (
     <span
       aria-hidden
-      className="inline-flex items-center justify-center rounded-full bg-sunken font-medium text-muted"
-      style={{ width: size, height: size, fontSize: size <= 24 ? 10 : size === 32 ? 12 : 14 }}
+      className="avatar-tint inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
+      style={{ width: size, height: size, fontSize: size <= 24 ? 10 : size === 32 ? 12 : 14, ["--h" as string]: hueOf(name) }}
     >
       {initials}
     </span>

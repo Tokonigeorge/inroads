@@ -17,6 +17,10 @@
   --accent-soft: #e6f0eb;
   --danger: #b42318;
   --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.08), 0 0 0 1px var(--border);
+  --shadow-lift: 0 6px 18px rgb(0 0 0 / 0.07);
+  /* Avatar tints: lightness of the background and initials; the hue comes from the name. */
+  --av-bg: 0.93;
+  --av-fg: 0.42;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,6 +40,9 @@
     --accent-soft: #1d2e27;
     --danger: #f97066;
     --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.4), 0 0 0 1px var(--border);
+    --shadow-lift: 0 6px 18px rgb(0 0 0 / 0.35);
+    --av-bg: 0.33;
+    --av-fg: 0.87;
   }
 }
 
@@ -55,6 +62,9 @@
   --accent-soft: #1d2e27;
   --danger: #f97066;
   --shadow-pop: 0 4px 16px rgb(0 0 0 / 0.4), 0 0 0 1px var(--border);
+  --shadow-lift: 0 6px 18px rgb(0 0 0 / 0.35);
+  --av-bg: 0.33;
+  --av-fg: 0.87;
 }
 
 @theme inline {
@@ -110,6 +120,23 @@
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
   }
+  /* Anything you can click looks clickable (the CSS reset gives buttons the arrow cursor). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled),
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
   /* One chevron for every dropdown, drawn in the text colour so it follows the theme, with room on the right. */
   select:not([multiple]) {
     appearance: none;
@@ -135,10 +162,109 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Motion (docs/DESIGN_SYSTEM.md §7): quick and calm, 150–300ms, no bounce. Everything below
+ * is switched off by the reduced-motion rule at the end of this file.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* Ticking a box gives a small pop. */
+input[type="checkbox"]:checked {
+  animation: pop 260ms var(--ease-out-soft);
+}
+
+/* Arrives: fades up into place. Set --i on list items to stagger them (40ms apart, capped). */
+@utility rise {
+  animation: rise 260ms var(--ease-out-soft) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 40ms);
+}
+/* Cards you can open: lift a little on hover. */
+@utility lift {
+  transition:
+    transform 160ms var(--ease-out-soft),
+    box-shadow 160ms var(--ease-out-soft),
+    border-color 160ms var(--ease-out-soft),
+    background-color 160ms var(--ease-out-soft);
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+/* A progress fill that grows from the left when it appears. */
+@utility grow {
+  transform-origin: left;
+  animation: grow 600ms var(--ease-out-soft) both;
+}
+/* A tick or badge that pops in once. */
+@utility pop {
+  animation: pop 320ms var(--ease-out-soft) both;
+}
+/* A one-off ring that says "this just happened". */
+@utility glow {
+  animation: glow 900ms var(--ease-out-soft) 1;
+}
+/* Work in progress: a soft moving sheen on a bar. */
+@utility shimmer {
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--accent-soft) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+/* Leaving: slides out and collapses before it's removed. */
+@utility leaving {
+  transition:
+    opacity 200ms var(--ease-out-soft),
+    transform 200ms var(--ease-out-soft);
+  opacity: 0;
+  transform: translateX(16px);
+  pointer-events: none;
+}
+/* Initials on a tint picked from the name (--h), readable in both themes. */
+@utility avatar-tint {
+  background: oklch(var(--av-bg) 0.05 var(--h, 160));
+  color: oklch(var(--av-fg) 0.1 var(--h, 160));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    animation-delay: 0ms !important;
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
