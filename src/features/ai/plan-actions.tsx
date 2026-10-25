@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, ListPlus, UserPlus } from "lucide-react";
+import { Check, ListPlus, UserPlus, UserSearch } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/ui/button";
 import { Select } from "@/ui/field";
+import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
 import { keepOpeningAction, keepStakeholderAction } from "./actions";
 
@@ -86,10 +87,11 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
         </div>
       ) : null}
       <ul className="grid gap-2">
-        {people.map((p) => {
+        {people.map((p, i) => {
           const keptId = kept[p.index];
           return (
-            <li key={p.index} className="flex flex-wrap items-start gap-3 rounded-md border border-border p-3 transition-colors hover:border-accent/50">
+            <li key={p.index} className="rise flex flex-wrap items-start gap-3 rounded-md border border-border p-3 transition-colors hover:border-accent/50" style={{ ["--i" as string]: i }}>
+              {p.name ? <Avatar name={p.name} /> : <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-muted"><UserSearch size={14} /></span>}
               <div className="grid min-w-0 flex-1 gap-1">
                 <p>
                   <span className="font-[550]">
@@ -108,7 +110,7 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
               <div className="shrink-0">
                 {keptId ? (
                   <Link href={`/people/${keptId}`} className="inline-flex items-center gap-1 text-small font-[550] text-accent hover:underline">
-                    <Check size={14} aria-hidden /> In your people
+                    <Check size={14} className="pop" aria-hidden /> In your people
                   </Link>
                 ) : !p.name ? (
                   <span className="text-small text-muted">A role to look for, not a name yet</span>
@@ -135,7 +137,7 @@ export function KeepStep({ searchId, index, goals, suggestedGoalId, kept }: { se
   if (done)
     return (
       <span className="inline-flex items-center gap-1 text-small font-[550] text-accent">
-        <Check size={14} aria-hidden /> Added as a step
+        <Check size={14} className="pop" aria-hidden /> Added as a step
       </span>
     );
   if (!goals.length) {

@@ -1,6 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { Plus, Search, Sparkles } from "lucide-react";
+import { RoomKindIcon } from "./room-kind-icon";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -22,9 +25,10 @@ function dayLabel(date: string, today: string) {
   return formatLongDate(date, today);
 }
 
-function Row({ href, selected, primary, secondary, trailing }: { href: string; selected: boolean; primary: string; secondary: string; trailing?: string }) {
+function Row({ href, selected, leading, primary, secondary, trailing }: { href: string; selected: boolean; leading?: ReactNode; primary: string; secondary: string; trailing?: string }) {
   return (
-    <Link href={href} aria-current={selected ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-md px-2 py-2", selected ? "bg-accent-soft" : "hover:bg-sunken")}>
+    <Link href={href} aria-current={selected ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-md px-2 py-2 transition-colors", selected ? "bg-accent-soft" : "hover:bg-sunken")}>
+      {leading}
       <span className="grid min-w-0 flex-1">
         <span className="truncate font-[550]">{primary}</span>
         <span className="truncate text-small text-muted">{secondary}</span>
@@ -115,6 +119,7 @@ export function RoomsList({
                       <Row
                         href={`/rooms/${u.eventId}`}
                         selected={params.id === u.eventId}
+                        leading={<RoomKindIcon kind={u.kind} />}
                         primary={u.title}
                         secondary={[u.time ? formatTime(u.time) : "All day", u.localTimeLabel ? `(${u.localTimeLabel})` : null, u.location].filter(Boolean).join(" · ")}
                         trailing={u.people ? (u.people === 1 ? "1 person" : `${u.people} people`) : undefined}
@@ -135,6 +140,7 @@ export function RoomsList({
                   <Row
                     href={`/rooms/${s.id}`}
                     selected={params.id === s.id}
+                    leading={<RoomKindIcon kind={s.kind} />}
                     primary={s.title}
                     secondary={[recurrenceLabel(s.recurrence), s.next ? `next ${dayLabel(s.next, today).replace(/^Today$/, "today").replace(/^Tomorrow$/, "tomorrow")}` : "ended", impactLabel(impact[s.id])].filter(Boolean).join(" · ")}
                     trailing={s.pastCount ? `Went ${s.attended} of ${s.pastCount}` : undefined}
@@ -152,6 +158,7 @@ export function RoomsList({
                 <Row
                   href={`/rooms/${p.id}`}
                   selected={params.id === p.id}
+                  leading={<RoomKindIcon kind={p.kind} />}
                   primary={p.title}
                   secondary={[formatLongDate(p.date, today), roomKindLabels[p.kind as RoomKind] ?? p.kind, impactLabel(impact[p.id])].filter(Boolean).join(" · ")}
                   trailing={p.people ? (p.people === 1 ? "1 person" : `${p.people} people`) : undefined}

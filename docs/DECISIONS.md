@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-25: milestone 22 (Less static)
+
+142. **Motion is CSS-only, calm and switch-offable.** A handful of utilities (rise, lift, grow, pop, leaving, shimmer, glow) instead of an animation library: no extra JS on a cheap phone, 150–600ms, no bounce, and all stopped (delays too) under `prefers-reduced-motion`.
+143. **Avatar colour comes from a hash of the name** (a hue on an OKLCH tint, lightness set per theme), so the same person is always the same colour and contrast holds in light and dark. This revises the earlier "initials on sunken" rule, which read as lifeless.
+144. **The greeting is computed from the user's local hour and what's ahead**, in order: today's rooms, then the week's, then follow-ups, then a quiet-day nudge. Pure function with unit tests; the hour is read on the server in the user's time zone.
+
 ## 2026-10-25: milestone 21 (Always a next step)
 
 137. **Every screen that results from AI work says what to do next.** A plan opens with numbered steps and progress counts; Today lists the week's rooms with each plan's state. Feedback was "I'm not sure what to do next", so the next action is named, not implied.

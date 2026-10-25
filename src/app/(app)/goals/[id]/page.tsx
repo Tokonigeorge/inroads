@@ -17,7 +17,7 @@ import { listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
 import { getGoal, type GoalDetail } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
 import { PageHeader, Section } from "@/ui/layout";
-import { Meter } from "@/ui/meter";
+import { Meter, TargetHit } from "@/ui/meter";
 
 export const metadata: Metadata = { title: "Goal" };
 
@@ -71,7 +71,8 @@ function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: s
             <h2 id="week" className="font-semibold">
               This week
             </h2>
-            <span className="text-small text-muted">
+            <span className="flex items-center gap-2 text-small text-muted">
+              {m.done >= m.target ? <TargetHit /> : null}
               {m.done} of {m.target} · {m.label}
             </span>
           </div>

@@ -40,11 +40,19 @@ export function Section({
 }
 
 /** One sentence that teaches the next action, plus one button. No illustration. */
-export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
+/** Nothing here yet: what will appear, and how to start. An icon makes the bigger ones friendlier. */
+export function EmptyState({ children, action, icon }: { children: ReactNode; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-3 py-2">
-      <p className="text-muted">{children}</p>
-      {action}
+    <div className={icon ? "rise flex items-start gap-4 rounded-lg border border-dashed border-border p-4" : "flex flex-col items-start gap-3 py-2"}>
+      {icon ? (
+        <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+          {icon}
+        </span>
+      ) : null}
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-muted">{children}</p>
+        {action}
+      </div>
     </div>
   );
 }

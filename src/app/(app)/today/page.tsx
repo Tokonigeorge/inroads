@@ -1,8 +1,10 @@
+import { CalendarDays, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { addDays, formatLongDate } from "@/domain/dates";
+import { greeting, hourIn } from "@/domain/greeting";
 import { formatTime } from "@/domain/zoned";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
@@ -64,16 +66,25 @@ async function Today() {
         : new Set<string>();
       const goalRooms = await loadGoalRooms(tx, view, ctx.today);
       const week = await loadWeek(tx, c);
+      const hour = hourIn(ctx.timezone);
       const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false))).limit(1);
-      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, week, today: ctx.today, spaceName: view.selected?.name ?? null };
+      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, week, hour, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
   const setUp = !(profile.onboardingState as { completedAt?: string } | null)?.completedAt;
-  const greeting = firstName ? `Welcome back, ${firstName}.` : "Welcome to Inroads.";
+  const { hello, ahead } = greeting({
+    firstName,
+    hour: data.hour,
+    today: data.today,
+    todayRooms: data.agenda.filter((a) => a.kind !== "meeting").map((a) => a.title),
+    weekRooms: data.week,
+    followUps: data.nudges.length,
+  });
+  const welcome = `${hello} ${ahead}`;
   return (
     <>
-      <PageHeader title={formatLongDate(data.today)} subtitle={data.spaceName ? `${greeting} Showing ${data.spaceName}.` : greeting} />
+      <PageHeader title={formatLongDate(data.today)} subtitle={data.spaceName ? `${welcome} Showing ${data.spaceName}.` : welcome} />
       {setUp ? (
         <section className="mb-8 grid gap-3 rounded-md border border-border bg-surface p-4">
           <h2 className="font-semibold">Finish setting up</h2>
@@ -104,6 +115,7 @@ async function Today() {
             <Agenda items={data.agenda} today={data.today} planned={data.planned} aiEnabled={isAiConfigured()} />
           ) : (
             <EmptyState
+              icon={<CalendarDays size={18} />}
               action={
                 <Button asChild size="sm">
                   <Link href="/rooms/new">Add a room</Link>
@@ -125,6 +137,7 @@ async function Today() {
         <Section title={data.nudges.length ? `Follow up · ${data.nudges.length}` : "Follow up"}>
           {counts.people === 0 ? (
             <EmptyState
+              icon={<UsersRound size={18} />}
               action={
                 <Button asChild variant="primary">
                   <Link href="/settings#data">Load example data</Link>
@@ -201,7 +214,7 @@ async function loadWeek(tx: Tx, c: { spaceId: string | null; today: string; tz: 
       : busy.has(prepJobKind(s.eventId))
         ? { state: "preparing" }
         : { state: "none" };
-    return { eventId: s.eventId, title: s.title, date: s.date, time: s.time, location: s.location, plan };
+    return { eventId: s.eventId, title: s.title, kind: s.kind, date: s.date, time: s.time, location: s.location, plan };
   });
 }
 

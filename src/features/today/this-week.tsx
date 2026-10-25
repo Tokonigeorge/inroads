@@ -2,10 +2,12 @@ import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { formatLongDate } from "@/domain/dates";
 import { formatTime } from "@/domain/zoned";
+import { RoomKindIcon } from "@/features/rooms/room-kind-icon";
 
 export type WeekRoom = {
   eventId: string;
   title: string;
+  kind: string;
   date: string;
   time: string | null;
   location: string | null;
@@ -17,12 +19,14 @@ export type WeekRoom = {
 export function ThisWeek({ rooms, today }: { rooms: WeekRoom[]; today: string }) {
   return (
     <ol className="grid gap-2">
-      {rooms.map((r) => (
-        <li key={`${r.eventId}:${r.date}`}>
+      {rooms.map((r, i) => (
+        <li key={`${r.eventId}:${r.date}`} className="rise" style={{ ["--i" as string]: i }}>
           <Link
             href={`/rooms/${r.eventId}`}
-            className="group grid gap-1 rounded-md border border-border bg-surface p-3 transition-colors hover:border-accent hover:bg-accent-soft/40"
+            className="lift group flex gap-3 rounded-md border border-border bg-surface p-3 hover:border-accent"
           >
+            <RoomKindIcon kind={r.kind} />
+            <span className="grid min-w-0 flex-1 gap-1">
             <span className="flex items-baseline justify-between gap-3">
               <span className="font-semibold group-hover:underline">{r.title}</span>
               <span className="shrink-0 text-small text-muted tabular">
@@ -32,6 +36,7 @@ export function ThisWeek({ rooms, today }: { rooms: WeekRoom[]; today: string })
             </span>
             {r.location ? <span className="text-small text-muted">{r.location}</span> : null}
             <PlanLine plan={r.plan} />
+            </span>
           </Link>
         </li>
       ))}

@@ -16,7 +16,7 @@ export function StepCheck({ id, text }: { id: string; text: string }) {
       onChange={() =>
         start(async () => {
           await setGoalStepDoneAction(id, true);
-          toast.show("Step done.");
+          toast.show("Step done. Nice.");
         })
       }
       className="mt-1 size-4 shrink-0 accent-[var(--accent)]"

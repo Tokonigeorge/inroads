@@ -1,3 +1,4 @@
+import { Target } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -13,7 +14,7 @@ import { listGoals, type GoalSummary } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
 import { EmptyState, PageHeader, Section } from "@/ui/layout";
-import { Meter } from "@/ui/meter";
+import { Meter, TargetHit } from "@/ui/meter";
 
 export const metadata: Metadata = { title: "Goals" };
 export const maxDuration = 300;
@@ -100,7 +101,7 @@ async function Goals({
     return (
       <>
         {/* The header already has "Add a goal"; a second button here would just repeat it. */}
-        <EmptyState>
+        <EmptyState icon={<Target size={18} />}>
           Set a goal, like &quot;Raise a pre-seed round&quot; or &quot;Win three
           clients in Accra&quot;, then add the people who can help.
         </EmptyState>
@@ -142,16 +143,19 @@ async function Goals({
 function GoalList({ goals }: { goals: GoalSummary[] }) {
   return (
     <ul className="grid gap-3 pb-6">
-      {goals.map((g) => {
+      {goals.map((g, i) => {
         const m = progressMeter(g.progress);
         return (
-          <li key={g.id}>
+          <li key={g.id} className="rise" style={{ ["--i" as string]: i }}>
             <Link
               href={`/goals/${g.id}`}
-              className="grid gap-2 rounded-md border border-border bg-surface p-4 hover:border-border-strong"
+              className="lift grid gap-2 rounded-md border border-border bg-surface p-4 hover:border-accent/60"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className="font-semibold">{g.text}</span>
+                <span className="flex items-center gap-2 font-semibold">
+                  {g.text}
+                  {g.active && !g.archived && m.done >= m.target ? <TargetHit /> : null}
+                </span>
                 <span className="text-small text-muted">
                   {g.archived
                     ? "Archived"

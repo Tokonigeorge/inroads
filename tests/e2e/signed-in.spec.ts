@@ -8,7 +8,7 @@ test.describe.serial("signed in", () => {
   test("Today greets the new account and points to example data", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/today$/);
-    await expect(page.getByText("Welcome back, Ada.")).toBeVisible();
+    await expect(page.getByText(/^(Good (morning|afternoon|evening)|Working late), Ada\./)).toBeVisible();
     await expect(page.getByRole("link", { name: "Load example data" })).toBeVisible();
     await expectAccessible(page);
   });

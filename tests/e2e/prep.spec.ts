@@ -107,7 +107,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await page.getByRole("button", { name: "Find rooms for my goals" }).click();
     await expect(page.getByRole("article", { name: "Fintech Founders Mixer" })).toBeVisible({ timeout: 20_000 });
     await due.getByRole("checkbox", { name: "Done: Send Tunde the deck" }).check();
-    await expect(page.getByRole("status").filter({ hasText: "Step done." })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Step done. Nice." })).toBeVisible();
     await expect(due.getByText("Send Tunde the deck")).toHaveCount(0);
   });
 });
