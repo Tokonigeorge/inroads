@@ -110,6 +110,14 @@
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
   }
+  /* One chevron for every dropdown, drawn in the text colour so it follows the theme, with room on the right. */
+  select:not([multiple]) {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;

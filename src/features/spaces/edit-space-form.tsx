@@ -65,7 +65,7 @@ export function EditSpaceForm({ space }: { space: SpaceProps }) {
               name="cadenceDays"
               defaultValue={cadence ?? "none"}
               aria-describedby={describedBy}
-              className="h-10 w-full rounded-sm border border-border-strong bg-surface px-2 text-[16px] md:text-body"
+              className="h-10 w-full rounded-sm border border-border-strong bg-surface pr-9 pl-3 text-[16px] md:text-body"
             >
               {cadenceOptions.map((c) => (
                 <option key={c.days ?? "none"} value={c.days ?? "none"}>

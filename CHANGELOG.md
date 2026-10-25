@@ -5,6 +5,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ## [Unreleased]
 
 ### Fixed
+- Dropdowns have room on the right for their arrow, which now follows the theme. In forms, a field with a hint no longer pushes the fields beside it out of line (Add a room: Date, Starts, Ends).
 - Background jobs never ran in production: the sign-in check redirected Inngest's calls to `/api/inngest` to the sign-in page. That endpoint is now let through (Inngest signs every request).
 
 ### Added: milestone 18 (Ask your network)

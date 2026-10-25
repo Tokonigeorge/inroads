@@ -29,7 +29,7 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [errorId, hintId].filter(Boolean).join(" ") || undefined;
   return (
-    <div className={cn("grid gap-1.5", className)}>
+    <div className={cn("grid content-start gap-1.5", className)}>
       <label htmlFor={id} className="text-small font-[550] text-text">
         {label}
       </label>
@@ -48,7 +48,7 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
 }
 
 export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select className={cn(control, "h-10 px-2", className)} {...props} />;
+  return <select className={cn(control, "h-10 pr-9 pl-3", className)} {...props} />;
 }
 
 /** Radio buttons styled as a compact segmented row (used for small fixed choices). */
