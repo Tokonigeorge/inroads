@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/sign-in", "/auth", "/offline", "/manifest.webmanifest", "/sw.js", "/icons"];
+// /api/inngest is called by Inngest itself, never a person; every request to it is checked against INNGEST_SIGNING_KEY.
+const PUBLIC_PATHS = ["/sign-in", "/auth", "/offline", "/manifest.webmanifest", "/sw.js", "/icons", "/api/inngest"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out visitors

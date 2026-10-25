@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+- Background jobs never ran in production: the sign-in check redirected Inngest's calls to `/api/inngest` to the sign-in page. That endpoint is now let through (Inngest signs every request).
+
 ### Added: milestone 18 (Ask your network)
 - Ask a question about the people you know, in your own words ("Who do I know in fintech in Accra who's raised before?"), in People or from ⌘K.
 - You get up to 8 people with a reason for each, citing what you've recorded about them. Only one Space is searched at a time.
