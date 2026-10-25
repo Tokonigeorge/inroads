@@ -25,6 +25,11 @@ export const aiConfig = () => ({
   /** Estimated spend caps in US dollars. */
   userMonthlyUsd: Number(process.env.AI_USER_MONTHLY_USD ?? 2),
   appMonthlyUsd: Number(process.env.AI_APP_MONTHLY_USD ?? 25),
+  /** Accounts (by sign-in email) with no daily or personal monthly limits: the owner while testing. The whole-app cap still applies. */
+  unlimitedEmails: (process.env.AI_UNLIMITED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
 });
 
 export const aiFeatures = ["research", "lookup", "radar", "brief", "draft", "card", "chat", "score", "capture", "ask"] as const;

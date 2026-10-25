@@ -37,6 +37,7 @@ export async function checkLimit(userId: string, feature: AiFeature, sys: Databa
   if (Number(app.micro) >= cfg.appMonthlyUsd * 1_000_000) {
     throw new AiLimitError("AI features are paused for everyone until next month while we keep costs in check.", nextMonth());
   }
+  if (cfg.unlimitedEmails.length && (await isUnlimited(userId, cfg.unlimitedEmails, sys))) return;
   if (Number(mine.micro) >= cfg.userMonthlyUsd * 1_000_000) {
     throw new AiLimitError("You've used this month's AI allowance. It resets on the 1st.", nextMonth());
   }
@@ -44,6 +45,13 @@ export async function checkLimit(userId: string, feature: AiFeature, sys: Databa
   if (today.n >= cap) {
     throw new AiLimitError(`You've used ${aiFeatureLabels[feature].toLowerCase()} ${cap} times today. It resets at midnight UTC.`, new Date(day.getTime() + 86_400_000));
   }
+}
+
+/** True for an account listed in AI_UNLIMITED_EMAILS. */
+async function isUnlimited(userId: string, emails: string[], sys: Database) {
+  const rows = await sys.execute<{ email: string | null }>(sql`select email from auth.users where id = ${userId}`);
+  const email = [...rows][0]?.email?.toLowerCase();
+  return Boolean(email && emails.includes(email));
 }
 
 export async function recordUsage(input: { userId: string; feature: AiFeature; model: string; inputTokens: number; outputTokens: number; webSearches: number; costMicroUsd: number }, sys: Database = getSystemDb()) {

@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+- `AI_UNLIMITED_EMAILS`: sign-in emails exempt from the daily and per-person monthly AI limits (the owner while testing). The whole-app monthly cap still applies.
+
 ### Added: milestone 20 (Walk in prepared, follow up in one tap)
 - **Today's agenda prepares you:** each person you'll see has two talking points from their research, or a button to research them before you go. Rooms link to their plan. The "You meet X soon" card offers **Research now**.
 - **People you're meeting in the next two days are researched automatically** at your brief time (up to three a day).
