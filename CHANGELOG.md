@@ -13,6 +13,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Every week, at your brief time, Inroads looks for events that serve your goals and shows this week's on **Today**.
 
 ### Changed
+- Add a room, after **Find details**: what it found (overview, key facts, multi-day dates) goes into the notes, a preview shows who to meet, and the goal its openings serve is picked for you. Event look-ups now gather ticket and registration details, who attends, headline speakers and sponsors, agenda themes and side events.
+- **Serves goal** on a room has **+ New goal…**, so you can make a goal without leaving the form, and it's always shown, even before you have goals.
 - Connections: Google comes first; a calendar link, phone contacts and files are folded under "Other ways to add people" (optional). Sources this server hasn't been set up for (such as Outlook without keys) are no longer shown. The calendar link says it isn't needed for Google Calendar.
 
 ### Fixed

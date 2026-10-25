@@ -11,7 +11,7 @@ import { Field, Input, Select, Textarea } from "@/ui/field";
 import { useToast } from "@/ui/toast";
 import { JobStatus } from "@/features/ai/job-status";
 import { startAiJobAction } from "@/features/ai/actions";
-import { roomDetailsAction, saveRoomAction } from "./actions";
+import { quickGoalAction, roomDetailsAction, saveRoomAction } from "./actions";
 
 export type RoomFormValues = {
   spaceId: string;
@@ -54,9 +54,11 @@ export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [prepId, setPrepId] = useState<string | null>(null);
+  const [newGoals, setNewGoals] = useState<{ id: string; text: string; spaceId: string }[]>([]);
   const set = <K extends keyof RoomFormValues>(k: K, val: RoomFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const zones = useMemo(() => zoneOptions(values.tz), [values.tz]);
   const space = spaces.find((s) => s.id === v.spaceId);
+  const goals = [...(space?.goals ?? []), ...newGoals.filter((g) => g.spaceId === v.spaceId)];
   const startDow = v.startsOn ? weekday(v.startsOn) : 1;
   const nthChoices = v.startsOn ? nthChoicesFor(v.startsOn) : [];
   const weekly = v.freq === "weekly" || v.freq === "biweekly";
@@ -99,6 +101,8 @@ export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId
             setPrepId(searchId);
             setV((s) => ({
               ...s,
+              notes: s.notes?.trim() ? s.notes : foundNotes(d),
+              goalId: s.goalId ?? (d.goalId && goals.some((g) => g.id === d.goalId) ? d.goalId : null),
               title: d.title.trim() ? d.title.trim().slice(0, 200) : s.title,
               kind: d.when?.endsOn && d.when.endsOn !== d.when.startsOn ? "conference" : s.kind,
               startsOn: d.when?.startsOn || s.startsOn,
@@ -240,20 +244,17 @@ export function RoomForm({ roomId, values, spaces, aiEnabled = false }: { roomId
       <Field label="Event page" hint="Optional." error={errors.url}>
         {({ id, describedBy, invalid }) => <Input id={id} type="url" inputMode="url" value={v.url ?? ""} onChange={(e) => set("url", e.target.value)} placeholder="https://" aria-describedby={describedBy} aria-invalid={invalid} />}
       </Field>
-      {space?.goals.length ? (
-        <Field label="Serves goal" error={errors.goalId}>
-          {({ id, describedBy }) => (
-            <Select id={id} value={v.goalId ?? ""} onChange={(e) => set("goalId", e.target.value || null)} aria-describedby={describedBy}>
-              <option value="">None</option>
-              {space.goals.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.text}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      ) : null}
+      <GoalPicker
+        spaceId={v.spaceId}
+        goals={goals}
+        value={v.goalId}
+        error={errors.goalId}
+        onChange={(goalId) => set("goalId", goalId)}
+        onCreated={(g) => {
+          setNewGoals((x) => [...x, { ...g, spaceId: v.spaceId }]);
+          set("goalId", g.id);
+        }}
+      />
       <Field label="Notes" error={errors.notes}>
         {({ id }) => <Textarea id={id} rows={4} value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} maxLength={5000} />}
       </Field>
@@ -280,6 +281,7 @@ function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: str
   const [jobId, setJobId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [seen, setSeen] = useState<Found | null>(null);
   if (!aiEnabled) return null;
   const ready = title.trim().length >= 3;
   return (
@@ -311,6 +313,7 @@ function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: str
             const d = searchId ? await roomDetailsAction(searchId) : null;
             if (!d) return setError("That search didn't come back. Fill it in by hand, or try again.");
             onFound(searchId, d);
+            setSeen(d);
             const bits = [d.when?.startsOn ? "the date" : null, d.when?.venue ? "the venue" : null, d.when?.url || d.website ? "the event page" : null].filter(Boolean);
             setNote(
               `${bits.length ? `Filled in ${bits.join(", ")}. Check them before saving.` : "Couldn't confirm a date or venue, so those are unchanged."} ${d.people || d.openings ? `Your plan (${count(d.people, "person", "people")} to meet, ${count(d.openings, "opening", "openings")}) is saved with the room.` : ""}`.trim(),
@@ -324,10 +327,126 @@ function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: str
           {note}
         </p>
       ) : null}
+      {seen && (seen.overview || seen.meet.length) ? (
+        <div className="grid gap-1 border-t border-border pt-2 text-small">
+          {seen.overview ? <p>{seen.overview}</p> : null}
+          {seen.meet.length ? (
+            <p className="text-muted">
+              Who to meet: {seen.meet.map((m) => (m.role ? `${m.name} (${m.role})` : m.name)).join("; ")}
+              {seen.people > seen.meet.length ? `, and ${seen.people - seen.meet.length} more` : ""}. The full plan is on the room once you save.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-small text-danger">
           {error}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** What Find details learned, kept in the room's notes so it's there on the day. */
+function foundNotes(d: Found) {
+  const w = d.when;
+  return [
+    d.overview.trim(),
+    w?.startsOn && w.endsOn && w.endsOn !== w.startsOn ? `Runs ${w.startsOn} to ${w.endsOn}.` : "",
+    d.facts.length ? d.facts.map((f) => `- ${f}`).join("\n") : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 5000);
+}
+
+/** "Serves goal", with a way to make the goal right here instead of leaving the form. */
+function GoalPicker({
+  spaceId,
+  goals,
+  value,
+  error,
+  onChange,
+  onCreated,
+}: {
+  spaceId: string;
+  goals: { id: string; text: string }[];
+  value: string | null;
+  error?: string;
+  onChange: (goalId: string | null) => void;
+  onCreated: (g: { id: string; text: string }) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  async function create() {
+    if (!text.trim()) return setMessage("Write the goal, e.g. Meet three seed investors.");
+    setPending(true);
+    const r = await quickGoalAction(spaceId, text);
+    setPending(false);
+    if (!r.id) return setMessage(r.message ?? "That goal didn't save.");
+    onCreated({ id: r.id, text: r.text ?? text.trim() });
+    setAdding(false);
+    setText("");
+    setMessage(null);
+  }
+  return (
+    <div className="grid gap-2">
+      <Field label="Serves goal" hint={goals.length ? "Rooms tied to a goal count towards its week." : "Tie this room to what you're working towards."} error={error}>
+        {({ id, describedBy }) => (
+          <Select
+            id={id}
+            value={adding ? "__new" : (value ?? "")}
+            onChange={(e) => {
+              if (e.target.value === "__new") return setAdding(true);
+              setAdding(false);
+              onChange(e.target.value || null);
+            }}
+            aria-describedby={describedBy}
+          >
+            <option value="">None</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.text}
+              </option>
+            ))}
+            <option value="__new">+ New goal…</option>
+          </Select>
+        )}
+      </Field>
+      {adding ? (
+        <div className="grid gap-2 rounded-md border border-border bg-surface p-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <Input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void create();
+                }
+              }}
+              placeholder="e.g. Meet three seed investors"
+              aria-label="New goal"
+              maxLength={140}
+              autoComplete="off"
+              className="min-w-0 flex-1 basis-56"
+            />
+            <Button type="button" size="md" disabled={pending} onClick={() => void create()}>
+              Create goal
+            </Button>
+            <Button type="button" size="md" variant="ghost" onClick={() => setAdding(false)}>
+              Cancel
+            </Button>
+          </div>
+          <p className="text-small text-muted">You can add its pipeline and target on the goal&apos;s page later.</p>
+          {message ? (
+            <p role="alert" className="text-small text-danger">
+              {message}
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

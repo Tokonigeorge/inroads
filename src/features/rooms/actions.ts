@@ -8,7 +8,8 @@ import { autoPrepRoom, autoResearch } from "@/server/ai/auto-research";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { saveRoomDebrief, skipRoomSession } from "@/server/repos/debrief";
-import { attachPrep, loadPlan } from "@/server/repos/prep";
+import { createGoal } from "@/server/repos/goals";
+import { attachPrep, loadPlan, matchGoal } from "@/server/repos/prep";
 import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, unlinkPerson, updateRoom } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 
@@ -88,5 +89,26 @@ export async function roomDetailsAction(searchId: string) {
   const plan = await db.withUser(user.id, (tx) => loadPlan(tx, id.parse(searchId)));
   if (!plan) return null;
   const r = plan.result;
-  return { title: r.title, when: r.when ?? null, website: r.website, people: r.stakeholders.filter((x) => x.name).length, openings: r.opportunities.length };
+  const named = r.stakeholders.filter((x) => x.name.trim());
+  // The goal the plan's openings serve, if it's one of yours.
+  const goal = r.opportunities.map((o) => matchGoal(plan.goals, o.goal)).find(Boolean) ?? null;
+  return {
+    title: r.title,
+    when: r.when ?? null,
+    website: r.website,
+    overview: r.overview,
+    facts: r.facts.slice(0, 5),
+    meet: named.slice(0, 3).map((x) => ({ name: x.name.trim(), role: x.role.trim() })),
+    people: named.length,
+    openings: r.opportunities.length,
+    goalId: goal?.id ?? null,
+  };
+}
+
+/** A goal made from the room form ("+ New goal…"), so you don't have to leave it. */
+export async function quickGoalAction(spaceId: string, text: string): Promise<{ id?: string; text?: string; message?: string }> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, (tx) => createGoal(tx, user.id, { text: z.string().trim().min(1, "Write the goal.").max(140).parse(text), spaceId: id.parse(spaceId), type: "other", priority: 2, weeklyTarget: 3, stages: null }));
+  if (!r.ok) return { message: r.message };
+  return { id: r.data.id, text: text.trim() };
 }
