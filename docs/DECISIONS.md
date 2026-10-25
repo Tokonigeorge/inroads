@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-25: testing allowance
+
+136. **`AI_UNLIMITED_EMAILS` lifts the daily and per-person monthly AI limits for listed sign-in emails**, so the owner can test without raising limits for every tester. The whole-app monthly cap (`AI_APP_MONTHLY_USD`) still applies to everyone, as the backstop on spend.
+
 ## 2026-10-25: milestone 20 (Walk in prepared, follow up in one tap)
 
 128. **Built from a comparison with the prototype.** A feature-by-feature check of `prototype/index.html` against the app found five gaps that matter most for meeting investors and clients at events. M20 closes them; the smaller ones (dossier sections, place suggestions, Telegram chat import, restore from backup, "Where your network gathers") are listed for later.

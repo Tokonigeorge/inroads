@@ -62,6 +62,7 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 | `AI_MODEL_FAST`, `AI_MODEL_STRONG` | optional | Override the model ids in `src/server/ai/config.ts`. |
 | `AI_LIMIT_RESEARCH`, `AI_LIMIT_LOOKUP`, `AI_LIMIT_RADAR`, `AI_LIMIT_BRIEF`, `AI_LIMIT_DRAFT`, `AI_LIMIT_CARD`, `AI_LIMIT_CHAT`, `AI_LIMIT_SCORE`, `AI_LIMIT_CAPTURE`, `AI_LIMIT_ASK` | optional | Daily uses per person per feature (defaults 5, 5, 2, 4, 50, 30, 10, 3, 60, 20). Quick capture and Ask your network fall back to word matching when their limit is reached. Research also runs on its own for people you add by hand, and Look up for rooms you add (their plan); past the limit those quietly skip and the buttons still work the next day. |
 | `AI_USER_MONTHLY_USD`, `AI_APP_MONTHLY_USD` | optional | Monthly AI spend caps per person (default 2) and for the whole app (default 25). |
+| `AI_UNLIMITED_EMAILS` | optional | Comma-separated sign-in emails with no daily or per-person monthly AI limits (the owner while testing). The whole-app cap still applies. |
 | `TEST_DATABASE_URL` | tests | Any Postgres 15+ server with contrib. Tests create their own databases on it. |
 | `PW_CHROMIUM_PATH` | tests, optional | Use an installed Chromium instead of `playwright install`. |
 

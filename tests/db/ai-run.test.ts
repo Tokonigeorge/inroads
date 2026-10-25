@@ -76,5 +76,13 @@ describe("runAI", () => {
     // The monthly allowance too.
     await sql`insert into ai_usage (user_id, feature, model, cost_micro_usd) values (${other.id}, 'draft', 'm', 2000000)`;
     await expect(runAI({ feature: "draft", tier: "fast", userId: other.id, prompt: "x" }, { client: fake.client, sys })).rejects.toThrow(/this month's AI allowance/);
+
+    // An account in AI_UNLIMITED_EMAILS (the owner, testing) isn't held back by either.
+    process.env.AI_UNLIMITED_EMAILS = ` someone@else.test , ${other.email.toUpperCase()}`;
+    try {
+      await expect(runAI({ feature: "lookup", tier: "strong", userId: other.id, prompt: "x" }, { client: fake.client, sys })).resolves.toMatchObject({ output: "x" });
+    } finally {
+      delete process.env.AI_UNLIMITED_EMAILS;
+    }
   });
 });
