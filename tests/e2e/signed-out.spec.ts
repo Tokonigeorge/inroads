@@ -9,6 +9,13 @@ test.describe("signed out", () => {
     await expect(page.getByRole("button", { name: "Continue with Google" })).toBeEnabled();
   });
 
+  test("Inngest can reach its endpoint without a session", async ({ request }) => {
+    // No signing key here, so Inngest's own handler refuses; what matters is that sign-in doesn't intercept it.
+    const res = await request.put("/api/inngest", { maxRedirects: 0 });
+    expect(res.status()).not.toBe(307);
+    expect(res.headers().location).toBeUndefined();
+  });
+
   test("the sign-in page is accessible in light and dark", async ({ page }) => {
     await page.goto("/sign-in");
     await expectAccessible(page);
