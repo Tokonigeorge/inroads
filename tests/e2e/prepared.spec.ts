@@ -55,7 +55,7 @@ test.describe.serial("Walk in prepared, follow up in one tap (against a fake Cla
   test("Today: research someone before the room, then their talking points are on the agenda", async ({ page }) => {
     await page.goto("/today");
     const agenda = page.getByRole("region", { name: "Today's rooms" });
-    await expect(agenda.getByRole("link", { name: "Prepare for this room" })).toBeVisible();
+    await expect(agenda.getByRole("link", { name: "Fintech Founders Mixer" })).toBeVisible();
     await agenda.getByRole("button", { name: "Research Tunde before you go" }).click();
     await expect(agenda.getByRole("list", { name: "Talk to Tunde about" })).toBeVisible({ timeout: 20_000 });
     await expect(agenda.getByText("Ask how Kestrel thinks about B2B payments")).toBeVisible();
@@ -64,8 +64,8 @@ test.describe.serial("Walk in prepared, follow up in one tap (against a fake Cla
 
   test("a card that's due offers a draft, ready for WhatsApp", async ({ page }) => {
     await page.goto("/today");
-    const card = page.getByRole("article").filter({ hasText: "Last spoke with Kemi Adebayo" });
-    await card.getByRole("button", { name: "Draft a message" }).click();
+    const card = page.getByRole("article").filter({ hasText: "40 days since you spoke with Kemi" });
+    await card.getByRole("button", { name: "Draft message" }).click();
     const sheet = page.getByRole("dialog", { name: "Message Kemi" });
     await sheet.getByRole("button", { name: "Write a draft" }).click();
     await expect(sheet.getByLabel("Message")).toHaveValue(/great to catch up/);

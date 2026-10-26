@@ -37,6 +37,7 @@ async function peopleCounts(tx: Tx) {
 
 export type UpcomingItem = {
   eventId: string;
+  spaceId: string;
   title: string;
   kind: string;
   location: string | null;
@@ -55,7 +56,7 @@ export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDat
   const counts = await peopleCounts(tx);
   return expandAgenda(rooms.map(timingOf), today, addDays(today, days), userTz).map((a) => {
     const e = byId.get(a.eventId)!;
-    return { ...a, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0 };
+    return { ...a, spaceId: e.spaceId, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0 };
   });
 }
 

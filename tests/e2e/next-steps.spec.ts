@@ -27,9 +27,11 @@ test.describe.serial("Always a next step (against a fake Claude)", () => {
 
   test("Today lists the week's rooms with where each plan stands", async ({ page }) => {
     await page.goto("/today");
-    const week = page.getByRole("region", { name: "Coming up this week" });
-    await expect(week.getByRole("link", { name: /Founders Breakfast/ })).toContainText("Prepare for this room");
-    await expect(page.getByText("Nothing on today. Your next rooms are below")).toBeVisible();
+    // The prototype's "This week" card: decode the room before you go.
+    const card = page.getByRole("article", { name: "Founders Breakfast" });
+    await expect(card).toContainText("This week");
+    await expect(card.getByRole("button", { name: "Decode the room" })).toBeVisible();
+    await expect(page.getByText("Nothing on the calendar today.")).toBeVisible();
     await expectAccessible(page);
   });
 

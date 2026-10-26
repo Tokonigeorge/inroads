@@ -52,10 +52,19 @@ describe("buildNudges", () => {
     expect(keys({ owedToMe: [{ id: "t1", person: kemi, text: "Send the term sheet", dueOn: "2026-10-23" }, { id: "t2", person: kemi, text: "x", dueOn: today }] })).toEqual(["them:t1"]);
   });
 
-  it("due for a touch, worded from the last touch and the reminder", () => {
+  it("going cold, in the prototype's words", () => {
     const [n] = buildNudges({ ...empty(), due: [{ ...kemi, dueOn: "2026-10-20", lastTouchedOn: "2026-09-20", cadenceDays: 30 }] });
-    expect(n).toMatchObject({ key: "due:p-kemi:2026-10-20", title: "Last spoke with Kemi Adebayo 5 weeks ago", body: "Partner at Kestrel. You aim to be in touch every month." });
-    expect(n.actions.map((a) => a.type)).toEqual(["draft", "log_touch", "snooze", "open_person"]);
+    expect(n).toMatchObject({ key: "due:p-kemi:2026-10-20", label: "Going cold", title: "34 days since you spoke with Kemi", body: "Partner at Kestrel. For someone this important you aim to touch base every 30 days." });
+    expect(n.actions.map((a) => a.label)).toEqual(["Draft message", "Log a touch", "Snooze"]);
+  });
+
+  it("rooms this week: decode the room, or see its plan", () => {
+    const room = { eventId: "r1", spaceId: "s1", title: "Moonshot", date: "2026-10-28", time: "09:00", location: "Lagos", planned: false };
+    const [n] = buildNudges({ ...empty(), rooms: [room, { ...room, eventId: "r2", date: "2026-11-05" }] });
+    expect(n).toMatchObject({ key: "ev:r1:2026-10-28", label: "This week", title: "Moonshot" });
+    expect(n.actions.map((a) => a.label)).toEqual(["Decode the room", "Open"]);
+    expect(buildNudges({ ...empty(), rooms: [{ ...room, planned: true }] })[0].actions[0].label).toBe("See the plan");
+    expect(buildNudges({ ...empty(), rooms: [room, { ...room, eventId: "r2", date: "2026-11-05" }] })).toHaveLength(1);
   });
 
   it("meeting someone you haven't researched offers it first; birthdays and due cards offer a draft", () => {

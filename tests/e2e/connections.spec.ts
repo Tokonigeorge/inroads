@@ -21,7 +21,8 @@ test.describe.serial("Connecting Google", () => {
 
   test("onboarding: about you, connect Google, watch the sync, sort people", async ({ page }) => {
     await page.goto("/today");
-    await page.getByRole("link", { name: "Set up Inroads" }).click();
+    await expect(page.getByRole("region", { name: "Get started" })).toBeVisible();
+    await page.goto("/onboarding");
 
     await expect(page.getByRole("heading", { name: "About you", level: 1 })).toBeVisible();
     await page.getByLabel("Your name").fill("Ada Connect");

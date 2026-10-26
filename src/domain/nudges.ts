@@ -5,7 +5,6 @@
  * snapshot, this decides what to show.
  */
 import { addDays, diffDays, formatLongDate, weekday, type IsoDate } from "./dates";
-import { sinceLabel } from "./relationship";
 import { formatTime } from "./zoned";
 
 export type NudgePerson = { id: string; name: string; detail: string };
@@ -31,6 +30,8 @@ export type NudgeSnapshot = {
     spaceId?: string;
     researched?: boolean;
   }[];
+  /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow; `planned` when a look-up is attached. */
+  rooms?: { eventId: string; spaceId: string; title: string; date: IsoDate; time: string | null; location: string | null; planned: boolean }[];
   /** People added by hand in the last 14 days with no context yet. */
   needContext: (NudgePerson & { createdOn: IsoDate })[];
   /** Rooms (not 1:1 meetings) in the last 2 days you haven't said whether you went to. */
@@ -57,6 +58,7 @@ export type NudgeAction =
   | { type: "review_suggestions"; label: string }
   | { type: "draft"; personId: string; purpose: "checkin" | "birthday" | "followup"; label: string }
   | { type: "research"; personId: string; spaceId: string; label: string }
+  | { type: "decode_room"; eventId: string; spaceId: string; title: string; label: string }
   | { type: "snooze"; days: number; label: string }
   | { type: "dismiss"; label: string };
 
@@ -187,21 +189,42 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
     });
   }
 
+  // The prototype's "Going cold" card (L831–833).
   for (const p of s.due) {
-    const since = p.lastTouchedOn ? sinceLabel(diffDays(p.lastTouchedOn, t)).toLowerCase() : null;
+    const days = p.lastTouchedOn ? diffDays(p.lastTouchedOn, t) : null;
     out.push({
       key: `due:${p.id}:${p.dueOn}`,
       kind: "due",
       priority: 2,
-      label: "Due for a touch",
-      title: since ? `Last spoke with ${p.name} ${since}` : `You haven't spoken with ${p.name} yet`,
-      body: `${p.detail ? `${p.detail}. ` : ""}You aim to be in touch every ${p.cadenceDays === 7 ? "week" : p.cadenceDays === 30 ? "month" : `${p.cadenceDays} days`}.`,
+      label: "Going cold",
+      title: days !== null ? `${days} days since you spoke with ${firstName(p.name)}` : `You haven't spoken with ${firstName(p.name)} yet`,
+      body: `${p.detail ? `${p.detail}. ` : ""}For someone this important you aim to touch base every ${p.cadenceDays} days.`,
       person: who(p),
       actions: [
-        { type: "draft", personId: p.id, purpose: "checkin", label: "Draft a message" },
+        { type: "draft", personId: p.id, purpose: "checkin", label: "Draft message" },
         { type: "log_touch", personId: p.id, label: "Log a touch" },
-        { type: "snooze", days: 14, label: "Snooze 2 weeks" },
-        { type: "open_person", personId: p.id, label: "Open" },
+        { type: "snooze", days: 14, label: "Snooze" },
+      ],
+    });
+  }
+
+  // Rooms this week (prototype "This week", L843–846): decode the room, or open its plan.
+  for (const r of s.rooms ?? []) {
+    const n = diffDays(t, r.date);
+    if (n < 1 || n > 7) continue;
+    out.push({
+      key: `ev:${r.eventId}:${r.date}`,
+      kind: "room",
+      priority: 3,
+      label: "This week",
+      title: r.title,
+      body: [formatLongDate(r.date, t), r.time ? formatTime(r.time) : null, r.location].filter(Boolean).join(" · "),
+      person: null,
+      actions: [
+        r.planned
+          ? { type: "open_room", eventId: r.eventId, label: "See the plan" }
+          : { type: "decode_room", eventId: r.eventId, spaceId: r.spaceId, title: r.title, label: "Decode the room" },
+        { type: "open_room", eventId: r.eventId, label: "Open" },
       ],
     });
   }

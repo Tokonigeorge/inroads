@@ -1,6 +1,5 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import type { Nudge, NudgeAction } from "@/domain/nudges";
@@ -12,6 +11,21 @@ import { Button } from "@/ui/button";
 import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
 import { dismissNudgeAction, snoozeNudgeAction, undoNudgeAction } from "./actions";
+
+/** Kind colours (prototype .k-*, L168): cold cool, birthday fresh, promise warn, context faint, research accent, event good. */
+const kindColour: Record<Nudge["kind"], string> = {
+  due: "var(--cool)",
+  birthday: "var(--fresh)",
+  promise: "var(--warn)",
+  owed_to_me: "var(--warn)",
+  context: "var(--faint)",
+  prep: "var(--accent)",
+  room: "var(--good)",
+  after_room: "var(--good)",
+  triage: "var(--faint)",
+  duplicates: "var(--faint)",
+  suggestions: "var(--accent)",
+};
 
 type Props = { nudges: Nudge[]; spaces: Record<string, { id: string; name: string }[]>; aiEnabled?: boolean };
 
@@ -59,6 +73,13 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
         return router.push(`/people/${a.personId}/edit`);
       case "open_room":
         return router.push(`/rooms/${a.eventId}`);
+      case "decode_room":
+        return start(async () => {
+          const r = await startAiJobAction({ kind: "lookup", spaceId: a.spaceId, type: "event", q: a.title, eventId: a.eventId });
+          if (!r.jobId) return toast.show(r.message ?? "Couldn't start decoding the room.");
+          toast.show(`Decoding ${a.title}. The plan will be on the room in a minute.`);
+          router.push(`/rooms/${a.eventId}`);
+        });
       case "debrief_room":
         return router.push(`/rooms/${a.eventId}/after?on=${a.occurrenceOn}`);
       case "sort":
@@ -131,39 +152,37 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
 
   if (!visible.length) {
     return (
-      <div className="rise flex items-center gap-3 rounded-lg border border-dashed border-border p-4">
-        <span aria-hidden className="pop flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
-          <Check size={18} />
-        </span>
-        <p className="text-muted">All caught up. Follow-ups, birthdays and promises show up here when they&apos;re due.</p>
-      </div>
+      <p className="rounded-md border border-dashed border-line bg-sunk p-3.5 text-[14.5px] text-muted">
+        Nothing needs you right now. As your network grows, follow-ups, birthdays and promises show up here.
+      </p>
     );
   }
 
   return (
     <>
-      <ul className="grid gap-3" aria-label="Follow up">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-3" aria-label="Nudges">
         {visible.map((n, i) => (
           <li key={n.key} className={leaving.has(n.key) ? "leaving" : "rise"} style={{ ["--i" as string]: i }}>
-            <article aria-labelledby={`n-${n.key}`} className="grid gap-3 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong">
-              <div className="flex items-start gap-3">
-                {n.person ? <Avatar name={n.person.name} /> : null}
-                <div className="grid min-w-0 gap-0.5">
-                  <p className={`text-small font-[550] ${n.kind === "promise" && n.priority === 0 ? "text-danger" : "text-muted"}`}>{n.label}</p>
-                  <h3 id={`n-${n.key}`} className="font-semibold">
-                    {n.title}
-                  </h3>
-                  <p className="text-small text-muted">{n.body}</p>
+            <article aria-labelledby={`n-${n.key}`} className="card grid h-full content-start gap-3 p-3.5" style={{ ["--nk" as string]: kindColour[n.kind] }}>
+              <p className="inline-flex items-center gap-[7px] font-mono text-[11px] leading-none tracking-[0.08em] text-muted uppercase">
+                <i aria-hidden className="size-2 rounded-[2px] bg-[var(--nk)]" />
+                {n.label}
+              </p>
+              <div className={n.person ? "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2.5" : "grid"}>
+                {n.person ? <Avatar name={n.person.name} size={42} warmth={n.kind === "due" ? "cooling" : undefined} /> : null}
+                <div>
+                  <h3 id={`n-${n.key}`}>{n.title}</h3>
+                  <p className="mt-[3px] text-[14px] text-muted">{n.body}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {n.actions
-                  .filter((a) => aiEnabled || (a.type !== "draft" && a.type !== "research"))
+                  .filter((a) => aiEnabled || (a.type !== "draft" && a.type !== "research" && a.type !== "decode_room"))
                   .map((a, i) => (
                     <Button
                       key={`${a.type}-${i}`}
                       size="sm"
-                      variant={i === 0 ? "secondary" : "ghost"}
+                      variant={i === 0 ? "primary" : a.type === "snooze" || a.type === "dismiss" ? "ghost" : "secondary"}
                       disabled={a.type === "research" && researching.has(a.personId)}
                       onClick={() => run(n, a)}
                     >

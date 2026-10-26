@@ -118,6 +118,14 @@ async function hiddenKeys(tx: Tx) {
   return new Set(rows.map((r) => r.key));
 }
 
+/** This week's rooms (not 1:1 meetings), and whether each already has a plan (a look-up attached). */
+async function weekRooms(tx: Tx, upcoming: UpcomingItem[]) {
+  const rooms = upcoming.filter((s) => s.kind !== "meeting");
+  const ids = [...new Set(rooms.map((r) => r.eventId))];
+  const planned = ids.length ? new Set((await tx.selectDistinct({ id: t.searches.eventId }).from(t.searches).where(inArray(t.searches.eventId, ids))).map((r) => r.id)) : new Set();
+  return rooms.map((r) => ({ eventId: r.eventId, spaceId: r.spaceId, title: r.title, date: r.date, time: r.time, location: r.location, planned: planned.has(r.eventId) }));
+}
+
 /** Loads only the candidates each rule needs, so this stays quick with thousands of people. */
 export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot> {
   const membership: SQL[] = [sql`ps.archived_at is null`];
@@ -193,6 +201,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
         researched: p.researched,
       })),
     ),
+    rooms: await weekRooms(tx, upcoming),
     afterRooms,
     triagePending,
     duplicates,

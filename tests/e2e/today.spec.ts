@@ -60,26 +60,26 @@ test.describe.serial("Today", () => {
     await expect(agenda).toContainText("Pricing questions");
     await expect(agenda).toContainText("You owe: Send the pricing deck");
 
-    const feed = page.getByRole("list", { name: "Follow up" });
+    const feed = page.getByRole("list", { name: "Nudges" });
     await expect(feed.getByRole("heading", { name: "You said you'd send the pricing deck" })).toBeVisible();
-    await expect(feed.getByRole("heading", { name: "Last spoke with Adaeze Okafor 6 weeks ago" })).toBeVisible();
+    await expect(feed.getByRole("heading", { name: "40 days since you spoke with Adaeze" })).toBeVisible();
     await expect(feed.getByRole("heading", { name: /^You meet Tunde today at 11:30pm/ })).toBeVisible();
     await expectAccessible(page);
   });
 
   test("snooze with undo, and marking a promise done", async ({ page }) => {
     await page.goto("/today");
-    const feed = page.getByRole("list", { name: "Follow up" });
-    const due = feed.getByRole("article", { name: "Last spoke with Adaeze Okafor 6 weeks ago" });
-    await due.getByRole("button", { name: "Snooze 2 weeks" }).click();
+    const feed = page.getByRole("list", { name: "Nudges" });
+    const due = feed.getByRole("article", { name: "40 days since you spoke with Adaeze" });
+    await due.getByRole("button", { name: "Snooze" }).click();
     await expect(due).toHaveCount(0);
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(due).toBeVisible();
 
-    await due.getByRole("button", { name: "Snooze 2 weeks" }).click();
+    await due.getByRole("button", { name: "Snooze" }).click();
     await expect(due).toHaveCount(0);
     await page.reload();
-    await expect(feed.getByRole("article", { name: "Last spoke with Adaeze Okafor 6 weeks ago" })).toHaveCount(0);
+    await expect(feed.getByRole("article", { name: "40 days since you spoke with Adaeze" })).toHaveCount(0);
 
     const promise = feed.getByRole("article", { name: "You said you'd send the pricing deck" });
     await promise.getByRole("button", { name: "Mark done" }).click();

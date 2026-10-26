@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { whatsappDigits } from "@/domain/normalise";
 import { Button } from "@/ui/button";
 import { Segmented, Textarea } from "@/ui/field";
@@ -17,14 +18,17 @@ const purposes = [
 
 /** Draft a message, edit it, open it in WhatsApp or email, then log it as a touch. */
 export function DraftButton({ personId, name, spaces, aiEnabled }: { personId: string; name: string; spaces: { id: string; name: string }[]; aiEnabled: boolean }) {
-  const [open, setOpen] = useState(false);
+  // "?draft=checkin" (from Today's "Going cold" list) opens it straight away.
+  const asked = useSearchParams().get("draft");
+  const purpose = purposes.find((p) => p.value === asked)?.value;
+  const [open, setOpen] = useState(Boolean(purpose) && aiEnabled);
   if (!spaces.length) return null;
   return (
     <>
       <Button variant="ghost" disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
         Draft a message
       </Button>
-      <DraftSheet open={open} onOpenChange={setOpen} personId={personId} name={name} spaces={spaces} />
+      <DraftSheet open={open} onOpenChange={setOpen} personId={personId} name={name} spaces={spaces} initialPurpose={purpose} />
     </>
   );
 }
