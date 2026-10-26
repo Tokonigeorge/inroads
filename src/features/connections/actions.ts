@@ -1,7 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, inArray, like } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -17,7 +17,7 @@ import { acceptSuggestedSort, applyTriage, computeTriageSuggestions, undoImport 
 import { revokeGoogle } from "@/server/integrations/google";
 import { IcsUrlError, normaliseIcsUrl } from "@/server/integrations/ics-url";
 import { enqueueSync } from "@/server/jobs/enqueue";
-import { ownsConnection } from "@/server/repos/connections";
+import { listConnections, ownsConnection } from "@/server/repos/connections";
 import { listSpaces } from "@/server/repos/spaces";
 import { connectionsStore } from "@/server/system/connections";
 import { userContext } from "@/server/user-context";
@@ -143,4 +143,29 @@ export async function finishOnboardingAction(next: string = "/today") {
       .where(eq(t.profiles.userId, user.id));
   });
   redirect(next === "/people/triage" ? "/people/triage" : "/today");
+}
+
+/**
+ * Opening the app syncs connected accounts that are more than 10 minutes behind (calendar
+ * links: 30), on top of the scheduled sync, so new meetings show up without pressing Sync now.
+ * Skips accounts with a sync already running and ones that need reconnecting.
+ */
+export async function syncStaleAction(): Promise<{ started: number }> {
+  const user = await requireUser();
+  const now = Date.now();
+  const due = await db.withUser(user.id, async (tx) => {
+    const accounts = await listConnections(tx);
+    const stale = accounts.filter(
+      (a) => a.status === "active" && (!a.lastSyncedAt || now - a.lastSyncedAt.getTime() > (a.provider === "apple_ics" ? 30 : 10) * 60_000),
+    );
+    if (!stale.length) return [];
+    const running = await tx
+      .select({ kind: t.jobs.kind })
+      .from(t.jobs)
+      .where(and(inArray(t.jobs.status, ["queued", "running"]), like(t.jobs.kind, "sync:%"), gt(t.jobs.createdAt, new Date(now - 10 * 60_000))));
+    const busy = new Set(running.map((r) => r.kind));
+    return stale.filter((a) => !busy.has(`sync:${a.provider}`));
+  });
+  for (const a of due) await enqueueSync(user.id, a.id, a.provider);
+  return { started: due.length };
 }

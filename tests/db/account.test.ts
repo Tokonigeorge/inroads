@@ -86,7 +86,7 @@ describe("briefs prepared at your brief time", () => {
     expect(await mine("2026-10-24T06:40:00Z")).toEqual([{ userId: u.id, spaceId: s.id }]); // 07:40 in Lagos
     expect(await mine("2026-10-24T06:20:00Z")).toEqual([]); // 07:20: not yet
     expect(await mine("2026-10-24T07:10:00Z")).toEqual([]); // 08:10: window passed
-    await sql`insert into briefs (user_id, space_id, kind, period_key, markdown) values (${u.id}, ${s.id}, 'daily', '2026-10-24', 'y')`;
+    await sql`insert into briefs (user_id, space_id, kind, period_key, markdown, created_at) values (${u.id}, ${s.id}, 'daily', '2026-10-24', 'y', '2026-10-24T07:00:00Z')`;
     expect(await mine("2026-10-24T06:40:00Z")).toEqual([]);
     // Briefs nobody has opened in a week aren't prepared.
     expect(await mine("2026-11-02T06:40:00Z")).toEqual([]);

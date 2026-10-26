@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { AutoSync } from "@/features/connections/auto-sync";
 import { OutboxSync } from "@/features/offline/outbox-sync";
 import { ToastProvider } from "@/ui/toast";
 import { CaptureProvider } from "./capture-sheet";
@@ -23,6 +24,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <CommandPaletteProvider>
             {children}
             <OutboxSync />
+            <AutoSync />
           </CommandPaletteProvider>
         </CaptureProvider>
       </ToastProvider>
