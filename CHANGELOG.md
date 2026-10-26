@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+- **Calendar sync keeps itself up to date.**
+  - Opening Inroads syncs any connected account that's more than 10 minutes behind (calendar links: 30), on top of the 30-minute schedule. The page refreshes when it's done.
+  - When Google needs you to sign in again, Today says so with a "Reconnect Google" button. Before, it only showed in Settings.
+
 ### Added: milestone 22 (Less static)
 - **Work shows as it happens.** A running AI job lists its steps live ("Searching for …", "Reading …"), with earlier ones ticked and a shimmer bar. Results fade in one after another.
 - **Progress feels like progress.** Goal bars grow into place, and a goal that hits its weekly target gets a "Week done" badge. Ticking a step gives a small pop and "Step done. Nice."

@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-26: sync on open
+
+145. **Opening the app syncs accounts that are behind**, as well as the 30-minute scheduled sync. Feedback was that the calendar "doesn't auto-sync"; the schedule alone depends on Inngest's cron and can lag by up to 30 minutes. Throttled per browser session (10 minutes) and skipped when a sync is already running. Google push notifications were considered and left for later: they need a channel renewal job and public domain setup, and sync-on-open covers the moment it matters (when you look).
+146. **"Needs reconnecting" is shown on Today**, not only in Settings, because a silent stop is what made sync look broken.
+
 ## 2026-10-25: milestone 22 (Less static)
 
 142. **Motion is CSS-only, calm and switch-offable.** A handful of utilities (rise, lift, grow, pop, leaving, shimmer, glow) instead of an animation library: no extra JS on a cheap phone, 150–600ms, no bounce, and all stopped (delays too) under `prefers-reduced-motion`.

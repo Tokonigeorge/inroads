@@ -22,6 +22,7 @@ import type { Tx } from "@/server/db/with-user";
 import { prepJobKind } from "@/server/jobs/ai-jobs";
 import { dueGoalSteps } from "@/server/repos/goal-steps";
 import { getAccountOverview } from "@/server/repos/account";
+import { listConnections } from "@/server/repos/connections";
 import { listUpcoming } from "@/server/repos/rooms";
 import { listNudges, personSpacesFor, todayAgenda, type AgendaEntry } from "@/server/repos/nudges";
 import { userContext } from "@/server/user-context";
@@ -67,8 +68,9 @@ async function Today() {
       const goalRooms = await loadGoalRooms(tx, view, ctx.today);
       const week = await loadWeek(tx, c);
       const hour = hourIn(ctx.timezone);
+      const reconnect = (await listConnections(tx)).filter((a) => a.status === "error" && a.lastError === "reconnect").map((a) => a.accountEmail ?? a.provider);
       const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false))).limit(1);
-      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, week, hour, today: ctx.today, spaceName: view.selected?.name ?? null };
+      return { hasGoals: Boolean(anyGoal), agenda, planned, nudges, spaces, briefSpaces, briefs, steps, goalRooms, week, hour, reconnect, today: ctx.today, spaceName: view.selected?.name ?? null };
     }),
   ]);
   const firstName = profile.name.split(/\s+/)[0];
@@ -85,6 +87,17 @@ async function Today() {
   return (
     <>
       <PageHeader title={formatLongDate(data.today)} subtitle={data.spaceName ? `${welcome} Showing ${data.spaceName}.` : welcome} />
+      {data.reconnect.length ? (
+        <section aria-label="Reconnect" role="alert" className="mb-6 flex flex-wrap items-center gap-3 rounded-md border border-danger/50 bg-surface p-4">
+          <p className="min-w-0 flex-1">
+            <span className="font-semibold">Your calendar has stopped syncing.</span>{" "}
+            <span className="text-muted">Google needs you to sign in again ({data.reconnect.join(", ")}). New meetings won&apos;t show up until you do.</span>
+          </p>
+          <Button asChild variant="primary" size="sm">
+            <Link href="/settings/connections">Reconnect Google</Link>
+          </Button>
+        </section>
+      ) : null}
       {setUp ? (
         <section className="mb-8 grid gap-3 rounded-md border border-border bg-surface p-4">
           <h2 className="font-semibold">Finish setting up</h2>
