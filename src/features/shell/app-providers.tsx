@@ -7,6 +7,7 @@ import { OutboxSync } from "@/features/offline/outbox-sync";
 import { ToastProvider } from "@/ui/toast";
 import { CaptureProvider } from "./capture-sheet";
 import { CommandPaletteProvider } from "./command-palette";
+import { DetectLocale } from "./detect-locale";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -25,6 +26,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             {children}
             <OutboxSync />
             <AutoSync />
+            <DetectLocale />
           </CommandPaletteProvider>
         </CaptureProvider>
       </ToastProvider>

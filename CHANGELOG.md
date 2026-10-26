@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: the Goals tab is the prototype's "Profile & goals", and there's no set-up wizard (P6–P7)
+- **Goals tab** (prototype L967–995), in the prototype's order:
+  - The hero (your name, headline, "Edit profile & goals").
+  - Goals as rows with a High/Med/Low badge, type, touches a week and people.
+  - About you, then Goal-fit scores ("Score 60 people").
+  - Import from Google (Connect Google, with the file steps in a fold).
+  - Other sources (contacts files, calendars, chat history, business card).
+  - Backup, Example network, Connections, then a link to Account.
+- **Profile & goals sheet:** the prototype's questions, in one sheet that saves in one go.
+  - Your name, Based in, Headline, Background, What you offer, Target industries, Your email addresses.
+  - One row per goal: text, type, priority, touches a week, active, Remove; plus "+ Add goal".
+  - Goals removed from the sheet are archived, not deleted.
+- **Backup:**
+  - "Download backup" downloads the file as soon as it's ready.
+  - **Restore from backup** is new. It adds the people, rooms, touches, promises and goals from an Inroads backup (.zip or inroads.json) or the prototype's backup .json.
+  - Restore never overwrites what you have: restoring onto the same account adds nothing twice. New ids keep a backup from another account separate.
+- **No set-up wizard:**
+  - Today's start card leads (Import from Google, Other contacts file, + Add person, Set goals, Load examples), and "Set goals" opens the Profile & goals sheet.
+  - Time zone and phone region come from the browser the first time a new account opens Inroads. They're never changed for an account that's already set.
+  - `/onboarding` redirects.
+- **Settings is now "Account and Spaces":** profile basics, time zone, Spaces, connections, AI usage, sign out and delete. Backup and the example network moved to the Goals tab.
+
 ### Changed: Today as the prototype has it (P3)
 - **Hero:** a stamp ("Mon 26 Oct 2026 · Daily brief"), "Good evening, Ada", a one-line summary ("2 rooms today · 3 cooling · 1 promise open") and a Today / This week toggle.
 - **First-run and goals cards:** the prototype's "Start with the people you already know" card, with Import from Google, Other contacts file, + Add person, Set goals and Load examples. Then the "Set up" card when there are no goals.

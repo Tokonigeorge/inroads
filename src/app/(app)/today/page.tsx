@@ -158,7 +158,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
           </div>
           <div>
             <Button asChild variant="primary" size="sm">
-              <Link href="/onboarding?step=goals">Set your goals</Link>
+              <Link href="/goals?edit=profile">Set your goals</Link>
             </Button>
           </div>
         </section>
@@ -230,10 +230,10 @@ function StartCard() {
           <Link href="/people/new">+ Add person</Link>
         </Button>
         <Button asChild>
-          <Link href="/onboarding?step=goals">Set goals</Link>
+          <Link href="/goals?edit=profile">Set goals</Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/settings#data">Load examples</Link>
+          <Link href="/goals#examples">Load examples</Link>
         </Button>
       </div>
     </section>
@@ -379,7 +379,7 @@ function WeekGrid({ week, aiEnabled }: { week: Week; aiEnabled: boolean }) {
         ) : (
           <p className="text-[13.5px] text-muted">
             No goals yet.{" "}
-            <Link href="/onboarding?step=goals" className="font-semibold text-accent hover:underline">
+            <Link href="/goals?edit=profile" className="font-semibold text-accent hover:underline">
               Add your goals
             </Link>{" "}
             to track weekly progress.

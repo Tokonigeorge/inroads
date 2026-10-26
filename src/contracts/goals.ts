@@ -7,7 +7,7 @@ export type GoalType = (typeof goalTypes)[number];
 export const goalTypeLabels: Record<GoalType, string> = {
   capital: "Raise capital",
   clients: "Win clients",
-  hiring: "Hire people",
+  hiring: "Hire talent",
   market: "Enter a market",
   partners: "Find partners",
   mentors: "Find mentors",

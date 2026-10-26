@@ -19,25 +19,29 @@ test.describe.serial("Connecting Google", () => {
     await context.addCookies([{ ...sessionCookie(user), domain: "localhost", path: "/", httpOnly: false, secure: false, sameSite: "Lax" }]);
   });
 
-  test("onboarding: about you, connect Google, watch the sync, sort people", async ({ page }) => {
+  test("first run, as in the prototype: set your profile and goals, connect Google, watch the sync, sort people", async ({ page }) => {
     await page.goto("/today");
-    await expect(page.getByRole("region", { name: "Get started" })).toBeVisible();
-    await page.goto("/onboarding");
-
-    await expect(page.getByRole("heading", { name: "About you", level: 1 })).toBeVisible();
-    await page.getByLabel("Your name").fill("Ada Connect");
-    await page.getByLabel("Time zone").selectOption("Africa/Lagos");
-    await page.getByLabel("Country for phone numbers").selectOption("NG");
-    await page.getByRole("button", { name: "Continue" }).click();
-
-    // Goals come next, so every suggestion has a point.
-    await expect(page.getByRole("heading", { name: "What are you working towards?", level: 1 })).toBeVisible();
+    const start = page.getByRole("region", { name: "Get started" });
+    await expect(start.getByRole("heading", { name: "Start with the people you already know" })).toBeVisible();
     await expectAccessible(page);
-    await page.getByRole("button", { name: "Raise capital" }).click();
-    await page.getByRole("button", { name: "Save and continue" }).click();
 
-    await expect(page.getByRole("heading", { name: "Bring in your people", level: 1 })).toBeVisible();
+    // "Set goals" opens the prototype's Profile & goals sheet.
+    await start.getByRole("link", { name: "Set goals" }).click();
+    const sheet = page.getByRole("dialog", { name: "Profile & goals" });
+    await expect(sheet).toBeVisible();
+    await sheet.getByLabel("Your name").fill("Ada Connect");
+    await sheet.getByLabel("Headline").fill("Founder, Lagos fintech");
+    await sheet.getByLabel("Your email addresses").fill("ada.google@example.test");
+    await sheet.getByRole("textbox", { name: "Goal", exact: true }).fill("Raise a pre-seed round");
+    await sheet.getByLabel("Goal type").selectOption("capital");
     await expectAccessible(page);
+    await sheet.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Profile saved." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ada Connect", level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Raise a pre-seed round/ })).toBeVisible();
+
+    await page.goto("/today");
+    await page.getByRole("region", { name: "Get started" }).getByRole("link", { name: "Import from Google" }).click();
     await page.getByRole("link", { name: "Connect Google" }).click();
 
     // The fake Google approves straight away and sends us back; the first sync starts.

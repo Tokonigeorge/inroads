@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-26: Profile & goals, backup and restore, no wizard
+
+150. **The Goals tab is the prototype's "Profile & goals" and holds what the prototype keeps there.** That covers profile, goals, scores, imports, backup, examples and connections. Time zone, phone region, brief time, Spaces, AI usage and account deletion are the app's own additions, so they sit on an Account page linked from the bottom of Goals. Goal pipelines stay as drill-ins from each goal row.
+151. **Restore only adds.** It gives every restored row a new id unless that id already exists in this account, so a backup from another account can't collide, and restoring your own adds nothing twice. Goals are matched by text within a Space. The profile is filled only where it's empty. Research, scores and searches aren't restored; they're cheap to regenerate and tied to the old ids.
+152. **No set-up wizard.** The prototype asks its questions in the Profile & goals sheet and leads with a start card on Today. A new account's time zone and phone region come from the browser once, and never for an account that has already set them (or finished the old set-up).
+
 ## 2026-10-26: the prototype is the UI/UX spec
 
 147. **The prototype (`prototype/index.html`) is now the spec for the UI, the flows, the questions asked and the copy, not only the behaviour.** This supersedes the brief's "don't port it as-is" (PRODUCT_BRIEF §5), the design direction in DESIGN_SYSTEM §1–4 (green, Inter and Newsreader, no mono, no cards) and decision #3 (renaming Decode and Radar). Owner feedback: the app "focuses on the wrong thing" and "isn't the same as the other one". The backend stays: Supabase with RLS, Google and Outlook sync, Inngest AI jobs, staged imports. `docs/PROTOTYPE_GAP.md` lists every difference and the milestones; `docs/PROTOTYPE_PROMPTS.md` does the same for the AI prompts.
