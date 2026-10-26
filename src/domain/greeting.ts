@@ -2,6 +2,9 @@ import { diffDays, type IsoDate } from "./dates";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/** Milliseconds since the epoch, for "written 2 h ago" labels on the server. */
+export const nowMs = () => Date.now();
+
 /** The hour (0–23) right now in an IANA time zone. */
 export function hourIn(timeZone: string, now: Date = new Date()): number {
   return Number(new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(now)) % 24;

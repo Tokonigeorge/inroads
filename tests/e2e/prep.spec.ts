@@ -101,7 +101,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await steps.getByRole("button", { name: "Add step" }).click();
     await expect(page.getByText("Send Tunde the deck")).toBeVisible();
 
-    await page.goto("/today");
+    await page.goto("/today?view=week");
     const due = page.getByRole("region", { name: /Steps due/ });
     await expect(due.getByText("Send Tunde the deck")).toBeVisible();
     await page.getByRole("button", { name: "Find rooms for my goals" }).click();

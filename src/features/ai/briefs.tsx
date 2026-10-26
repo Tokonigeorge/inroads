@@ -12,7 +12,7 @@ export async function loadBriefs(tx: Tx, spaces: BriefSpace[], today: string) {
   if (!spaces.length) return [];
   const keys = [today, `week-of-${weekOf(today).start}`];
   return tx
-    .select({ spaceId: t.briefs.spaceId, kind: t.briefs.kind, markdown: t.briefs.markdown, periodKey: t.briefs.periodKey })
+    .select({ spaceId: t.briefs.spaceId, kind: t.briefs.kind, markdown: t.briefs.markdown, periodKey: t.briefs.periodKey, createdAt: t.briefs.createdAt })
     .from(t.briefs)
     .where(and(inArray(t.briefs.spaceId, spaces.map((s) => s.id)), inArray(t.briefs.periodKey, keys)));
 }
@@ -49,5 +49,45 @@ export function Briefs({ spaces, briefs }: { spaces: BriefSpace[]; briefs: Await
         );
       })}
     </section>
+  );
+}
+
+const ago = (d: Date, now: number) => {
+  const s = (now - d.getTime()) / 1000;
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
+};
+
+/**
+ * The prototype's brief block (L791–800), under Today's rooms (daily) or the week grid (weekly):
+ * the brief as a card with "Written 2 h ago · Rewrite", or "Write today's brief". One per Space.
+ */
+export function BriefBlock({ kind, spaces, briefs, now }: { kind: "daily" | "weekly"; spaces: BriefSpace[]; briefs: Awaited<ReturnType<typeof loadBriefs>>; now: number }) {
+  const aiEnabled = isAiConfigured();
+  if (!spaces.length) return null;
+  const write = kind === "daily" ? "Write today's brief" : "Write this week's brief";
+  return (
+    <div className="grid justify-items-start gap-2.5 pt-1.5">
+      {spaces.map((s) => {
+        const b = briefs.find((x) => x.spaceId === s.id && x.kind === kind);
+        const label = spaces.length > 1 ? `${write} for ${s.name}` : write;
+        return b ? (
+          <div key={s.id} className="grid w-full gap-2.5">
+            <div className="card grid w-full max-w-[70ch] gap-2 px-[18px] py-4">
+              {spaces.length > 1 ? <p className="stamp">{s.name}</p> : null}
+              <Markdown text={b.markdown} />
+            </div>
+            <div className="flex items-center gap-3.5">
+              <span className="text-[13.5px] text-muted">Written {ago(b.createdAt, now)}</span>
+              <AiJobButton aiEnabled={aiEnabled} variant="link" size="sm" job={{ kind: "brief", spaceId: s.id, briefKind: kind }} label={spaces.length > 1 ? `Rewrite ${s.name}` : "Rewrite"} />
+            </div>
+          </div>
+        ) : (
+          <AiJobButton key={s.id} aiEnabled={aiEnabled} variant="primary" job={{ kind: "brief", spaceId: s.id, briefKind: kind }} label={label} />
+        );
+      })}
+    </div>
   );
 }

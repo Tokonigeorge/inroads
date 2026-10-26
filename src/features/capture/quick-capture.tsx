@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { touchTypeLabels, touchTypes, type TouchType } from "@/contracts/people";
 import type { QuickCandidate, QuickReadResult } from "@/contracts/quick-capture";
-import { todayIn } from "@/domain/dates";
+import { addDays, todayIn } from "@/domain/dates";
 import { parseQuickCapture } from "@/domain/quick-capture";
 import { useAfterCapture } from "@/features/people/capture-forms";
-import { useSpaces } from "@/features/people/quick-add-person";
+import { useSpaces, useUserToday } from "@/features/people/quick-add-person";
 import { sendCapture } from "@/features/offline/outbox";
 import { Button } from "@/ui/button";
 import { Field, Input, Select, Textarea } from "@/ui/field";
@@ -153,7 +153,7 @@ function defaultPick(candidates: QuickCandidate[], name: string | null) {
 
 function QuickReviewForm({ read, spaceName, onBack, onDone }: { read: Read; spaceName: string; onBack: () => void; onDone: () => void }) {
   const d = read.draft;
-  const today = localToday();
+  const today = useUserToday();
   const router = useRouter();
   const after = useAfterCapture();
   const uid = useId();
@@ -185,7 +185,8 @@ function QuickReviewForm({ read, spaceName, onBack, onDone }: { read: Read; spac
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!personName) return setError("Add who this was with.");
-    if (withTouch && touchOn > today) return setError("A touch can't be in the future. Add it as a follow-up instead.");
+    // Around midnight your profile's time zone can be a day ahead of this browser's, so allow a day.
+    if (withTouch && touchOn > addDays(today, 1)) return setError("A touch can't be in the future. Add it as a follow-up instead.");
     const review: QuickReview = {
       spaceId: read.spaceId,
       person: existing ? { kind: "existing", id: existing.id, name: existing.name } : { kind: "new", name: personName, company, position, whereMet: "" },

@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: Today as the prototype has it (P3)
+- **Hero:** a stamp ("Mon 26 Oct 2026 · Daily brief"), "Good evening, Ada", a one-line summary ("2 rooms today · 3 cooling · 1 promise open") and a Today / This week toggle.
+- **First-run and goals cards:** the prototype's "Start with the people you already know" card, with Import from Google, Other contacts file, + Add person, Set goals and Load examples. Then the "Set up" card when there are no goals.
+- **Daily view:** Today's rooms with + Event. Each room shows a time column and prep cards (last touch, two talking points or "Research before you go", what you owe). Rooms with no one linked get "Decode this room". The brief follows inline as a card ("Written 2 h ago · Rewrite").
+- **Weekly view:** "Week of …" with Rooms to be in, Going cold (with Draft), New openings and Goal progress, then the weekly brief and rooms found for your goals.
+- **Nudges:** a grid of cards with a coloured mono kind label and the first action filled. "Going cold" uses the prototype's copy ("34 days since you spoke with Kemi"). "This week" cards are back for each room, with "Decode the room", or "See the plan" once it has one.
+
 ### Changed: the prototype's look and navigation (P1–P2 of docs/PROTOTYPE_GAP.md)
 - **Look:** the prototype's colours (indigo on blue-grey, light and dark), fonts (Bricolage Grotesque, Geist, Geist Mono), pill buttons, 44px fields, rounded cards and warmth rings on avatars. App icons are now indigo.
 - **Navigation:**
