@@ -49,7 +49,7 @@ test.describe.serial("Connecting Google", () => {
     await expect(page.getByText(/3 new people/)).toBeVisible();
     await expect(page.getByText("ada.google@example.test")).toBeVisible();
 
-    await page.getByRole("button", { name: /^Sort \d+ new people$/ }).click();
+    await page.getByRole("link", { name: "Sort new people" }).click();
     await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible();
 
     // One at a time first: Ifeoma (three meetings in the calendar) is suggested as priority.
