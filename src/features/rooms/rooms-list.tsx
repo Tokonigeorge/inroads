@@ -86,7 +86,7 @@ export function RoomsList({
             </Link>
           </Button>
           <Button asChild size="sm" variant="ghost" className="px-2">
-            <Link href="/rooms/lookup" title="Research an event, company, person or place">
+            <Link href="/discover" title="Research an event, company, person or place">
               <Search size={14} aria-hidden /> Look something up
             </Link>
           </Button>

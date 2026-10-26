@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-26: the prototype is the UI/UX spec
+
+147. **The prototype (`prototype/index.html`) is now the spec for the UI, the flows, the questions asked and the copy, not only the behaviour.** This supersedes the brief's "don't port it as-is" (PRODUCT_BRIEF §5), the design direction in DESIGN_SYSTEM §1–4 (green, Inter and Newsreader, no mono, no cards) and decision #3 (renaming Decode and Radar). Owner feedback: the app "focuses on the wrong thing" and "isn't the same as the other one". The backend stays: Supabase with RLS, Google and Outlook sync, Inngest AI jobs, staged imports. `docs/PROTOTYPE_GAP.md` lists every difference and the milestones; `docs/PROTOTYPE_PROMPTS.md` does the same for the AI prompts.
+148. **Tokens, fonts and shapes are the prototype's**: indigo `#2B44C8` on blue-grey, Bricolage Grotesque, Geist and Geist Mono, 16px cards, pill buttons and warmth rings on avatars. One deliberate change: small text uses a darker grey than the prototype's "faint" (`#656C80` light, `#8A93A8` dark), because the prototype's is below 4.5:1. Borders and inactive icons keep the prototype colour.
+149. **Five tabs, as in the prototype**: Today, People, Discover, Events, Goals. They sit in a bottom bar on phones and an 88px rail from 900px, under a sticky brand bar with the status pill. Quick capture, the app's own addition, moves from a central tab-bar button to a small + in the brand bar, so the tabs stay five equal ones. Settings stays reachable from a gear in the brand bar until it moves into the Goals tab (gap report M6).
+
 ## 2026-10-26: sync on open
 
 145. **Opening the app syncs accounts that are behind**, as well as the 30-minute scheduled sync. Feedback was that the calendar "doesn't auto-sync"; the schedule alone depends on Inngest's cron and can lag by up to 30 minutes. Throttled per browser session (10 minutes) and skipped when a sync is already running. Google push notifications were considered and left for later: they need a channel renewal job and public domain setup, and sync-on-open covers the moment it matters (when you look).

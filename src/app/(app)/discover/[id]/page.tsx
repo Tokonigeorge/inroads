@@ -5,31 +5,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PlanView } from "@/features/ai/plan";
-import { LoadingRows } from "@/features/shell/page-frame";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { loadPlan } from "@/server/repos/prep";
 import { Button } from "@/ui/button";
-import { Pane, Section } from "@/ui/layout";
+import { Section } from "@/ui/layout";
 
-export const metadata: Metadata = { title: "Look up" };
+export const metadata: Metadata = { title: "Discover" };
 
-export default function LookupResultPage({ params }: PageProps<"/rooms/lookup/[id]">) {
+export default function LookupResultPage({ params }: PageProps<"/discover/[id]">) {
   return (
-    <Pane
-      header={
-        <Link href="/rooms/lookup" className="text-small text-muted hover:text-text">
-          Look up
-        </Link>
-      }
-    >
-      <div className="max-w-[720px]">
-        <Suspense fallback={<LoadingRows rows={6} />}>
-          <Result params={params} />
-        </Suspense>
-      </div>
-    </Pane>
+    <PageFrame>
+      <Link href="/discover" className="inline-block pt-3 text-small font-semibold text-accent hover:underline">
+        ← Discover
+      </Link>
+      <Suspense fallback={<LoadingRows rows={6} />}>
+        <Result params={params} />
+      </Suspense>
+    </PageFrame>
   );
 }
 
@@ -42,7 +37,7 @@ async function Result({ params }: { params: Promise<{ id: string }> }) {
   const sources = row.sources as { title: string; url: string }[];
   return (
     <article>
-      <h1 className="font-display text-[1.5rem] leading-[1.875rem] font-medium md:text-display">{r.title || row.query}</h1>
+      <h1 className="pt-3">{r.title || row.query}</h1>
       <p className="pb-6 text-small text-muted">
         {r.kind || row.type} · {r.confidence} confidence
         {r.website ? (

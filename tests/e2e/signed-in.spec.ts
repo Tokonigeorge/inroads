@@ -53,9 +53,10 @@ test.describe.serial("signed in", () => {
       await expect(page.getByRole("dialog", { name: "Capture" })).toBeVisible();
       await expectAccessible(page);
     } else {
-      await nav.getByRole("link", { name: "Settings" }).click();
+      await page.getByRole("banner").getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/settings$/);
-      await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
+      // Settings belongs to the Goals tab, as in the prototype.
+      await expect(nav.getByRole("link", { name: "Goals" })).toHaveAttribute("aria-current", "page");
     }
   });
 

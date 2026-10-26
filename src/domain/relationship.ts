@@ -6,6 +6,9 @@ import { addDays, diffDays, type IsoDate } from "./dates";
  */
 export type Warmth = { key: "recent" | "warm" | "cooling" | "cold" | "none"; days: number | null; label: string };
 
+/** The prototype's names for each band (L577–585), for the warmth ring legend and tags. */
+export const warmthBand: Record<Warmth["key"], string> = { recent: "Hot", warm: "Warm", cooling: "Cooling", cold: "Cold", none: "No touches yet" };
+
 export function warmth(lastTouchedOn: IsoDate | null | undefined, today: IsoDate): Warmth {
   if (!lastTouchedOn) return { key: "none", days: null, label: "No touches yet" };
   const days = Math.max(0, diffDays(lastTouchedOn, today));

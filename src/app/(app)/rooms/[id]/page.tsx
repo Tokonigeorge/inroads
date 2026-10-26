@@ -204,7 +204,7 @@ function Prep({ roomId, spaceId, title, plan, running }: { roomId: string; space
         <>
           <PlanView plan={plan} compact />
           <div className="flex flex-wrap items-center gap-3">
-            <Link href={`/rooms/lookup/${plan.id}`} className="text-small font-[550] text-accent hover:underline">
+            <Link href={`/discover/${plan.id}`} className="text-small font-[550] text-accent hover:underline">
               See the full plan
             </Link>
             {running ? null : <AiJobButton aiEnabled={aiEnabled} variant="ghost" job={job} label="Prepare again" />}
