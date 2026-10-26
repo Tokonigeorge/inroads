@@ -7,7 +7,7 @@ import type { QuickCandidate, QuickReadResult } from "@/contracts/quick-capture"
 import { addDays, todayIn } from "@/domain/dates";
 import { parseQuickCapture } from "@/domain/quick-capture";
 import { useAfterCapture } from "@/features/people/capture-forms";
-import { useSpaces } from "@/features/people/quick-add-person";
+import { useSpaces, useUserToday } from "@/features/people/quick-add-person";
 import { sendCapture } from "@/features/offline/outbox";
 import { Button } from "@/ui/button";
 import { Field, Input, Select, Textarea } from "@/ui/field";
@@ -153,7 +153,7 @@ function defaultPick(candidates: QuickCandidate[], name: string | null) {
 
 function QuickReviewForm({ read, spaceName, onBack, onDone }: { read: Read; spaceName: string; onBack: () => void; onDone: () => void }) {
   const d = read.draft;
-  const today = localToday();
+  const today = useUserToday();
   const router = useRouter();
   const after = useAfterCapture();
   const uid = useId();

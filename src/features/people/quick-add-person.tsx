@@ -1,5 +1,7 @@
 "use client";
 
+import { todayIn } from "@/domain/dates";
+
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +11,7 @@ import { Button } from "@/ui/button";
 import { Field, Input, Select } from "@/ui/field";
 import { useAfterCapture } from "./capture-forms";
 
-type SpacesResponse = { spaces: { id: string; name: string }[]; selectedId: string | null; aiEnabled?: boolean };
+type SpacesResponse = { spaces: { id: string; name: string }[]; selectedId: string | null; aiEnabled?: boolean; timezone?: string };
 const CACHE_KEY = "inroads.spaces";
 
 /** Active Spaces, cached on the device so capture still works offline. */
@@ -32,6 +34,20 @@ export function useSpaces() {
       }
     },
   });
+}
+
+/**
+ * Today in your profile's time zone (the server's "today"), falling back to this browser's.
+ * Around midnight the two can differ by a day, and touches should land on your day.
+ */
+export function useUserToday() {
+  const { data } = useSpaces();
+  const tz = data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  try {
+    return todayIn(tz);
+  } catch {
+    return todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
 }
 
 /** Name plus one way to reach them. Everything else can wait. */

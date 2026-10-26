@@ -4,8 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { touchTypeLabels, touchTypes, type TouchType } from "@/contracts/people";
-import { addDays, todayIn } from "@/domain/dates";
+import { addDays } from "@/domain/dates";
 import { sendCapture, type SendResult } from "@/features/offline/outbox";
+import { useUserToday } from "./quick-add-person";
 import { Button } from "@/ui/button";
 import { Field, Input, Segmented, Select, Textarea } from "@/ui/field";
 import { useToast } from "@/ui/toast";
@@ -14,7 +15,6 @@ export type PickedPerson = { id: string; name: string; spaces: { id: string; nam
 
 const LAST_TYPE_KEY = "inroads.lastTouchType";
 const firstName = (n: string) => n.trim().split(/\s+/)[0] ?? n;
-const localToday = () => todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 /** After any capture: tell the user where it went and refresh what's on screen. */
 export function useAfterCapture() {
@@ -53,7 +53,7 @@ function SpaceSelect({ person, value, onChange }: { person: PickedPerson; value:
 
 /** Log a touch in a few seconds: date and type are pre-filled, everything else is optional. */
 export function LogTouchForm({ person, defaultSpaceId, onDone }: { person: PickedPerson; defaultSpaceId?: string; onDone: () => void }) {
-  const today = localToday();
+  const today = useUserToday();
   const after = useAfterCapture();
   const [spaceId, setSpaceId] = useState(defaultSpaceId && person.spaces.some((s) => s.id === defaultSpaceId) ? defaultSpaceId : person.spaces[0]?.id ?? "");
   const [type, setType] = useState<TouchType>(() => {
