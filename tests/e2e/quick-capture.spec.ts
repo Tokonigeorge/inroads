@@ -81,6 +81,8 @@ test.describe.serial("Quick capture", () => {
   test("works offline, read on the device and synced later", async ({ page, context, isMobile }) => {
     await page.goto("/today");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // The page keeps your Spaces on the device once it has loaded them.
+    await page.waitForFunction(() => localStorage.getItem("inroads.spaces") !== null);
     await context.setOffline(true);
     await openCapture(page, isMobile);
     await sheet(page).getByLabel("What happened?").fill("Called Bisi Akande, she'll send the contract by Monday");
