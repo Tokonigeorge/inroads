@@ -12,27 +12,27 @@ type SheetProps = {
   children: ReactNode;
 };
 
-/** Bottom sheet on mobile, centred dialog on desktop. Used for capture and short forms. */
+/**
+ * The prototype's sheet (L231–242): on phones a panel rising from the bottom to just below the top,
+ * from 900px a 620px panel sliding in from the right. A sticky header with the title and ×.
+ */
 export function Sheet({ open, onOpenChange, title, description, children }: SheetProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
+        <Dialog.Overlay className="sheet-fade fixed inset-0 z-[60] bg-[var(--scrim)]" />
         <Dialog.Content
-          className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-lg bg-surface px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-pop md:inset-auto md:top-1/2 md:left-1/2 md:w-[440px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:p-6"
+          className="sheet-panel fixed inset-x-0 bottom-0 top-[calc(env(safe-area-inset-top)+26px)] z-[61] overflow-y-auto overscroll-contain rounded-t-[20px] bg-bg px-4 pb-[calc(40px+env(safe-area-inset-bottom))] min-[900px]:top-0 min-[900px]:left-auto min-[900px]:w-[min(620px,100%)] min-[900px]:rounded-none"
           {...(description ? {} : { "aria-describedby": undefined })}
         >
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border md:hidden" aria-hidden />
-          <div className="flex items-start justify-between gap-4 pb-4">
-            <div>
-              <Dialog.Title className="text-title font-semibold">{title}</Dialog.Title>
-              {description ? <Dialog.Description className="text-small text-muted">{description}</Dialog.Description> : null}
-            </div>
-            <Dialog.Close className="-m-2 rounded-md p-2 text-muted hover:bg-sunken" aria-label="Close">
+          <div className="sticky top-0 z-[3] flex items-center gap-2.5 bg-bg pt-3 pb-2.5">
+            <Dialog.Close className="grid size-[38px] shrink-0 place-items-center rounded-full border border-line bg-surface text-ink" aria-label="Close">
               <X size={18} aria-hidden />
             </Dialog.Close>
+            <Dialog.Title className="min-w-0 flex-1 truncate font-display text-[16px] leading-[1.2] font-[650]">{title}</Dialog.Title>
           </div>
-          {children}
+          {description ? <Dialog.Description className="pb-3 text-small text-muted">{description}</Dialog.Description> : null}
+          <div className="grid gap-[18px]">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

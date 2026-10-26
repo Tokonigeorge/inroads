@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: the prototype's look and navigation (P1–P2 of docs/PROTOTYPE_GAP.md)
+- **Look:** the prototype's colours (indigo on blue-grey, light and dark), fonts (Bricolage Grotesque, Geist, Geist Mono), pill buttons, 44px fields, rounded cards and warmth rings on avatars. App icons are now indigo.
+- **Navigation:**
+  - Five tabs as in the prototype (Today, People, Discover, Events, Goals): a bottom bar on phones and an 88px rail from 900px.
+  - A sticky brand bar with a status pill ("Synced", "Sync stopped" or "Not connected", plus "AI off").
+  - Quick capture moves to a + in the brand bar.
+- **Discover tab** (`/discover`): "Know the room before you walk in", with recent look-ups. Old `/rooms/lookup` links redirect here.
+- **Sheets:** they rise from the bottom on phones and slide in as a 620px panel from the right on desktop, with a sticky title bar.
+- **Sync on open:** now a plain request instead of a server action, so it can't hold up other updates on the page.
+
 ### Fixed
 - **Calendar sync keeps itself up to date.**
   - Opening Inroads syncs any connected account that's more than 10 minutes behind (calendar links: 30), on top of the 30-minute schedule. The page refreshes when it's done.

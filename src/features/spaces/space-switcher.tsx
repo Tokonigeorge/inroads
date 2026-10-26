@@ -23,13 +23,13 @@ export function SpaceSwitcher({ spaces, selectedId, className }: Props) {
     <Menu.Root>
       <Menu.Trigger
         className={cn(
-          "inline-flex h-9 max-w-full items-center gap-1.5 rounded-md px-2.5 font-[550] hover:bg-sunken data-[state=open]:bg-sunken",
+          "inline-flex h-9 max-w-[9rem] min-w-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold hover:border-border-strong data-[state=open]:border-border-strong",
           pending && "opacity-70",
           className,
         )}
         aria-label={`Space: ${label}. Change Space`}
       >
-        <span className="truncate">{label}</span>
+        <span className="hidden truncate min-[480px]:inline">{label}</span>
         <ChevronsUpDown size={14} className="shrink-0 text-muted" aria-hidden />
       </Menu.Trigger>
       <Menu.Portal>

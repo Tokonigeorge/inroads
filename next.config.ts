@@ -13,7 +13,12 @@ const nextConfig: NextConfig = {
     },
   },
   async redirects() {
-    return [{ source: "/", destination: "/today", permanent: false }];
+    return [
+      { source: "/", destination: "/today", permanent: false },
+      // Look-ups moved to the Discover tab.
+      { source: "/rooms/lookup", destination: "/discover", permanent: true },
+      { source: "/rooms/lookup/:id", destination: "/discover/:id", permanent: true },
+    ];
   },
   async headers() {
     return [

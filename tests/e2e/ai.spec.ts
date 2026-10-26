@@ -86,7 +86,7 @@ test.describe.serial("AI features (against a fake Claude)", () => {
   });
 
   test("look up a company and see who can introduce you", async ({ page }) => {
-    await page.goto("/rooms/lookup");
+    await page.goto("/discover");
     // Click the visible label (the radio itself is visually hidden), retrying until the page has hydrated.
     await expect(async () => {
       await page.getByRole("group", { name: "What is it" }).getByText("Company", { exact: true }).click();

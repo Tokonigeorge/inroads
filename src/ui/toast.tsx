@@ -27,10 +27,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-[calc(80px+env(safe-area-inset-bottom))] z-50 flex flex-col items-center gap-2 md:inset-x-auto md:bottom-6 md:left-6 md:items-start"
+        className="pointer-events-none fixed inset-x-4 bottom-[calc(80px+env(safe-area-inset-bottom))] z-50 flex flex-col items-center gap-2 md:bottom-7"
       >
         {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto flex items-center gap-4 rounded-lg bg-text px-4 py-3 text-small font-[550] text-bg shadow-pop">
+          <div key={t.id} className="pointer-events-auto flex items-center gap-4 rounded-[12px] bg-ink px-4 py-3 text-[14px] font-[550] text-bg shadow-pop">
             <span>{t.message}</span>
             {t.action ? (
               <button

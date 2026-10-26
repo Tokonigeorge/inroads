@@ -266,7 +266,7 @@ export function PaletteButton({ compact }: { compact?: boolean }) {
   const { open } = usePalette();
   if (compact) {
     return (
-      <button type="button" onClick={open} aria-label="Search" className="flex size-11 items-center justify-center rounded-md text-muted hover:bg-sunken">
+      <button type="button" onClick={open} aria-label="Search" className="flex size-10 items-center justify-center rounded-full text-muted hover:bg-sunk hover:text-ink">
         <Search size={20} strokeWidth={1.75} aria-hidden />
       </button>
     );

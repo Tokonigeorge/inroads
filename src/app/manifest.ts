@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#faf9f7",
-    theme_color: "#faf9f7",
+    background_color: "#edeff5",
+    theme_color: "#edeff5",
     // Share into Inroads from other apps: profile links, messages, contact cards (app/share/route.ts).
     share_target: {
       action: "/share",

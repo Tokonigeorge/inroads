@@ -63,7 +63,7 @@ export function LookupForm({ spaces, defaultSpaceId, aiEnabled }: { spaces: { id
           {message}
         </p>
       ) : null}
-      {jobId ? <JobStatus jobId={jobId} onDone={(r) => router.push(`/rooms/lookup/${String(r.searchId)}`)} onFailed={() => setJobId(null)} /> : null}
+      {jobId ? <JobStatus jobId={jobId} onDone={(r) => router.push(`/discover/${String(r.searchId)}`)} onFailed={() => setJobId(null)} /> : null}
       <div>
         <Button type="submit" variant="primary" disabled={!aiEnabled || pending || Boolean(jobId)} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."}>
           Look it up

@@ -38,14 +38,12 @@ export function ListRow({ href, leading, primary, secondary, trailing, selected,
   );
 }
 
-/** A hue for a name: the same person always gets the same tint. */
-export function hueOf(name: string) {
-  let h = 0;
-  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return h % 360;
-}
+/** The ring colour for each warmth band (prototype .w-*): hot, warm, cooling, cold, no touches yet. */
+const ring = { recent: "var(--hot)", warm: "var(--warm)", cooling: "var(--cool)", cold: "var(--cold)", none: "var(--fresh)" } as const;
+export type WarmthKey = keyof typeof ring;
 
-export function Avatar({ name, size = 32 }: { name: string; size?: 24 | 32 | 40 }) {
+/** Initials in a circle; with `warmth`, ringed in that band's colour like the prototype's avatars. */
+export function Avatar({ name, size = 32, warmth }: { name: string; size?: 24 | 32 | 40 | 42 | 64; warmth?: WarmthKey }) {
   const initials =
     name
       .trim()
@@ -57,8 +55,8 @@ export function Avatar({ name, size = 32 }: { name: string; size?: 24 | 32 | 40 
   return (
     <span
       aria-hidden
-      className="avatar-tint inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
-      style={{ width: size, height: size, fontSize: size <= 24 ? 10 : size === 32 ? 12 : 14, ["--h" as string]: hueOf(name) }}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-sunk font-display font-[650] text-ink ${warmth ? "ring-warmth m-1" : ""}`}
+      style={{ width: size, height: size, fontSize: size <= 24 ? 10 : size <= 32 ? 12 : size <= 42 ? 14 : 22, ["--ring" as string]: warmth ? ring[warmth] : undefined }}
     >
       {initials}
     </span>

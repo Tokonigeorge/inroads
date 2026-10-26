@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { syncStaleAction } from "./actions";
 
 const KEY = "inroads:last-auto-sync";
 
@@ -23,7 +22,8 @@ export function AutoSync() {
       sessionStorage.setItem(KEY, String(Date.now()));
     } catch {}
     let timer: ReturnType<typeof setTimeout> | undefined;
-    syncStaleAction()
+    fetch("/api/v1/sync", { method: "POST" })
+      .then((res) => (res.ok ? (res.json() as Promise<{ started: number }>) : { started: 0 }))
       .then((r) => {
         if (r.started) timer = setTimeout(() => router.refresh(), 45_000);
       })

@@ -33,19 +33,13 @@ test.describe.serial("Always a next step (against a fake Claude)", () => {
     await expectAccessible(page);
   });
 
-  test("the sidebar folds to icons and remembers it", async ({ page, isMobile }) => {
-    test.skip(isMobile, "The sidebar is desktop only.");
+  test("five tabs, as in the prototype: Today, People, Discover, Events, Goals", async ({ page }) => {
     await page.goto("/today");
-    const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(async () => {
-      await nav.getByRole("button", { name: "Collapse" }).click();
-      await expect(nav.getByRole("button", { name: "Expand sidebar" })).toBeVisible({ timeout: 1000 });
-    }).toPass();
-    await page.reload();
-    await expect(nav.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "People" })).toBeVisible();
-    await nav.getByRole("button", { name: "Expand sidebar" }).click();
-    await expect(nav.getByRole("button", { name: "Collapse" })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Main" }).filter({ visible: true });
+    for (const name of ["Today", "People", "Discover", "Events", "Goals"]) await expect(nav.getByRole("link", { name })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Today" })).toHaveAttribute("aria-current", "page");
+    await nav.getByRole("link", { name: "Discover" }).click();
+    await expect(page.getByRole("heading", { name: "Know the room before you walk in", level: 1 })).toBeVisible();
   });
 
   test("look up an event: what to do next, add everyone, then add it as a room", async ({ page }) => {

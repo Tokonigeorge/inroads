@@ -1,103 +1,58 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "@/ui/cn";
-import { PaletteButton } from "./command-palette";
-import { Logo } from "./logo";
-import { isActive, primaryNav, settingsNav, type NavItem } from "./nav-items";
+import { isActive, primaryNav, type NavItem } from "./nav-items";
 
-const KEY = "inroads:sidebar";
-const listeners = new Set<() => void>();
-function readCollapsed() {
-  try {
-    return localStorage.getItem(KEY) === "collapsed";
-  } catch {
-    return false;
-  }
-}
-function setCollapsed(v: boolean) {
-  try {
-    localStorage.setItem(KEY, v ? "collapsed" : "open");
-  } catch {}
-  listeners.forEach((l) => l());
-}
-function subscribe(l: () => void) {
-  listeners.add(l);
-  return () => listeners.delete(l);
-}
-
-function NavLink({ item, pathname, collapsed }: { item: NavItem; pathname: string | null; collapsed?: boolean }) {
-  const active = pathname !== null && isActive(pathname, item.href);
+function Tab({ item, pathname, rail }: { item: NavItem; pathname: string | null; rail?: boolean }) {
+  const active = pathname !== null && isActive(pathname, item);
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      title={collapsed ? item.label : undefined}
       className={cn(
-        "flex h-9 items-center gap-2.5 rounded-md px-2.5 font-[550] transition-colors",
-        active ? "bg-accent-soft text-accent" : "text-muted hover:bg-sunken hover:text-text",
+        "flex flex-col items-center gap-[3px] rounded-[12px] text-[11px] leading-none font-semibold tracking-[0.01em]",
+        rail ? "px-1 py-3" : "flex-1 px-0.5 pt-[9px] pb-2",
+        active ? "text-accent" : "text-faint hover:text-ink",
       )}
     >
-      <Icon size={16} strokeWidth={1.75} aria-hidden />
-      <span className={collapsed ? "sr-only" : undefined}>{item.label}</span>
+      <Icon />
+      <span>{item.label}</span>
     </Link>
   );
 }
 
-type SidebarProps = { spaceSwitcher?: ReactNode };
-
-/**
- * Desktop navigation (≥900px). Highlights the current section once the path is known, and
- * folds down to icons; the choice is remembered in this browser.
- */
-export function Sidebar(props: SidebarProps) {
-  const collapsed = useSyncExternalStore(subscribe, readCollapsed, () => false);
-  return <SidebarView {...props} pathname={usePathname()} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />;
+/** Desktop (≥900px): the prototype's 88px rail of icons over labels (L66–75). */
+export function Sidebar() {
+  return <SidebarView pathname={usePathname()} />;
 }
 
-/** Same nav without the current-section highlight, for prerendering (Suspense fallback). */
-export function SidebarView({ spaceSwitcher, pathname, collapsed = false, onToggle }: SidebarProps & { pathname: string | null; collapsed?: boolean; onToggle?: () => void }) {
-  const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
+/** Same rail without the current-section highlight, for prerendering (Suspense fallback). */
+export function SidebarView({ pathname }: { pathname: string | null }) {
   return (
     <nav
       aria-label="Main"
-      className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border py-4 transition-[width] duration-200 md:flex",
-        collapsed ? "w-[60px] px-2" : "w-[232px] px-3",
-      )}
+      className="fixed inset-y-0 left-0 z-25 hidden w-[var(--rail)] content-start gap-1.5 border-r border-line bg-surface px-2 pt-[calc(env(safe-area-inset-top)+76px)] min-[900px]:grid"
     >
-      <div className={cn("flex items-center gap-2 pb-4", collapsed ? "justify-center" : "px-2.5")}>
-        <Logo />
-        {collapsed ? null : <span className="font-semibold">Inroads</span>}
-      </div>
-      {collapsed ? null : <div className="min-h-2 pb-2">{spaceSwitcher}</div>}
-      <div className="pb-3">
-        <PaletteButton compact={collapsed} />
-      </div>
-      <div className="grid gap-0.5">
-        {primaryNav.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} collapsed={collapsed} />
-        ))}
-      </div>
-      <div className="mt-auto grid gap-0.5">
-        <NavLink item={settingsNav} pathname={pathname} collapsed={collapsed} />
-        {onToggle ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="flex h-9 items-center gap-2.5 rounded-md px-2.5 font-[550] text-muted transition-colors hover:bg-sunken hover:text-text"
-          >
-            <Toggle size={16} strokeWidth={1.75} aria-hidden />
-            <span className={collapsed ? "sr-only" : undefined}>{collapsed ? "Expand sidebar" : "Collapse"}</span>
-          </button>
-        ) : null}
-      </div>
+      {primaryNav.map((item) => (
+        <Tab key={item.href} item={item} pathname={pathname} rail />
+      ))}
+    </nav>
+  );
+}
+
+/** Phones and tablets: the same five tabs along the bottom. */
+export function BottomTabs({ pathname }: { pathname: string | null }) {
+  return (
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-25 grid grid-cols-5 border-t border-line bg-surface px-4 pb-[env(safe-area-inset-bottom)] min-[900px]:hidden"
+    >
+      {primaryNav.map((item) => (
+        <Tab key={item.href} item={item} pathname={pathname} />
+      ))}
     </nav>
   );
 }
