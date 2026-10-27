@@ -4,10 +4,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { todayIn } from "@/domain/dates";
 import { MOVED_PREFIX } from "@/domain/nudges";
 import { starredDueForRefresh } from "@/server/ai/auto-research";
-import { draftMessage, importChat, lookUp, researchPerson, scorePeople, writeBrief } from "@/server/ai/features";
+import { draftMessage, findForStep, importChat, lookUp, researchPerson, scorePeople, writeBrief } from "@/server/ai/features";
 import type { Tx } from "@/server/db/with-user";
 import { runAiJob } from "@/server/jobs/ai-jobs";
+import { addGoalStep, listGoalSteps } from "@/server/repos/goal-steps";
 import { createGoal } from "@/server/repos/goals";
+import { keepStakeholder } from "@/server/repos/prep";
 import { listNudges } from "@/server/repos/nudges";
 import { createPerson, logTouch, saveMembership } from "@/server/repos/people";
 import { createRoom, linkPerson } from "@/server/repos/rooms";
@@ -211,6 +213,40 @@ describe("refreshing priority people", () => {
     expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([{ personId: kemi, spaceId: work }]);
     await sql`update person_spaces set starred = false where person_id = ${kemi} and space_id = ${work}`;
     expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([]);
+  });
+});
+
+describe("research steps", () => {
+  it("finds named people for a 'Find …' step, leaves out who you know, and adding one puts them on the goal", async () => {
+    const step = await as((tx) => addGoalStep(tx, user.id, { goalId, text: "Find wedding planners who hire photographers", dueOn: null }));
+    if (!step.ok) throw new Error(step.message);
+    const fake = fakeAnthropic(() => ({
+      json: {
+        people: [
+          { name: "Bisi Events", role: "Firm", organisation: "", why: "Plans 40 Lagos weddings a year", url: "https://bisi.example" },
+          { name: "Kemi Adebayo", role: "Planner", organisation: "Kestrel", why: "Already known", url: "" },
+          { name: "", role: "Planner", organisation: "", why: "No name", url: "" },
+        ],
+        caveats: "",
+        sources: [{ title: "Bisi Events", url: "https://bisi.example" }],
+      },
+    }));
+    const r = await findForStep({ client: fake.client, sys, db }, user.id, { stepId: step.data.id });
+    expect(r.found).toBe(1);
+    expect(promptText(fake.calls[0])).toContain("STEP: Find wedding planners who hire photographers");
+    const [row] = await sql`select type, result from searches where id = ${r.searchId}`;
+    expect(row.type).toBe("role");
+    expect(row.result.stakeholders).toEqual([{ name: "Bisi Events", role: "Firm", why: "Plans 40 Lagos weddings a year", url: "https://bisi.example" }]);
+    const steps = await as((tx) => listGoalSteps(tx, goalId));
+    expect(steps.find((x) => x.id === step.data.id)).toMatchObject({ researchId: r.searchId, fromPrep: false });
+
+    const kept = await as((tx) => keepStakeholder(tx, user.id, { searchId: r.searchId, index: 0, goalId }, TODAY));
+    expect(kept.ok).toBe(true);
+    const [note] = await sql`select ps.notes from person_spaces ps join people p on p.id = ps.person_id where p.name = 'Bisi Events'`;
+    expect(note.notes).toContain('Found by your research step "Find wedding planners who hire photographers".');
+    expect(await sql`select 1 from goal_links gl join people p on p.id = gl.person_id where p.name = 'Bisi Events'`).toHaveLength(1);
+    // Leave the goal as the later tests expect it.
+    await sql`delete from people where name = 'Bisi Events' and user_id = ${user.id}`;
   });
 });
 

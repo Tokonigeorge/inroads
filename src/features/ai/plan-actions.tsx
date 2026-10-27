@@ -1,14 +1,14 @@
 "use client";
 
-import { Check, ListPlus, UserPlus, UserSearch } from "lucide-react";
+import { Check, ListPlus, Search, UserPlus, UserSearch } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/ui/button";
 import { Select } from "@/ui/field";
 import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
-import { addGoalStepAction } from "@/features/goals/actions";
-import { keepOpeningAction, keepStakeholderAction } from "./actions";
+import { addResearchStepAction, keepOpeningAction, keepStakeholderAction } from "./actions";
+import { JobStatus } from "./job-status";
 
 type Goal = { id: string; text: string };
 
@@ -108,7 +108,8 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
                 </p>
                 {p.why ? <p className="text-small">{p.why}</p> : null}
               </div>
-              <div className="shrink-0">
+              {/* A role's actions (and its research progress) take their own line on a phone. */}
+              <div className={p.name ? "shrink-0" : "w-full sm:w-auto sm:max-w-[22rem] sm:shrink-0"}>
                 {keptId ? (
                   <Link href={`/people/${keptId}`} className="inline-flex items-center gap-1 text-small font-[550] text-accent hover:underline">
                     <Check size={14} className="pop" aria-hidden /> In your people
@@ -131,13 +132,29 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
 
 /**
  * A role the plan suggests, with no name yet ("Wedding planners who hire photographers"): look
- * for them among the people you know, or keep it as a step on the goal to work on.
+ * for them among the people you know, or make it a research step on the goal, which searches the
+ * web for named people who fit right away.
  */
 function RoleActions({ role, goal }: { role: string; goal: Goal | undefined }) {
-  const [stepped, setStepped] = useState(false);
+  const [added, setAdded] = useState<{ jobId: string | null } | null>(null);
+  const [done, setDone] = useState(false);
   const step = `Find ${role.charAt(0).toLowerCase()}${role.slice(1)}`.replace(/\.$/, "").slice(0, 300);
   const [pending, start] = useTransition();
   const toast = useToast();
+  if (goal && added) {
+    return (
+      <div className="grid gap-2">
+        {added.jobId && !done ? <JobStatus jobId={added.jobId} onDone={() => setDone(true)} onFailed={() => setDone(true)} /> : null}
+        <p className="text-small">
+          <Check size={14} className="pop mr-1 inline align-[-2px] text-accent" aria-hidden />
+          Research step on &ldquo;{short(goal.text)}&rdquo;.{" "}
+          <Link href={`/goals/${goal.id}`} className="font-[550] text-accent hover:underline">
+            {done ? "See who it found" : "Open the goal"}
+          </Link>
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
       <Button asChild size="sm" variant="ghost">
@@ -146,27 +163,22 @@ function RoleActions({ role, goal }: { role: string; goal: Goal | undefined }) {
         </Link>
       </Button>
       {goal ? (
-        stepped ? (
-          <span className="inline-flex items-center gap-1 text-small font-[550] text-accent">
-            <Check size={14} className="pop" aria-hidden /> Added as a step
-          </span>
-        ) : (
-          <Button
-            size="sm"
-            disabled={pending}
-            aria-label={`Add as a step: ${step}`}
-            title={`Adds "${step}" to "${goal.text}"`}
-            onClick={() =>
-              start(async () => {
-                const r = await addGoalStepAction(goal.id, step, null);
-                if (r.ok) setStepped(true);
-                toast.show(r.ok ? `Added to "${short(goal.text)}" as a step.` : (r.message ?? "That didn't save."));
-              })
-            }
-          >
-            <ListPlus size={14} aria-hidden /> Add as a step
-          </Button>
-        )
+        <Button
+          size="sm"
+          disabled={pending}
+          aria-label={`Research this: ${step}, for "${short(goal.text)}"`}
+          title={`Adds "${step}" to "${goal.text}" and searches the web for people who fit`}
+          onClick={() =>
+            start(async () => {
+              const r = await addResearchStepAction(goal.id, step);
+              if (!r.ok) return toast.show(r.message ?? "That didn't save.");
+              setAdded({ jobId: r.jobId ?? null });
+              if (r.message) toast.show(r.message);
+            })
+          }
+        >
+          <Search size={14} aria-hidden /> Research this
+        </Button>
       ) : null}
     </div>
   );

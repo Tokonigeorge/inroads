@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, notInArray, sql } from "drizzle-orm";
 import { addDays, type IsoDate } from "@/domain/dates";
 import { progressMeter, weekOf } from "@/domain/goal-progress";
 import { hourIn, nowMs } from "@/domain/greeting";
@@ -259,7 +259,7 @@ async function loadWeek(tx: Tx, view: Awaited<ReturnType<typeof loadSpaceView>>,
     tx
       .select({ id: t.searches.id, query: t.searches.query, result: t.searches.result })
       .from(t.searches)
-      .where(and(gt(t.searches.createdAt, since), ne(t.searches.type, "radar"), c.spaceId ? eq(t.searches.spaceId, c.spaceId) : undefined))
+      .where(and(gt(t.searches.createdAt, since), notInArray(t.searches.type, ["radar", "role"]), c.spaceId ? eq(t.searches.spaceId, c.spaceId) : undefined))
       .orderBy(desc(t.searches.createdAt))
       .limit(3),
     dueGoalSteps(tx, addDays(c.today, 2), c.spaceId),

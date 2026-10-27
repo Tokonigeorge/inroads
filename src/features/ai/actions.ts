@@ -5,6 +5,7 @@ import { firstIssue } from "@/contracts/issues";
 import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { addDays } from "@/domain/dates";
 import { draftMessage, importChat, readCard } from "@/server/ai/features";
 import { autoResearch } from "@/server/ai/auto-research";
 import { AiLimitError } from "@/server/ai/limits";
@@ -15,6 +16,7 @@ import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { aiJobSchema } from "@/server/jobs/ai-jobs";
 import { enqueueAiJob } from "@/server/jobs/enqueue";
+import { addGoalStep } from "@/server/repos/goal-steps";
 import { logTouch } from "@/server/repos/people";
 import { keepOpening, keepStakeholder } from "@/server/repos/prep";
 import { acceptSuggestion, discardSuggestion, pendingForPerson } from "@/server/repos/suggestions";
@@ -35,6 +37,26 @@ export async function startAiJobAction(input: unknown): Promise<{ jobId?: string
     const m = message(e);
     if (m) return { message: m };
     throw e;
+  }
+}
+
+/**
+ * "Find event planners…" from a plan's role: a research step on the goal, due in a week, and the
+ * web search for people who fit starts straight away. The step keeps what it finds.
+ */
+export async function addResearchStepAction(goalId: string, text: string): Promise<{ ok: boolean; stepId?: string; jobId?: string | null; message?: string }> {
+  const user = await requireUser();
+  const r = await db.withUser(user.id, async (tx) => {
+    const today = (await userContext(tx)).today;
+    return addGoalStep(tx, user.id, { goalId: id.parse(goalId), text: z.string().trim().min(1).max(300).parse(text), dueOn: addDays(today, 7) });
+  });
+  if (!r.ok) return { ok: false, message: r.message };
+  refresh();
+  try {
+    return { ok: true, stepId: r.data.id, jobId: await enqueueAiJob(user.id, { kind: "find", stepId: r.data.id }) };
+  } catch (e) {
+    // The step is saved either way; the search can be started from the goal.
+    return { ok: true, stepId: r.data.id, jobId: null, message: message(e) ?? undefined };
   }
 }
 

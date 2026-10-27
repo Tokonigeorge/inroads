@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: research steps (needs a database migration)
+- A "Find …" step on a goal is a **research step**. Inroads searches the web for real, named people or firms near you who fit it ("Find wedding planners who hire photographers"), leaves out people you already know, and lists them under the step with why each fits and a link. **Add to goal** saves them, puts them on the goal and researches them.
+- From a plan in Discover, a role with no name now has **Research this**: it adds the step (due in a week) and starts the search straight away, with live progress and a link to see who it found.
+- Steps you added before ("Find …") get a **Find people for this** button on the goal. **Search again** re-runs it; **Check your network** asks your own people first.
+- **Ask your network** has a Back link, and when nothing matches it offers Discover or adding someone.
+
 ### Added: relationship strength, ranked warm paths and intro outcomes (from Affinity)
 - **Relationship strength, 0–100:** how recently and how often you've been in touch over the last six months. A person's page reads "Good relationship (63/100)" next to when you last spoke (hover for why), and People has a **Strongest first** sort.
 - **Warm paths ranked by it:** "Who could introduce you" lists the people you're closest to first, with "You and Kemi: strong (82/100)" beside why they're a path.

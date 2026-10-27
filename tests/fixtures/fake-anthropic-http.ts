@@ -84,6 +84,18 @@ export function e2eReply(req: FakeRequest): FakeReply {
     const network = p.split("MY NETWORK IN THIS SPACE")[1] ?? "";
     return { json: { title: "Kestrel Ventures", kind: "company", overview: "A seed fund in Lagos.", facts: ["Founded 2019"], website: "https://kestrel.example", stakeholders: [{ name: "Adaeze Okafor", role: "Partner", why: "Leads fintech deals", url: "" }], warmPaths: uuids(network).slice(0, 1).map((id) => ({ contactId: id, how: "Works there", angle: "Ask for 20 minutes" })), opportunities: [], playbook: ["Lead with traction"], confidence: "high", verify: "", sources: [] } };
   }
+  if (p.includes("one of my next steps is to find the right people")) {
+    return {
+      json: {
+        people: [
+          { name: "Amaka Obi", role: "Investor relations lead", organisation: "Lagos Angel Network", why: "Runs the investor lounge list for Lagos fintech events", url: "https://lan.example/team/amaka" },
+          { name: "Seyi Lawal", role: "Head of community", organisation: "Ventures Platform", why: "Curates investor introductions for founders", url: "" },
+        ],
+        caveats: "Check they're still in these roles.",
+        sources: [{ title: "Lagos Angel Network team", url: "https://lan.example/team" }],
+      },
+    };
+  }
   if (p.includes("Score how valuable")) {
     const goal = uuids(p.split("Goals in this Space:")[1]?.split("CONTACTS")[0] ?? "")[0] ?? "";
     return { json: { scores: uuids(p.split("CONTACTS")[1] ?? "").map((id) => ({ id, score: 72, why: "Relevant to the round", goalId: goal })) } };

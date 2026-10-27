@@ -9,13 +9,17 @@ import { progressMeter, progressSummary } from "@/domain/goal-progress";
 import { instantInZone } from "@/domain/zoned";
 import { AiJobButton } from "@/features/ai/ai-job-button";
 import { GoalActions } from "@/features/goals/goal-actions";
-import { GoalSteps } from "@/features/goals/goal-steps";
+import { GoalSteps, type StepResearch } from "@/features/goals/goal-steps";
 import { Pipeline } from "@/features/goals/pipeline";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
-import { listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
+import { isResearchStep, listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
+import { loadPlan } from "@/server/repos/prep";
+import { findJobKind } from "@/server/jobs/ai-jobs";
+import * as t from "@/server/db/schema";
+import { and, inArray, sql } from "drizzle-orm";
 import { getGoal, goalHistory, type GoalDetail } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
@@ -43,12 +47,30 @@ async function Goal({ params }: { params: Promise<{ id: string }> }) {
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
     const goal = await getGoal(tx, id, ctx.today, ctx.timezone);
-    if (!goal) return { goal, ctx, steps: [], history: [] };
+    if (!goal) return { goal, ctx, steps: [], history: [], research: {} };
     const [steps, history] = await Promise.all([listGoalSteps(tx, goal.id), goalHistory(tx, { id: goal.id, spaceId: goal.space.id }, ctx.today)]);
-    return { goal, ctx, steps, history };
+    // Research steps: what each found (with who's already added), or the search still running.
+    const research: Record<string, StepResearch> = {};
+    const open = steps.filter((s) => !s.doneAt && (s.researchId || isResearchStep(s.text)));
+    const running = open.length
+      ? await tx
+          .select({ id: t.jobs.id, kind: t.jobs.kind })
+          .from(t.jobs)
+          .where(and(inArray(t.jobs.kind, open.map((s) => findJobKind(s.id))), inArray(t.jobs.status, ["queued", "running"]), sql`${t.jobs.createdAt} > now() - interval '15 minutes'`))
+      : [];
+    for (const s of open) {
+      const plan = s.researchId ? await loadPlan(tx, s.researchId) : null;
+      research[s.id] = {
+        jobId: running.find((j) => j.kind === findJobKind(s.id))?.id ?? null,
+        searchId: plan?.id ?? null,
+        people: plan ? plan.result.stakeholders.map((x, i) => ({ index: i, name: x.name.trim(), role: x.role, why: x.why, url: x.url })) : [],
+        kept: plan?.keptPeople ?? {},
+      };
+    }
+    return { goal, ctx, steps, history, research };
   });
   if (!data.goal) notFound();
-  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} history={data.history} />;
+  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} history={data.history} research={data.research} />;
 }
 
 /** A new goal has nothing in it yet: three ways to get it moving (people, fit, rooms). */
@@ -95,7 +117,21 @@ function StartHere({ g }: { g: GoalDetail }) {
   );
 }
 
-function GoalView({ g, today, tz, steps, history }: { g: GoalDetail; today: string; tz: string; steps: GoalStep[]; history: { start: string; done: number }[] }) {
+function GoalView({
+  g,
+  today,
+  tz,
+  steps,
+  history,
+  research,
+}: {
+  g: GoalDetail;
+  today: string;
+  tz: string;
+  steps: GoalStep[];
+  history: { start: string; done: number }[];
+  research: Record<string, StepResearch>;
+}) {
   const m = progressMeter(g.progress);
   const label = (key: string | null) => (key ? (g.stages.find((s) => s.key === key)?.label ?? "a removed stage") : "");
   const subtitle = [
@@ -136,7 +172,13 @@ function GoalView({ g, today, tz, steps, history }: { g: GoalDetail; today: stri
 
       {!g.archived ? (
         <Section title="Next steps" className="max-w-[720px]">
-          <GoalSteps goalId={g.id} today={today} steps={steps.map((s) => ({ id: s.id, text: s.text, dueOn: s.dueOn, done: Boolean(s.doneAt), fromPrep: s.fromPrep }))} />
+          <GoalSteps
+            goalId={g.id}
+            goalText={g.text}
+            today={today}
+            aiEnabled={isAiConfigured()}
+            steps={steps.map((s) => ({ id: s.id, text: s.text, dueOn: s.dueOn, done: Boolean(s.doneAt), fromPrep: s.fromPrep, research: research[s.id] ?? null }))}
+          />
         </Section>
       ) : null}
 

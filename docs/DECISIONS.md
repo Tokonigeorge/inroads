@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: research steps
+
+176. **A step that starts with "Find" is a research step** (owner's call: "it should just be a research step"). Inroads searches the web for named people or firms near you who fit, saved as a `searches` row of the new type `role` (migration `20261027145012_research_steps`) in the look-up shape, so a plan's "Add to goal" works on it unchanged. Names only from pages found; people already in your network are left out. The step isn't ticked for you: you decide when you've found enough. Plain to-do steps stay plain. To reverse: drop the "find" job and the panel in `goal-steps.tsx`; the migration only widens a check.
+
 ## 2026-10-27: strength, warm paths, intro outcomes
 
 172. **Relationship strength is 0–100 from recency and frequency only**: 55 points for recency (fading over about 75 days) and 45 for touches in the last 180 days (six or more is full). Labels: Strong 70+, Good 40+, Fading 20+, Weak. Warmth stays as the plain "how long since" label and ring colour. To reverse or retune: `strength()` in `domain/relationship.ts` and `strengthSql` in `repos/strength.ts` (keep them the same).
