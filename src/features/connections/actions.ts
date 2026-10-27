@@ -142,5 +142,5 @@ export async function finishOnboardingAction(next: string = "/today") {
       .set({ onboardingState: { ...((p?.s ?? {}) as object), completedAt: new Date().toISOString() } })
       .where(eq(t.profiles.userId, user.id));
   });
-  redirect(next === "/people/triage" ? "/people/triage" : "/today");
+  redirect(next === "/sort" ? "/sort" : "/today");
 }

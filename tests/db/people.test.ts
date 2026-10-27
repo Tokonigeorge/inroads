@@ -94,7 +94,7 @@ describe("the people list", () => {
     await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: ids.zainab, spaceId: work, occurredOn: "2026-09-01", type: "coffee" }));
   });
 
-  const list = (q: PeopleQuery) => as((tx) => listPeople(tx, q, TODAY));
+  const list = (q: PeopleQuery) => as((tx) => listPeople(tx, { sort: "name", ...q }, TODAY));
 
   it("lists everyone across Spaces, or one Space", async () => {
     expect(names(await list({}))).toEqual(["Kemi Adebayo", "Seun Bello", "Tunde Bakare", "Zainab Bello"]);

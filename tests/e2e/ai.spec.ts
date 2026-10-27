@@ -52,7 +52,7 @@ test.describe.serial("AI features (against a fake Claude)", () => {
 
   test("draft a message, then log it as a touch", async ({ page }) => {
     await page.goto(`/people/${ids.adaeze}`);
-    await page.getByRole("button", { name: "Draft a message" }).click();
+    await page.getByRole("button", { name: "Draft message" }).click();
     const sheet = page.getByRole("dialog", { name: "Message Adaeze" });
     await sheet.getByRole("button", { name: "Write a draft" }).click();
     await expect(sheet.getByLabel("Message")).toHaveValue(/great to catch up/);
@@ -64,11 +64,16 @@ test.describe.serial("AI features (against a fake Claude)", () => {
 
   test("a chat import becomes suggestions", async ({ page }) => {
     await page.goto(`/people/${ids.adaeze}`);
-    await page.getByRole("button", { name: "Import a chat" }).click();
+    await page.getByRole("button", { name: "Import chat history" }).click();
     const sheet = page.getByRole("dialog", { name: /Import a chat with Adaeze/ });
     await sheet.getByLabel("The chat", { exact: true }).fill("[12/10/2026, 09:14] Adaeze: Coffee next week?\n[12/10/2026, 09:20] Ada: Yes! I'll send the deck first.");
+    await sheet.getByRole("button", { name: "Read conversation" }).click();
+    // Step 2, as in the prototype: who's who, read from the export.
+    await expect(sheet.getByText("2 messages from 12 Oct 2026 to 12 Oct 2026.")).toBeVisible();
+    await expect(sheet.getByLabel("Which one is you?")).toHaveValue("Ada");
     await sheet.getByRole("button", { name: "Read the chat" }).click();
     await expect(sheet.getByText(/suggestions are ready/)).toBeVisible({ timeout: 15_000 });
+    await expect(sheet.getByRole("region", { name: "Promises" })).toContainText("You owe:");
     await page.keyboard.press("Escape");
     await page.reload();
     const suggestions = page.getByRole("list", { name: "Suggestions" });
@@ -89,24 +94,24 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     await page.goto("/discover");
     // Click the visible label (the radio itself is visually hidden), retrying until the page has hydrated.
     await expect(async () => {
-      await page.getByRole("group", { name: "What is it" }).getByText("Company", { exact: true }).click();
-      await page.getByLabel("Name", { exact: true }).fill("Kestrel Ventures");
-      await expect(page.getByRole("radio", { name: "Company" })).toBeChecked({ timeout: 1000 });
-      await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Kestrel Ventures", { timeout: 1000 });
+      await page.getByRole("group", { name: "Search type" }).getByText("Place", { exact: true }).click();
+      await page.getByLabel("What to decode").fill("Kestrel Ventures");
+      await expect(page.getByRole("radio", { name: "Place" })).toBeChecked({ timeout: 1000 });
+      await expect(page.getByLabel("What to decode")).toHaveValue("Kestrel Ventures", { timeout: 1000 });
     }).toPass();
-    await page.getByRole("button", { name: "Look it up" }).click();
+    await page.getByRole("button", { name: "Decode" }).click();
     await expect(page.getByRole("heading", { name: "Kestrel Ventures", level: 1 })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("link", { name: "Adaeze Okafor" })).toBeVisible();
     await expectAccessible(page);
   });
 
   test("suggested rooms can be added as rooms", async ({ page }) => {
-    await page.goto("/rooms/suggested");
-    await page.getByRole("button", { name: "Find rooms" }).click();
+    await page.goto("/rooms#radar");
+    await page.getByRole("button", { name: "Scan for this week" }).click();
     const idea = page.getByRole("article", { name: "Fintech Founders Mixer" });
     await expect(idea).toBeVisible({ timeout: 20_000 });
-    await idea.getByRole("link", { name: "Add as a room" }).click();
-    await expect(page.getByLabel("Name")).toHaveValue("Fintech Founders Mixer");
+    await idea.getByRole("link", { name: "+ My events" }).click();
+    await expect(page.getByRole("dialog", { name: "Add event" }).getByLabel("Title")).toHaveValue("Fintech Founders Mixer");
   });
 
   test("today's brief, per Space", async ({ page }) => {
@@ -127,8 +132,9 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     }).toPass();
     await page.getByRole("dialog").getByRole("button", { name: "Scan a business card" }).click();
     await page.getByLabel("Photo of a business card").setInputFiles({ name: "card.png", mimeType: "image/png", buffer: PNG });
-    await expect(page.getByRole("heading", { name: "Add a person", level: 1 })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Ngozi Eze");
+    // The Add person sheet opens, filled in from the card.
+    const form = page.getByRole("dialog", { name: "Add person" });
+    await expect(form.getByLabel("Name", { exact: true })).toHaveValue("Ngozi Eze", { timeout: 15_000 });
     await expect(page.getByText("Read from the card. Check the details, then add them.")).toBeVisible();
   });
 

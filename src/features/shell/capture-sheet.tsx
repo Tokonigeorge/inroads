@@ -63,7 +63,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
                   ))}
                   <li>
                     <Link href="/rooms/new" onClick={close} className="flex min-h-11 w-full items-center rounded-md px-3 text-left font-[550] hover:bg-sunken">
-                      Add a room
+                      Add event
                     </Link>
                   </li>
                   {(["card", "chat"] as const).map((m) => (
@@ -83,10 +83,16 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
           <CardScan onDone={close} aiEnabled={Boolean(spaces?.aiEnabled)} />
         ) : state.mode === "chat" && !spaces?.aiEnabled ? (
           <p className="text-small text-muted">Reading chats needs AI, which isn&apos;t set up on this server yet.</p>
+        ) : state.mode === "chat" ? (
+          <ChatImportForm
+            key={state.key}
+            person={state.person ? { id: state.person.id, name: state.person.name } : undefined}
+            spaces={state.person?.spaces ?? spaces?.spaces.map((s) => ({ id: s.id, name: s.name })) ?? []}
+            myName=""
+            onDone={close}
+          />
         ) : !state.person ? (
           <PersonPicker spaceId={spaceId} onPick={(person) => setState((s) => ({ ...s, person }))} />
-        ) : state.mode === "chat" ? (
-          <ChatImportForm personId={state.person.id} spaces={state.person.spaces} myName="" onDone={close} />
         ) : state.mode === "touch" ? (
           <LogTouchForm person={state.person} defaultSpaceId={spaceId} onDone={close} />
         ) : (

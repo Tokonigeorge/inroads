@@ -1,6 +1,6 @@
 # Prototype gap report
 
-Status: audit, 2026-10-26. Compares the Next.js app (`src/`) with the original prototype (`prototype/index.html`, 2,655 lines). Line numbers `L123` refer to the prototype.
+Status: audit, 2026-10-26. Done: M1–M3 (P1–P3), M6–M7 (P6–P7), M4–M5 and M8 (2026-10-27; see CHANGELOG). Prompts: `PROTOTYPE_PROMPTS.md`. Compares the Next.js app (`src/`) with the original prototype (`prototype/index.html`, 2,655 lines). Line numbers `L123` refer to the prototype.
 
 **Why this exists.** The product owner's feedback: *"the UI currently focuses on the wrong thing; it's not the same as the prototype. It should be the same UI and UX: the same questions asked (onboarding), the same things in settings, the same UI and flow."* They also asked about downloads (Settings → Backup).
 
@@ -112,12 +112,12 @@ Nudge kinds and copy (L816–846) vs `domain/nudges.ts`:
 
 ### 3.5 Events (Rooms)
 
-| Order | Prototype (L929–964) | App (`features/rooms/rooms-list.tsx`, `rooms-list-pane.tsx`, `app/(app)/rooms/suggested/page.tsx`) | Change |
+| Order | Prototype (L929–964) | App (`features/rooms/rooms-list.tsx`, `rooms-list-pane.tsx`, `app/(app)/radar/page.tsx`) | Change |
 |---|---|---|---|
 | 1 | Hero: stamp "`{n} COMING UP IN 30 DAYS`", h1 "**Rooms that matter**" | h1 "Rooms" in a list pane | Port |
 | 2 | Actions: **+ Add event** (primary), **Import from Google**, **Import calendar file** (L936) | "+ Add a room", "Find rooms for my goals", "Look something up" | Use prototype buttons ("Import from Google" = connect Google) |
 | 3 | h2 "**Next 30 days**": `.list` of rows with **date tile** (day number + mono month), title, "Sun · 6:00pm · Lekki", "n people linked", right side mono kind + recurrence (L937, L946–949). At most two per series. Empty: "Nothing scheduled. Add an event, set a recurring commitment, or import your calendar." | Tabs Upcoming / Repeating / Past; rows grouped by day with a kind icon tile | One scrolling page with sections instead of tabs; date tiles instead of kind icons |
-| 4 | h2 "**Radar**" + **Scan for this week** / **Refresh radar**; "Rooms worth your time in the next three weeks, matched to your goals and where your network already gathers."; cards: mono kind · confidence, title, date/where, why, "Who's there: …", "Find the date: …", "Open the listing ↗", **+ My events**, **Decode** (L938–942) | Separate page "Suggested rooms" (`/rooms/suggested`) and a "Rooms for your goals" block on Today | Put the Radar section on this page; rename back to "Radar"; keep the weekly auto-run (decision #127) |
+| 4 | h2 "**Radar**" + **Scan for this week** / **Refresh radar**; "Rooms worth your time in the next three weeks, matched to your goals and where your network already gathers."; cards: mono kind · confidence, title, date/where, why, "Who's there: …", "Find the date: …", "Open the listing ↗", **+ My events**, **Decode** (L938–942) | Separate page "Suggested rooms" (`/radar`) and a "Rooms for your goals" block on Today | Put the Radar section on this page; rename back to "Radar"; keep the weekly auto-run (decision #127) |
 | 5 | h2 "**Recurring**": rows with next-date tile, recurrence label, "Attended 2 of the last 6", "n people" (L943, L956–959). Empty: "No recurring commitments. Board dinners, club meetups and roundtables go here so you can track attendance and who you see there." | "Repeating" tab, "Went 2 of 6", "Met 6 · 4 in touch" | Section on the same page; keep the impact label as extra |
 | 6 | h2 "**Where your network gathers**": bar chart of top 7 "where you met" values (L944, L960–964). Empty: "Add "where you met" to people and the places that keep paying off show up here." | — (listed as a later gap in decision #128) | Add: a `group by where_met` query over `person_spaces` |
 | — | — | "Past" tab | Keep as a collapsed "Past" section at the end |
@@ -144,7 +144,7 @@ The prototype has no Settings page (see §5). App `/settings` becomes a secondar
 
 ### 3.10 Import and review
 
-| Prototype (L2227–2417, L2305–2326, L1234–1243) | App (`features/connections/file-import.tsx`, `app/(app)/settings/imports/[id]/page.tsx`, `features/people/triage-queue.tsx`) | Change |
+| Prototype (L2227–2417, L2305–2326, L1234–1243) | App (`features/connections/file-import.tsx`, `app/(app)/settings/imports/[id]/page.tsx`, `features/sort-queue.tsx`) | Change |
 |---|---|---|
 | "Import from Google" opens a **file picker** for .zip/.csv/.vcf/.ics (several at once) from any tab, then a **Review import** sheet: "Read {files}. Nothing is saved until you tap Import."; errors notice; **CONTACTS** checkbox "Import n contacts — n new · n existing people get missing details · n already up to date"; "Skip n entries with no name"; hint "Labels become tags; starred contacts become priority."; **CALENDARS** one checkbox per calendar (Holidays/Birthdays tags, counts, date range), "Also add upcoming events with no other guests", field "Your email address in these calendars"; hint about 6 months past / 3 months ahead; footer Cancel / **Import** | Upload on Settings → Connections → "Other ways to add people" → Files, then a full page "Review import" with "What will happen", Space select, "Import n people", "Details to fill in", paged "New people". No per-calendar choice, no "skip nameless", no "include solo", no "your email" field | Open the review as a sheet from any tab with the prototype's checkboxes; wire the options into `server/import/files.ts` staging (calendar on/off, skip nameless, include solo, me-emails → `profiles.emails`) |
 | After import, **Import complete** sheet: People added, Details filled in, Past meetings logged, Upcoming meetings, Skipped; "**People from your calendar you haven't saved**" list with Add / **Add all n**; Done / See people / See events | New people go to a triage queue ("Sort n new people") | Show the summary sheet; keep triage as the "Add" step for calendar people (one button to triage) |
@@ -371,7 +371,7 @@ The prototype uses the coined copy the brief banned: "Decode", "Decode the room"
 | Circles, per-person reminder cadence | Yes | Person form "More" fold; Account page for circle editing |
 | Goal pipelines (stages, steps, recent moves, `/goals/[id]`) | Yes | Drill-in from each Goals-tab goal row; "Steps due" folds into Today's weekly view |
 | Import triage (Sort n new people), duplicates review, suggestions review | Yes | A single `.notice` strip on People and as Today nudges; not the People header |
-| Ask your network (`/people/ask`) | Yes | A link in People's action row overflow, or a Discover type |
+| Ask your network (`/ask`) | Yes | A link in People's action row overflow, or a Discover type |
 | Quick capture (AI one-liner), voice capture, `c` shortcut, ⌘K palette | Yes | Desktop shortcuts; on phones, quick capture as the first item of "+ Add person"/"Log a touch" sheets. Remove the central FAB |
 | Room debrief "Who did you meet?", "What it's led to" | Yes | Event sheet, after People |
 | Introductions (intro asks) | Yes | Person sheet, after Timeline |

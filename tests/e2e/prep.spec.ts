@@ -28,22 +28,22 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
   test("type a room's name, Find details fills the form, and the plan is there when you save", async ({ page }) => {
     await page.goto("/rooms/new");
     await expect(async () => {
-      await page.getByLabel("Name", { exact: true }).fill("Moonshot");
+      await page.getByLabel("Title", { exact: true }).fill("Moonshot");
       await expect(page.getByRole("button", { name: "Find details" })).toBeEnabled({ timeout: 1000 });
     }).toPass();
     await page.getByRole("button", { name: "Find details" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Filled in the date, the venue, the event page." })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Moonshot by TechCabal");
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Moonshot by TechCabal");
     await expect(page.getByLabel("Date")).toHaveValue(addDays(today, 10));
     await expect(page.getByLabel("Starts")).toHaveValue("09:00");
-    await expect(page.getByLabel("Where")).toHaveValue("Landmark Centre, Lagos");
+    await expect(page.getByLabel("Location")).toHaveValue("Landmark Centre, Lagos");
     await expect(page.getByLabel("Event page")).toHaveValue("https://moonshot.example/tickets");
     await expect(page.getByLabel("Type")).toHaveValue("conference");
     // What it found is kept in the notes, and the goal its openings serve is picked.
     await expect(page.getByLabel("Notes")).toHaveValue(/Two days of Africa's tech founders[\s\S]*- Around 3,000 attendees/);
     await expect(page.getByLabel("Serves goal")).toHaveValue(goalId);
     await expect(page.getByText(/Who to meet: Tunde Bakare \(Partner at Kestrel, panel speaker\)/)).toBeVisible();
-    await page.getByRole("button", { name: "Add room" }).click();
+    await page.getByRole("button", { name: "Add event" }).click();
 
     await expect(page.getByRole("heading", { name: "Moonshot by TechCabal", level: 1 })).toBeVisible();
     const plan = page.getByRole("region", { name: "Your plan" });
@@ -54,7 +54,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     // One tap: Tunde is saved, put on the goal, linked to the room as a speaker.
     await plan.getByRole("listitem").filter({ hasText: "Tunde Bakare" }).getByRole("button", { name: 'Add to "Raise a pre-seed round"' }).click();
     await expect(plan.getByRole("link", { name: "In your people" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "People" }).getByRole("link", { name: /Tunde Bakare/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: "People" }).getByRole("link", { name: /Tunde Bakare/ }).first()).toBeVisible();
     await plan.getByRole("button", { name: "Add as a step" }).click();
     await expect(plan.getByText("Added as a step")).toBeVisible();
 
@@ -66,7 +66,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
 
   test("a goal can be made from the room form", async ({ page }) => {
     await page.goto("/rooms/new");
-    await page.getByLabel("Name", { exact: true }).fill("Investor breakfast");
+    await page.getByLabel("Title", { exact: true }).fill("Investor breakfast");
     await expect(async () => {
       await page.getByLabel("Serves goal").selectOption("__new");
       await expect(page.getByLabel("New goal")).toBeVisible({ timeout: 1000 });
@@ -74,8 +74,8 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await page.getByLabel("New goal").fill("Meet three seed investors");
     await page.getByRole("button", { name: "Create goal" }).click();
     await expect(page.getByLabel("Serves goal").locator("option:checked")).toHaveText("Meet three seed investors");
-    await page.getByRole("button", { name: "Add room" }).click();
-    await expect(page.getByText("Serves: Meet three seed investors")).toBeVisible();
+    await page.getByRole("button", { name: "Add event" }).click();
+    await expect(page.getByRole("article").locator(".tag.goal", { hasText: "Meet three seed investors" })).toBeVisible();
   });
 
   test("someone you add by name is researched without asking; you keep what's right", async ({ page }) => {

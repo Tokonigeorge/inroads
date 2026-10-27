@@ -30,20 +30,25 @@ test.describe.serial("Importing files and merging duplicates", () => {
     await page.getByText("Other ways to add people").click();
     await expect(page.getByLabel("Choose files to import")).toBeEnabled();
     await page.getByLabel("Choose files to import").setInputFiles([fixture("iphone.vcf"), fixture("Connections.csv")]);
-    await expect(page.getByRole("heading", { name: "Review import", level: 1 })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("6 new people, waiting for you to sort afterwards")).toBeVisible();
-    await expect(page.getByText(/1 possible duplicate \(same name/)).toBeVisible();
-    await expect(page.getByText("Kwame Mensah")).toBeVisible();
+    // The review opens as a sheet, with the prototype's choices.
+    const review = page.getByRole("dialog", { name: "Review import" });
+    await expect(review.getByText(/^Import \d+ contacts$/)).toBeVisible({ timeout: 15_000 });
+    await expect(review.getByText(/^6 new/)).toBeVisible();
+    await expect(review.getByText(/1 possible duplicate \(same name/)).toBeVisible();
+    await expect(review.getByText("Kwame Mensah")).toBeVisible();
     await expectAccessible(page);
 
-    await page.getByRole("button", { name: "Import 6 people" }).click();
+    await review.getByRole("button", { name: "Import", exact: true }).click();
+    const done = page.getByRole("dialog", { name: "Import complete" });
+    await expect(done.getByText("People added")).toBeVisible({ timeout: 15_000 });
+    await done.getByRole("link", { name: /^Sort \d+ new people$/ }).click();
     await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /^Use suggested sort for/ }).click();
     await expect(page.getByText("Everyone is sorted.")).toBeVisible();
   });
 
   test("merge a possible duplicate, then undo", async ({ page }) => {
-    await page.goto("/people/duplicates");
+    await page.goto("/duplicates");
     const pair = page.getByRole("article", { name: "Possible duplicate: Ifeoma Nwosú" });
     await expect(pair).toBeVisible();
     await expectAccessible(page);

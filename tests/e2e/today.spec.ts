@@ -106,6 +106,9 @@ test.describe.serial("Today", () => {
     await expect(page.getByRole("option", { name: /Tunde Bakare/ })).toBeVisible();
     await box.press("Enter");
     await expect(page.getByRole("heading", { name: "Tunde Bakare", level: 1 })).toBeVisible();
+    // He opens as a sheet over Today; close it to get back to the header.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     await openPalette(page, isMobile);
     await box.fill("enterprise");
@@ -113,7 +116,7 @@ test.describe.serial("Today", () => {
     await expect(page.getByRole("heading", { name: "Win three enterprise clients", level: 1 })).toBeVisible();
 
     await openPalette(page, isMobile);
-    await box.fill("add a room");
+    await box.fill("add event");
     await box.press("ArrowDown");
     await box.press("ArrowUp");
     await box.press("Enter");

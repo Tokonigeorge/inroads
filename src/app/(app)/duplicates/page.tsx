@@ -4,33 +4,25 @@ import { Suspense } from "react";
 import { formatLongDate } from "@/domain/dates";
 import { instantInZone } from "@/domain/zoned";
 import { DuplicatePair, UndoMergeButton } from "@/features/people/duplicate-pair";
-import { LoadingRows } from "@/features/shell/page-frame";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { listDuplicates, recentMerges } from "@/server/repos/merge";
 import { userContext } from "@/server/user-context";
-import { Pane, Section } from "@/ui/layout";
+import { PageHeader, Section } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Possible duplicates" };
 
 export default function DuplicatesPage() {
   return (
-    <Pane
-      header={
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-title font-semibold">Possible duplicates</h1>
-          <Link href="/people" className="text-small text-muted hover:text-text md:hidden">
-            People
-          </Link>
-        </div>
-      }
-    >
+    <PageFrame>
+      <PageHeader stamp="People" title="Possible duplicates" />
       <div className="max-w-[720px]">
         <Suspense fallback={<LoadingRows rows={4} />}>
           <Duplicates />
         </Suspense>
       </div>
-    </Pane>
+    </PageFrame>
   );
 }
 

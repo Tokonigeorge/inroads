@@ -83,6 +83,7 @@ export async function roomsToDebrief(tx: Tx, spaceId: string | null, today: IsoD
 /** Recurring rooms with their next date and how often you've gone lately. */
 export async function listSeries(tx: Tx, spaceId: string | null, today: IsoDate) {
   const rooms = (await activeRooms(tx, spaceId)).filter((r) => r.rrule);
+  const counts = await peopleCounts(tx);
   const attendance = await tx.select().from(t.eventAttendance).where(eq(t.eventAttendance.attended, true));
   const went = new Set(attendance.map((a) => `${a.eventId}:${a.occurrenceOn}`));
   return rooms
@@ -98,9 +99,28 @@ export async function listSeries(tx: Tx, spaceId: string | null, today: IsoDate)
         next: nextOccurrence(timing, today),
         pastCount: past.length,
         attended: past.filter((d) => went.has(`${e.id}:${d}`)).length,
+        people: counts.get(e.id) ?? 0,
       };
     })
     .sort((a, b) => (a.next ?? "9999").localeCompare(b.next ?? "9999") || a.title.localeCompare(b.title));
+}
+
+/**
+ * "Where your network gathers" (prototype gatherStats, L960): the places you meet people most,
+ * by "where you met", top seven.
+ */
+export async function whereNetworkGathers(tx: Tx, spaceId: string | null) {
+  const rows = await tx.execute<{ label: string; n: number }>(sql`
+    select min(ps.where_met) as label, count(distinct ps.person_id)::int as n
+      from person_spaces ps
+      join people p on p.id = ps.person_id and p.deleted_at is null
+     where ps.where_met is not null and btrim(ps.where_met) <> '' and ps.archived_at is null
+       ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}
+     group by lower(btrim(ps.where_met))
+     order by n desc, label asc
+     limit 7
+  `);
+  return [...rows];
 }
 
 /** One-off rooms that have already happened (last 6 months), newest first. */

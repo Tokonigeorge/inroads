@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AskNetwork } from "@/features/people/ask-network";
-import { LoadingRows } from "@/features/shell/page-frame";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
-import { Pane } from "@/ui/layout";
+import { PageHeader } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Ask your network" };
 
 export default function AskPage() {
   return (
-    <Pane header={<h1 className="text-title font-semibold">Ask your network</h1>}>
-      <p className="max-w-[640px] pb-6 text-muted">Ask in your own words. Inroads looks through the people you know in one Space: their details, your notes, research and recent touches.</p>
+    <PageFrame>
+      <PageHeader
+        stamp="People"
+        title="Ask your network"
+        subtitle="Ask in your own words. Inroads looks through the people you know in one Space: their details, your notes, research and recent touches."
+      />
       <Suspense fallback={<LoadingRows rows={3} />}>
         <Ask />
       </Suspense>
-    </Pane>
+    </PageFrame>
   );
 }
 

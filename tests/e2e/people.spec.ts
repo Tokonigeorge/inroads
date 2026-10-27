@@ -21,7 +21,7 @@ test.describe.serial("People", () => {
   test("adding a person with everything you know", async ({ page }) => {
     await page.goto("/people/new");
     await page.getByLabel("Name", { exact: true }).fill(name);
-    await page.getByLabel("Role").fill("Head of partnerships");
+    await page.getByLabel("Position").fill("Head of partnerships");
     await page.getByLabel("Company").fill("Paystack");
     await page.getByLabel("Phone 1").fill("0803 123 4567");
     await page.getByLabel("Email 1").fill("ADA@Paystack.example");
@@ -34,7 +34,8 @@ test.describe.serial("People", () => {
     await expect(page.getByRole("link", { name: "+234 803 123 4567" })).toBeVisible();
     await expect(page.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/2348031234567");
     await expect(page.getByRole("link", { name: "ada@paystack.example" })).toBeVisible();
-    await expect(page.getByText("#fintech #partner")).toBeVisible();
+    await expect(page.getByText("#fintech", { exact: true })).toBeVisible();
+    await expect(page.getByText("#partner", { exact: true })).toBeVisible();
     await expectAccessible(page);
   });
 
@@ -53,11 +54,11 @@ test.describe.serial("People", () => {
     await page.getByRole("searchbox", { name: "Search people" }).fill("803123");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
     await page.getByRole("searchbox", { name: "Search people" }).fill("");
-    await page.getByLabel("Show").selectOption({ label: "No touches yet" });
+    await page.getByRole("group", { name: "Filter" }).getByRole("button", { name: "No touches yet" }).click();
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
     if (!isMobile) {
       // Keyboard: / focuses search.
-      await page.locator("body").click();
+      await page.getByRole("heading", { name: "Your network", level: 1 }).click();
       await page.keyboard.press("/");
       await expect(page.getByRole("searchbox", { name: "Search people" })).toBeFocused();
     }
@@ -67,7 +68,7 @@ test.describe.serial("People", () => {
     await page.goto("/people");
     await page.getByRole("searchbox", { name: "Search people" }).fill(name);
     await page.getByRole("link", { name: new RegExp(name) }).click();
-    await page.getByRole("article").getByRole("button", { name: "Log a touch" }).click();
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
 
     const dialog = sheet(page);
     await dialog.getByText("Call", { exact: true }).click();
@@ -114,7 +115,7 @@ test.describe.serial("People", () => {
     await page.getByLabel("Notes").fill("Goes to the same church");
     await page.getByRole("button", { name: "Add to Space" }).click();
 
-    await expect(page.getByRole("heading", { name: "Personal", level: 2, exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Context" }).getByRole("heading", { name: "Personal", exact: true })).toBeVisible();
     await expect(page.getByText("Goes to the same church")).toBeVisible();
     await page.getByRole("button", { name: "Remove from Personal" }).click();
     await page.getByRole("button", { name: "Remove", exact: true }).click();
@@ -148,7 +149,7 @@ test.describe.serial("People", () => {
     await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 
     await context.setOffline(true);
-    await page.getByRole("article").getByRole("button", { name: "Log a touch" }).click();
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
     await sheet(page).getByText("Message", { exact: true }).click();
     await sheet(page).getByLabel("What happened").fill("Sent a voice note from the bus");
     await sheet(page).getByRole("button", { name: "Log it" }).click();

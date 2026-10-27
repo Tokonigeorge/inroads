@@ -19,6 +19,8 @@ export type IcsEvent = {
   status: string;
   isException: boolean;
   attendees: IcsAttendee[];
+  /** Which calendar (file) it came from, when read from uploaded files. */
+  calendar?: string;
 };
 export type IcsCalendar = { name: string; tz: string | null; events: IcsEvent[] };
 

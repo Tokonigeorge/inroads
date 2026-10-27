@@ -83,11 +83,11 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
       case "debrief_room":
         return router.push(`/rooms/${a.eventId}/after?on=${a.occurrenceOn}`);
       case "sort":
-        return router.push("/people/triage");
+        return router.push("/sort");
       case "review_duplicates":
-        return router.push("/people/duplicates");
+        return router.push("/duplicates");
       case "review_suggestions":
-        return router.push("/people/suggestions");
+        return router.push("/suggestions");
       case "draft":
         return setDraft({ personId: a.personId, name: n.person?.name ?? "", purpose: a.purpose });
       case "research":

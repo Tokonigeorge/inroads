@@ -158,25 +158,27 @@ export type Capture = z.input<typeof captureSchema>;
 
 /* ---------- list query ---------- */
 
-export const peopleFilters = ["all", "starred", "due", "context", "untouched", "unsorted", "archived"] as const;
+export const peopleFilters = ["all", "starred", "due", "context", "no_dossier", "untouched", "unsorted", "archived"] as const;
 export type PeopleFilter = (typeof peopleFilters)[number];
 export const peopleFilterLabels: Record<PeopleFilter, string> = {
-  all: "Everyone",
+  all: "All",
   starred: "Priority",
-  due: "Due for a touch",
+  due: "Going cold",
   context: "Needs context",
+  no_dossier: "No dossier",
   untouched: "No touches yet",
   unsorted: "Not sorted yet",
   archived: "Archived",
 };
 
-export const peopleSorts = ["name", "recent", "due", "added"] as const;
+export const peopleSorts = ["priority", "added", "due", "name", "recent"] as const;
 export type PeopleSort = (typeof peopleSorts)[number];
 export const peopleSortLabels: Record<PeopleSort, string> = {
-  name: "Name",
-  recent: "Last spoken to",
-  due: "Most overdue",
+  priority: "Priority",
   added: "Recently added",
+  due: "Coldest first",
+  name: "A–Z",
+  recent: "Last spoken to",
 };
 
 export const peopleQuerySchema = z.object({
@@ -185,7 +187,7 @@ export const peopleQuerySchema = z.object({
   filter: z.enum(peopleFilters).optional().default("all"),
   tag: z.string().trim().max(40).optional(),
   circleId: z.string().uuid().optional(),
-  sort: z.enum(peopleSorts).optional().default("name"),
+  sort: z.enum(peopleSorts).optional().default("priority"),
   cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(60),
 });

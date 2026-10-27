@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 type SheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
 };
@@ -24,6 +24,10 @@ export function Sheet({ open, onOpenChange, title, description, children }: Shee
         <Dialog.Content
           className="sheet-panel fixed inset-x-0 bottom-0 top-[calc(env(safe-area-inset-top)+26px)] z-[61] overflow-y-auto overscroll-contain rounded-t-[20px] bg-bg px-4 pb-[calc(40px+env(safe-area-inset-bottom))] min-[900px]:top-0 min-[900px]:left-auto min-[900px]:w-[min(620px,100%)] min-[900px]:rounded-none"
           {...(description ? {} : { "aria-describedby": undefined })}
+          // A toast's Undo is not a click outside the sheet.
+          onInteractOutside={(e) => {
+            if ((e.target as Element | null)?.closest?.("[data-toast-region]")) e.preventDefault();
+          }}
         >
           <div className="sticky top-0 z-[3] flex items-center gap-2.5 bg-bg pt-3 pb-2.5">
             <Dialog.Close className="grid size-[38px] shrink-0 place-items-center rounded-full border border-line bg-surface text-ink" aria-label="Close">

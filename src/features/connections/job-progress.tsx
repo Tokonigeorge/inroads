@@ -66,7 +66,7 @@ export function JobProgress({ jobId, onDismiss }: { jobId: string; onDismiss?: (
           {(data.progress?.summary?.contacts?.added ?? 0) + (data.progress?.summary?.calendar?.newPeople ?? 0) > 0 ? (
             <div>
               <Button asChild variant="primary" size="sm">
-                <Link href="/people/triage">Sort new people</Link>
+                <Link href="/sort">Sort new people</Link>
               </Button>
             </div>
           ) : null}

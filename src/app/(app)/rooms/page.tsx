@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { EventsPage } from "@/features/rooms/events-page";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 
-export const metadata: Metadata = { title: "Rooms" };
+export const metadata: Metadata = { title: "Events" };
+export const maxDuration = 300;
 
-/** Desktop only: the detail pane before a room is chosen. */
-export default function RoomsIndex() {
+export default function RoomsPage() {
   return (
-    <div className="flex h-full items-center justify-center p-8">
-      <p className="max-w-[320px] text-center text-muted">Rooms are the meetings and events you go to. Choose one to see who&apos;ll be there and how often you go.</p>
-    </div>
+    <PageFrame>
+      <Suspense fallback={<LoadingRows rows={6} />}>
+        <EventsPage />
+      </Suspense>
+    </PageFrame>
   );
 }

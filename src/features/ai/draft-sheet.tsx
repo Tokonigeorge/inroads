@@ -25,8 +25,8 @@ export function DraftButton({ personId, name, spaces, aiEnabled }: { personId: s
   if (!spaces.length) return null;
   return (
     <>
-      <Button variant="ghost" disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
-        Draft a message
+      <Button disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
+        Draft message
       </Button>
       <DraftSheet open={open} onOpenChange={setOpen} personId={personId} name={name} spaces={spaces} initialPurpose={purpose} />
     </>

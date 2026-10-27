@@ -16,8 +16,10 @@ import { aiJobSchema } from "@/server/jobs/ai-jobs";
 import { enqueueAiJob } from "@/server/jobs/enqueue";
 import { logTouch } from "@/server/repos/people";
 import { keepOpening, keepStakeholder } from "@/server/repos/prep";
-import { acceptSuggestion, discardSuggestion } from "@/server/repos/suggestions";
+import { acceptSuggestion, discardSuggestion, pendingForPerson } from "@/server/repos/suggestions";
 import { userContext } from "@/server/user-context";
+import type { SuggestionView } from "./suggestion-list";
+import { describeSuggestion } from "./suggestion-view";
 
 const id = z.string().uuid();
 const message = (e: unknown) => (e instanceof AiError || e instanceof AiLimitError ? e.message : null);
@@ -89,6 +91,13 @@ export async function importChatAction(input: { spaceId: string; personId: strin
     if (m) return { message: m };
     throw e;
   }
+}
+
+/** What a chat import found for this person, to review in the import sheet (prototype "review" step). */
+export async function pendingSuggestionsAction(personId: string): Promise<SuggestionView[]> {
+  const user = await requireUser();
+  const rows = await db.withUser(user.id, (tx) => pendingForPerson(tx, id.parse(personId)));
+  return rows.map(describeSuggestion);
 }
 
 export async function acceptSuggestionAction(suggestionId: string, edited?: string): Promise<{ ok: boolean; message?: string }> {

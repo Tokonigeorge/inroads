@@ -60,16 +60,18 @@ export function Segmented<T extends string>({
   onChange,
   options,
   legend,
+  hideLegend = false,
 }: {
   name: string;
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
   legend: string;
+  hideLegend?: boolean;
 }) {
   return (
     <fieldset>
-      <legend className="pb-1.5 text-[13px] font-semibold text-muted">{legend}</legend>
+      <legend className={hideLegend ? "sr-only" : "pb-1.5 text-[13px] font-semibold text-muted"}>{legend}</legend>
       {/* The prototype's .seg: a sunk pill track, the chosen option raised on a white pill. */}
       <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-full border border-line bg-sunk p-[3px]">
         {options.map((o) => (

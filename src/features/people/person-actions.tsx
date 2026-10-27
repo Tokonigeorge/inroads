@@ -4,7 +4,8 @@ import * as Menu from "@radix-ui/react-dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import type { Route } from "next";
+import { useState, useTransition, type ReactNode } from "react";
 import { sendCapture } from "@/features/offline/outbox";
 import { useCapture } from "@/features/shell/capture-sheet";
 import { Button } from "@/ui/button";
@@ -14,8 +15,33 @@ import { deletePersonAction, deletePromiseAction, deleteTouchAction, removeFromS
 import type { PickedPerson } from "./capture-forms";
 import { useAfterCapture } from "./capture-forms";
 
-/** Header actions on a person's page: Log a touch, Add a promise, Edit, and More. */
-export function PersonActions({ person, archived, defaultSpaceId }: { person: PickedPerson; archived: boolean; defaultSpaceId?: string }) {
+/** "Log a touch" (prototype act('log-touch')): opens the touch sheet for this person. */
+export function LogTouchButton({ person, defaultSpaceId, label = "Log a touch", variant = "secondary" }: { person: PickedPerson; defaultSpaceId?: string; label?: string; variant?: "primary" | "secondary" }) {
+  const capture = useCapture();
+  return (
+    <Button variant={variant} onClick={() => capture.open({ mode: "touch", person, spaceId: defaultSpaceId })}>
+      {label}
+    </Button>
+  );
+}
+
+/**
+ * The record's one row of actions in the prototype's order (L1039): Log a touch, Draft message,
+ * Decode their world, Edit; promises, other Spaces, archive and delete under More.
+ */
+export function PersonActions({
+  person,
+  archived,
+  defaultSpaceId,
+  draft,
+  decodeHref,
+}: {
+  person: PickedPerson;
+  archived: boolean;
+  defaultSpaceId?: string;
+  draft?: ReactNode;
+  decodeHref?: string;
+}) {
   const capture = useCapture();
   const router = useRouter();
   const toast = useToast();
@@ -41,30 +67,37 @@ export function PersonActions({ person, archived, defaultSpaceId }: { person: Pi
       await setArchivedAction(person.id, to);
       toast.show(to ? `${person.name} archived. They won't appear in lists or reminders.` : `${person.name} is back.`, to ? { label: "Undo", onClick: () => start(() => setArchivedAction(person.id, false)) } : undefined);
     });
+  const item = "flex h-9 items-center rounded-md px-2.5 outline-none data-[highlighted]:bg-sunken";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="primary" onClick={() => capture.open({ mode: "touch", person, spaceId: defaultSpaceId })}>
-        Log a touch
-      </Button>
-      <Button onClick={() => capture.open({ mode: "promise", person, spaceId: defaultSpaceId })}>Add a promise</Button>
+      <LogTouchButton person={person} defaultSpaceId={defaultSpaceId} variant="primary" />
+      {draft}
+      {decodeHref ? (
+        <Button asChild>
+          <Link href={decodeHref as Route}>Decode their world</Link>
+        </Button>
+      ) : null}
       <Button asChild variant="ghost">
         <Link href={`/people/${person.id}/edit`}>Edit</Link>
       </Button>
       <Menu.Root>
-        <Menu.Trigger className="flex size-10 items-center justify-center rounded-md text-muted hover:bg-sunken" aria-label="More actions">
+        <Menu.Trigger className="flex size-10 items-center justify-center rounded-full text-muted hover:bg-sunken" aria-label="More actions">
           <MoreHorizontal size={18} aria-hidden />
         </Menu.Trigger>
         <Menu.Portal>
-          <Menu.Content align="end" sideOffset={4} className="z-50 min-w-[200px] rounded-lg bg-surface p-1 shadow-pop">
-            <Menu.Item asChild className="flex h-9 items-center rounded-md px-2.5 outline-none data-[highlighted]:bg-sunken">
+          <Menu.Content align="end" sideOffset={4} className="z-[70] min-w-[200px] rounded-lg bg-surface p-1 shadow-pop">
+            <Menu.Item onSelect={() => capture.open({ mode: "promise", person, spaceId: defaultSpaceId })} className={item}>
+              Add a promise
+            </Menu.Item>
+            <Menu.Item asChild className={item}>
               <Link href={`/people/${person.id}/spaces/new`}>Add to another Space</Link>
             </Menu.Item>
-            <Menu.Item onSelect={() => archive(!archived)} className="flex h-9 items-center rounded-md px-2.5 outline-none data-[highlighted]:bg-sunken">
+            <Menu.Item onSelect={() => archive(!archived)} className={item}>
               {archived ? "Unarchive" : "Archive"}
             </Menu.Item>
             <Menu.Separator className="my-1 h-px bg-border" />
-            <Menu.Item onSelect={remove} className="flex h-9 items-center rounded-md px-2.5 text-danger outline-none data-[highlighted]:bg-sunken">
+            <Menu.Item onSelect={remove} className={`${item} text-danger`}>
               Delete
             </Menu.Item>
           </Menu.Content>

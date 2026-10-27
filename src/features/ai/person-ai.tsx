@@ -7,46 +7,23 @@ import { isAiConfigured } from "@/server/ai/config";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { pendingForPerson } from "@/server/repos/suggestions";
+import { describeSuggestion } from "./suggestion-view";
 import { researchJobKind } from "@/server/jobs/ai-jobs";
 import { userContext } from "@/server/user-context";
 import { AiJobButton } from "./ai-job-button";
-import { ChatImportButton } from "./chat-import";
 import { DeleteResearchButton } from "./delete-research";
-import { DraftButton } from "./draft-sheet";
 import { JobStatus } from "./job-status";
 import { ResearchControls } from "./research-controls";
-import { SuggestionList, type SuggestionView } from "./suggestion-list";
+import { LookItUpYourself } from "./discover-view";
+import { AcceptAllButton, SuggestionList } from "./suggestion-list";
 
 type Space = { id: string; name: string; kind: SpaceKind; researchMode: "full" | "get_to_know" | "off" };
 type Src = { title: string; url: string };
 
-const fieldLabel: Record<string, string> = { position: "Role", company: "Company", city: "City", birthday: "Birthday" };
-
-export function describeSuggestion(s: Awaited<ReturnType<typeof pendingForPerson>>[number]): SuggestionView {
-  const p = s.payload as Record<string, unknown>;
-  const base = { id: s.id, kind: s.kind, why: s.why ?? "", sources: (s.sources as Src[]) ?? [] };
-  switch (s.kind) {
-    case "person_field":
-      return { ...base, title: `${fieldLabel[String(p.field)] ?? "Detail"}`, value: String(p.value), editable: true };
-    case "social":
-      return { ...base, title: `Profile: ${String(p.key)}`, value: String(p.value), editable: true };
-    case "goal_link":
-      return { ...base, title: "Add to a goal", value: String(p.goalText), editable: false };
-    case "interaction":
-      return { ...base, title: `Touch on ${String(p.occurredOn)}`, value: String(p.summary), editable: true };
-    case "commitment":
-      return { ...base, title: p.owner === "me" ? "A promise you made" : "A promise they made", value: `${String(p.text)}${p.dueOn ? ` (by ${String(p.dueOn)})` : ""}`, editable: true };
-    case "interests":
-      return { ...base, title: "Interests", value: (p.values as string[]).join(", "), editable: false };
-    default:
-      return { ...base, title: "Add to notes", value: String(p.text), editable: true };
-  }
-}
-
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border py-6">
-      <h2 className="pb-3 text-title font-semibold">{title}</h2>
+    <section className="sec" aria-label={title}>
+      <h3>{title}</h3>
       {children}
     </section>
   );
@@ -93,14 +70,13 @@ const List = ({ title, items }: { title: string; items: (string | { text: string
 /** Research, suggestions, drafts and chat import on a person's page, per Space. */
 export async function PersonAi({ userId, personId, name, spaces }: { userId: string; personId: string; name: string; spaces: Space[] }) {
   const aiEnabled = isAiConfigured();
-  const { dossiers, suggestions, ctx, me, running } = await db.withUser(userId, async (tx) => {
-    const [dossiers, suggestions, ctx, [me], [running]] = await Promise.all([
+  const { dossiers, suggestions, ctx, running } = await db.withUser(userId, async (tx) => {
+    const [dossiers, suggestions, ctx, [running]] = await Promise.all([
       spaces.length
         ? tx.select().from(t.dossiers).where(and(eq(t.dossiers.personId, personId), inArray(t.dossiers.spaceId, spaces.map((s) => s.id)))).orderBy(desc(t.dossiers.version))
         : Promise.resolve([]),
       pendingForPerson(tx, personId),
       userContext(tx),
-      tx.select({ name: t.profiles.name }).from(t.profiles),
       // Research started for them (by hand or automatically when they were added) and still going.
       tx
         .select({ id: t.jobs.id })
@@ -109,23 +85,22 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         .orderBy(desc(t.jobs.createdAt))
         .limit(1),
     ]);
-    return { dossiers, suggestions, ctx, me, running };
+    return { dossiers, suggestions, ctx, running };
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
-  const spaceChoices = spaces.map((s) => ({ id: s.id, name: s.name }));
+  // Details for their profile (role, company, city, birthday, profiles): one tap adds them all.
+  const fills = suggestions.filter((x) => x.kind === "person_field" || x.kind === "social");
   const first = name.split(/\s+/)[0];
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 pb-2">
-        <DraftButton personId={personId} name={name} spaces={spaceChoices} aiEnabled={aiEnabled} />
-        <ChatImportButton personId={personId} name={name} spaces={spaceChoices} aiEnabled={aiEnabled} myName={me?.name ?? ""} />
-      </div>
-
       {suggestions.length ? (
-        <Block title={`Suggestions · ${suggestions.length}`}>
-          <p className="pb-3 text-small text-muted">Found by research or a chat import. Nothing is changed until you accept.</p>
+        <Block title={fills.length === suggestions.length ? "Missing from their profile" : `Suggestions · ${suggestions.length}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="hint">Found by research or a chat import. Nothing is changed until you accept.</p>
+            <AcceptAllButton ids={fills.map((f) => f.id)} />
+          </div>
           <SuggestionList items={suggestions.map(describeSuggestion)} />
         </Block>
       ) : null}
@@ -138,13 +113,18 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         const p = (latest?.payload ?? {}) as Record<string, unknown>;
         const v = (verify?.payload ?? {}) as { answer?: string; summary?: string; redFlags?: string[] };
         return (
-          <Block key={s.id} title={researchable.length > 1 ? `${s.researchMode === "full" ? "Research" : "Get to know"} · ${s.name}` : s.researchMode === "full" ? "Research" : "Get to know"}>
+          <Block key={s.id} title={researchable.length > 1 ? `${s.researchMode === "full" ? "Dossier" : "Get to know"} · ${s.name}` : s.researchMode === "full" ? "Dossier" : "Get to know"}>
             <div className="grid gap-4">
               {live ? <JobStatus jobId={live.id} /> : null}
               {latest ? (
                 <div className="grid gap-3">
-                  <p className="text-small text-muted">
-                    {latest.mode === "example" ? "Example research" : `Updated ${when(latest.createdAt)}`} · {latest.confidence ?? "medium"} confidence
+                  <div className="tags">
+                    <span className="tag">
+                      {latest.mode === "example" ? "Example data" : ((latest.sources as Src[]) ?? []).length ? `Live web · ${((latest.sources as Src[]) ?? []).length} sources` : "From what you saved"}
+                    </span>
+                  </div>
+                  <p className="hint">
+                    {latest.mode === "example" ? "Example data, not research" : `Confidence: ${latest.confidence ?? "medium"} · ${when(latest.createdAt)}`}
                   </p>
                   {latest.mode === "full" || latest.mode === "example" || latest.mode === "knowledge" ? (
                     <>
@@ -186,6 +166,10 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                   <Sources list={(verify.sources as Src[]) ?? []} />
                 </div>
               ) : null}
+              <div className="grid gap-1.5">
+                <h4 className="text-[13px] font-semibold text-muted">Look them up yourself</h4>
+                <LookItUpYourself q={`"${name}"`} />
+              </div>
               <ResearchControls
                 personId={personId}
                 spaceId={s.id}

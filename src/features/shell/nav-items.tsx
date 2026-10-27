@@ -50,7 +50,7 @@ export type NavItem = { href: string; label: string; icon: ComponentType<IconPro
 /** The prototype's five tabs (L412): Today, People, Discover, Events, Goals. */
 export const primaryNav: NavItem[] = [
   { href: "/today", label: "Today", icon: TodayIcon },
-  { href: "/people", label: "People", icon: PeopleIcon },
+  { href: "/people", label: "People", icon: PeopleIcon, also: ["/sort", "/duplicates", "/ask", "/suggestions"] },
   { href: "/discover", label: "Discover", icon: DiscoverIcon },
   { href: "/rooms", label: "Events", icon: EventsIcon },
   { href: "/goals", label: "Goals", icon: GoalsIcon, also: ["/settings"] },
