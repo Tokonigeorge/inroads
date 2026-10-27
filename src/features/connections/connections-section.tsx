@@ -3,7 +3,9 @@ import { providerLabels } from "@/contracts/connections";
 import { addDays, formatLongDate, todayIn } from "@/domain/dates";
 import { formatTime, instantInZone } from "@/domain/zoned";
 import { requireUser } from "@/server/auth";
+import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
+import * as t from "@/server/db/schema";
 import { isProviderConfigured } from "@/server/integrations/oauth";
 import { listConnections, recentImports } from "@/server/repos/connections";
 import { listSpaces } from "@/server/repos/spaces";
@@ -43,10 +45,21 @@ type Query = Record<string, string | string[] | undefined>;
 export async function ConnectionsSection({ searchParams, returnTo }: { searchParams: Promise<Query>; returnTo: string }) {
   const [q, user] = await Promise.all([searchParams, requireUser()]);
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-  const { connections, spaces, imports, tz } = await db.withUser(user.id, async (tx) => {
-    const [connections, spaces, imports, ctx] = await Promise.all([listConnections(tx), listSpaces(tx), recentImports(tx), userContext(tx)]);
-    return { connections, spaces, imports, tz: ctx.timezone };
+  const jobParam = one(q.job);
+  const { connections, spaces, imports, tz, job } = await db.withUser(user.id, async (tx) => {
+    const [connections, spaces, imports, ctx, [job]] = await Promise.all([
+      listConnections(tx),
+      listSpaces(tx),
+      recentImports(tx),
+      userContext(tx),
+      jobParam && /^[0-9a-f-]{36}$/i.test(jobParam)
+        ? tx.select({ id: t.jobs.id, status: t.jobs.status, updatedAt: t.jobs.updatedAt }).from(t.jobs).where(eq(t.jobs.id, jobParam)).limit(1)
+        : Promise.resolve([]),
+    ]);
+    return { connections, spaces, imports, tz: ctx.timezone, job: job ?? null };
   });
+  // A failed sync from the address bar is old news once a later sync has finished.
+  const superseded = job?.status === "failed" && connections.some((c) => c.lastSyncedAt && c.lastSyncedAt > job.updatedAt);
   const spaceName = new Map(spaces.map((s) => [s.id, s.name]));
   const rows: ConnectionRow[] = connections.map((c) => ({
     id: c.id,
@@ -65,14 +78,13 @@ export async function ConnectionsSection({ searchParams, returnTo }: { searchPar
     detail: importDetail(i.counts),
     status: i.status,
   }));
-  const job = one(q.job);
   return (
     <ConnectionsPanel
       connections={rows}
       spaces={spaces.map((s) => ({ id: s.id, name: s.name }))}
       imports={importRows}
       configured={{ google: isProviderConfigured("google"), microsoft: isProviderConfigured("microsoft") }}
-      initialJobId={job && /^[0-9a-f-]{36}$/i.test(job) ? job : null}
+      initialJobId={job && !superseded ? job.id : null}
       notice={errorNotice(one(q.error), one(q.provider)) ?? missingNotice(one(q.missing), one(q.provider))}
       returnTo={returnTo}
     />
