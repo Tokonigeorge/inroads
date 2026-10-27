@@ -342,7 +342,7 @@ function FindDetails({ title, spaceId, aiEnabled, found, onFound }: { title: str
               `${bits.length ? `Filled in ${bits.join(", ")}. Check them before saving.` : "Couldn't confirm a date or venue, so those are unchanged."} ${d.people || d.openings ? `Your plan (${count(d.people, "person", "people")} to meet, ${count(d.openings, "opening", "openings")}) is saved with the room.` : ""}`.trim(),
             );
           }}
-          onFailed={() => setJobId(null)}
+          onFailed={(e) => (setJobId(null), setError(e))}
         />
       ) : null}
       {note ? (

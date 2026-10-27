@@ -88,10 +88,10 @@ export function ResearchControls({
             setJobId(null);
             setPasted("");
           }}
-          onFailed={() => setTimeout(() => setJobId(null), 0)}
+          onFailed={(error) => setTimeout(() => (setJobId(null), setMessage(error)), 0)}
         />
       ) : null}
-      {lookupId ? <JobStatus jobId={lookupId} onDone={(r) => router.push(`/discover/${String(r.searchId)}`)} onFailed={() => setTimeout(() => setLookupId(null), 0)} /> : null}
+      {lookupId ? <JobStatus jobId={lookupId} onDone={(r) => router.push(`/discover/${String(r.searchId)}`)} onFailed={(error) => setTimeout(() => (setLookupId(null), setMessage(error)), 0)} /> : null}
       {message ? (
         <p role="alert" className="text-small text-danger">
           {message}

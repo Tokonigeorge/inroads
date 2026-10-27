@@ -58,7 +58,7 @@ export function Backup() {
             }
             toast.show("Backup saved.");
           }}
-          onFailed={() => setJobId(null)}
+          onFailed={(e) => (setJobId(null), toast.show(e))}
         />
       ) : null}
       <div className="flex flex-wrap items-center gap-2">

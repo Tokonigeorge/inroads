@@ -98,7 +98,7 @@ export function LookupForm({
           {message}
         </p>
       ) : null}
-      {jobId ? <JobStatus jobId={jobId} onDone={(r) => router.push(`/discover/${String(r.searchId)}`)} onFailed={() => setJobId(null)} /> : null}
+      {jobId ? <JobStatus jobId={jobId} onDone={(r) => router.push(`/discover/${String(r.searchId)}`)} onFailed={(error) => (setJobId(null), setMessage(error))} /> : null}
     </form>
   );
 }

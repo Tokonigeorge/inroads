@@ -12,7 +12,7 @@ type Job = { status: "queued" | "running" | "done" | "failed"; progress: { step?
  * earlier steps ticked off, the current one spinning. Calls `onDone` with its result, then
  * refreshes the page's data.
  */
-export function JobStatus({ jobId, onDone, onFailed }: { jobId: string; onDone?: (result: Record<string, unknown>) => void; onFailed?: () => void }) {
+export function JobStatus({ jobId, onDone, onFailed }: { jobId: string; onDone?: (result: Record<string, unknown>) => void; onFailed?: (error: string) => void }) {
   const router = useRouter();
   const { data } = useQuery({
     queryKey: ["job", jobId],
@@ -36,7 +36,7 @@ export function JobStatus({ jobId, onDone, onFailed }: { jobId: string; onDone?:
       router.refresh();
     } else if (data.status === "failed") {
       handled.current = true;
-      onFailed?.();
+      onFailed?.(data.error ?? "That didn't finish. Try again in a moment.");
     }
   }, [data, onDone, onFailed, router]);
   if (data?.status === "failed") {

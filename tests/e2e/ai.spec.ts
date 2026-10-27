@@ -114,6 +114,14 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     await expect(page.getByRole("dialog", { name: "Add event" }).getByLabel("Title")).toHaveValue("Fintech Founders Mixer");
   });
 
+  test("scoring says what it did and links the strong fits", async ({ page }) => {
+    await page.goto("/goals");
+    await page.getByRole("button", { name: /^Score \d+ people/ }).first().click();
+    const done = page.getByRole("status").filter({ hasText: /^Scored \d+ (person|people)\./ });
+    await expect(done).toBeVisible({ timeout: 20_000 });
+    await expect(done.getByRole("link", { name: /Review \d+ strong fits? for your goals/ })).toBeVisible();
+  });
+
   test("today's brief, per Space", async ({ page }) => {
     await page.goto("/today");
     await page.getByRole("button", { name: "Write today's brief" }).first().click();

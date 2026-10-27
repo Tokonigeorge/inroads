@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: "Score people" no longer stops without a word
+- Scoring now includes people from an import you haven't sorted yet (after the ones you have). Before, a fresh Google import meant nobody to score, and the job stopped.
+- When it finishes, the button says what it did ("Scored 60 people.") and links the strong fits to review.
+- When any background AI job fails (score, research, look-up, Find details, export, backup), the reason now stays on screen instead of vanishing with the progress box.
+
 ### Fixed: Google sync for new accounts
 - Inroads now records what Google actually granted, not what it asked for. If Contacts or Calendar was left unticked on Google's screen, it syncs what was shared and says what's missing, instead of failing the whole sync.
 - A shared calendar Inroads can't read (free/busy only, or removed) is skipped instead of stopping the sync.

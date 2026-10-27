@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { JobStatus } from "@/features/ai/job-status";
 import { Button } from "@/ui/button";
+import { useToast } from "@/ui/toast";
 import { startExportAction } from "./actions";
 
 export type ExportView = { id: string; filename: string; size: string; made: string; until: string } | null;
@@ -11,6 +12,7 @@ export type ExportView = { id: string; filename: string; size: string; made: str
 export function ExportPanel({ latest }: { latest: ExportView }) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const toast = useToast();
   return (
     <div id="export" className="grid gap-3">
       <p className="text-muted">
@@ -28,7 +30,7 @@ export function ExportPanel({ latest }: { latest: ExportView }) {
           </span>
         </p>
       ) : null}
-      {jobId ? <JobStatus jobId={jobId} onDone={() => setJobId(null)} onFailed={() => setJobId(null)} /> : null}
+      {jobId ? <JobStatus jobId={jobId} onDone={() => setJobId(null)} onFailed={(e) => (setJobId(null), toast.show(e))} /> : null}
       <div>
         <Button disabled={pending || Boolean(jobId)} onClick={() => start(async () => setJobId((await startExportAction()).jobId))}>
           {latest ? "Make a new export" : "Export your data"}

@@ -531,7 +531,10 @@ export async function writeBrief(deps: FeatureDeps, userId: string, input: { spa
 
 /* ======================================================================= scoring */
 
-/** Scores up to 60 people (least recently scored first) against this Space's goals. */
+/**
+ * Scores up to 60 people against this Space's goals: people you've sorted first, then people
+ * still waiting to be sorted (a fresh import), least recently scored first.
+ */
 export async function scorePeople(deps: FeatureDeps, userId: string, input: { spaceId: string }, progress: Progress = noop) {
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
@@ -541,8 +544,8 @@ export async function scorePeople(deps: FeatureDeps, userId: string, input: { sp
       .select({ id: t.people.id, name: t.people.name, position: t.people.position, company: t.people.company, whereMet: t.personSpaces.whereMet, interests: t.personSpaces.interests, notes: t.personSpaces.notes, starred: t.personSpaces.starred })
       .from(t.personSpaces)
       .innerJoin(t.people, eq(t.people.id, t.personSpaces.personId))
-      .where(and(eq(t.personSpaces.spaceId, input.spaceId), isNull(t.personSpaces.archivedAt), isNull(t.people.deletedAt), eq(t.personSpaces.triageState, "done")))
-      .orderBy(sql`(select max(s.created_at) from scores s where s.person_id = people.id) asc nulls first`)
+      .where(and(eq(t.personSpaces.spaceId, input.spaceId), isNull(t.personSpaces.archivedAt), isNull(t.people.deletedAt)))
+      .orderBy(sql`${t.personSpaces.triageState} = 'done' desc`, sql`(select max(s.created_at) from scores s where s.person_id = people.id) asc nulls first`)
       .limit(60),
   );
   if (!pick.length) throw new AiError("failed", "Add people to this Space first.");
