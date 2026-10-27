@@ -3,7 +3,7 @@
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Stage } from "@/contracts/spaces";
 import type { PickedPerson } from "@/features/people/capture-forms";
@@ -22,6 +22,13 @@ const itemClass = "flex h-9 items-center rounded-md px-2.5 outline-none data-[hi
 export function GoalActions({ goalId, text, spaceId, spaceName, stages, active, archived }: Props) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  // "Start here" on a new goal links to ?add=1 to open the picker.
+  const addParam = useSearchParams().get("add") === "1" && !archived;
+  const [openedFor, setOpenedFor] = useState(false);
+  if (addParam !== openedFor) {
+    setOpenedFor(addParam);
+    if (addParam) setAdding(true);
+  }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();

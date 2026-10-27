@@ -32,8 +32,13 @@ test.describe.serial("Goals", () => {
     await expect(page.getByText(/No one on this goal yet/)).toBeVisible();
     await expectAccessible(page);
 
+    // A new goal says what to do next.
+    const start = page.getByRole("region", { name: "Start here" });
+    await expect(start.getByRole("link", { name: "Open Radar" })).toBeVisible();
+    await expect(start.getByRole("button", { name: "Find who fits" })).toBeVisible();
+
     // Someone you want to meet but haven't saved yet.
-    await page.getByRole("button", { name: "Add people" }).click();
+    await start.getByRole("link", { name: "Add people" }).click();
     const sheet = page.getByRole("dialog", { name: "Add people" });
     await sheet.getByLabel("Someone you want to meet").fill(person);
     await sheet.getByRole("button", { name: "Add new person" }).click();

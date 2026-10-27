@@ -37,7 +37,7 @@ class MissingAccess extends Error {
   }
 }
 
-/** A short, safe reason to show with a failed sync, so it can be traced in the logs. Never data. */
+/** A short reason for the logs ("provider 403", "db 42703"), so a failed sync can be traced. Never data. */
 function failureCode(e: unknown) {
   if (e instanceof ProviderError) return `provider ${e.status}`;
   const pg = (e as { code?: unknown; cause?: { code?: unknown } })?.code ?? (e as { cause?: { code?: unknown } })?.cause?.code;
@@ -165,7 +165,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
   } catch (e) {
     // A 403 from Google means the person didn't tick Contacts or Calendar on its consent screen.
     const noAccess = e instanceof MissingAccess || (e instanceof ProviderError && e.status === 403);
-    if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError)) console.error(`sync ${conn.provider} failed`, e instanceof ProviderError ? `status ${e.status}` : "", e);
+    if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError)) console.error(`sync ${conn.provider} failed (${failureCode(e)})`, e);
     const message =
       e instanceof ReauthRequired
         ? `${name} needs you to reconnect. Google asks for this every 7 days while the app is in testing.`
@@ -173,7 +173,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
           ? `${name} didn't share your contacts or calendar with Inroads. Reconnect and tick both boxes on ${name}'s screen.`
           : e instanceof IcsUrlError
             ? e.message
-            : `Syncing ${name} didn't finish. It will try again shortly. (${failureCode(e)})`;
+            : `Syncing ${name} didn't finish. It will try again shortly.`;
     if (e instanceof ReauthRequired || noAccess) await store.setStatus(connectionId, "error", "reconnect");
     else if (e instanceof IcsUrlError) await store.setStatus(connectionId, "error", e.message);
     await jobs.fail(jobId, message);

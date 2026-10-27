@@ -55,6 +55,8 @@ export async function runAiJob(userId: string, jobId: string, job: AiJob, deps: 
     await jobs.done(jobId, { step: "Done" }, { kind: job.kind, ...result });
     return result;
   } catch (e) {
+    // The person sees a plain sentence; the logs get the real cause.
+    console.error(`ai job ${job.kind} failed`, e instanceof AiError ? `(${e.code})` : "", e);
     const message = e instanceof AiError || e instanceof AiLimitError ? e.message : "That didn't finish. Try again in a moment.";
     await jobs.fail(jobId, message);
     if (!(e instanceof AiError) && !(e instanceof AiLimitError)) throw e;

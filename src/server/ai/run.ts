@@ -25,7 +25,7 @@ export class AiError extends Error {
 const BUSY = "Inroads is busy right now. Try again in a minute.";
 const NO_ANSWER = "Inroads couldn't get an answer this time. Try again shortly.";
 const REFUSED = "Inroads couldn't do this one. Try rewording it or adding more context.";
-const BAD_SHAPE = "The answer came back in an unexpected shape. Try again.";
+const BAD_SHAPE = "Inroads couldn't make sense of the answer this time. Try again.";
 
 export type WebOptions = {
   search?: { maxUses: number; allowedDomains?: string[]; userLocation?: { city?: string; country?: string; timezone?: string } };
