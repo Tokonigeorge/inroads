@@ -115,7 +115,7 @@ test.describe.serial("People", () => {
     await page.getByLabel("Notes").fill("Goes to the same church");
     await page.getByRole("button", { name: "Add to Space" }).click();
 
-    await expect(page.getByRole("heading", { name: "Personal", level: 2, exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Context" }).getByRole("heading", { name: "Personal", exact: true })).toBeVisible();
     await expect(page.getByText("Goes to the same church")).toBeVisible();
     await page.getByRole("button", { name: "Remove from Personal" }).click();
     await page.getByRole("button", { name: "Remove", exact: true }).click();
