@@ -32,8 +32,8 @@ type Props = {
 };
 
 const ROW = 68;
-/** The prototype's sorts (L855), plus "Last spoken to". */
-const sorts: PeopleSort[] = ["priority", "added", "due", "name", "recent"];
+/** The prototype's sorts (L855), plus "Last spoken to" and "Strongest first". */
+const sorts: PeopleSort[] = ["priority", "added", "due", "name", "recent", "strength"];
 /** The prototype's chips (L854), then the app's own filters at the end. */
 const chipFilters: PeopleFilter[] = ["all", "starred", "due", "context", "no_dossier", "untouched", "unsorted", "archived"];
 

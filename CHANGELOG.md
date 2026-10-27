@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: relationship strength, ranked warm paths and intro outcomes (from Affinity)
+- **Relationship strength, 0–100:** how recently and how often you've been in touch over the last six months. A person's page reads "Good relationship (63/100)" next to when you last spoke (hover for why), and People has a **Strongest first** sort.
+- **Warm paths ranked by it:** "Who could introduce you" lists the people you're closest to first, with "You and Kemi: strong (82/100)" beside why they're a path.
+- **Intro outcomes:** the Goals tab has an Intros section: how many introductions you asked for, how many were made, and how many became a conversation, plus who you're still waiting on (overdue ones say so).
+
 ### Added: where your people are
 - People has a **Place** filter (when your people are in more than one city): every city or area saved on them, with counts, most first. Pick one to see only those people. Like Mesh's map, without sending anyone's address to a map service.
 

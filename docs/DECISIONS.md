@@ -2,6 +2,13 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: strength, warm paths, intro outcomes
+
+172. **Relationship strength is 0–100 from recency and frequency only**: 55 points for recency (fading over about 75 days) and 45 for touches in the last 180 days (six or more is full). Labels: Strong 70+, Good 40+, Fading 20+, Weak. Warmth stays as the plain "how long since" label and ring colour. To reverse or retune: `strength()` in `domain/relationship.ts` and `strengthSql` in `repos/strength.ts` (keep them the same).
+173. **No separate "strength dropped" alert.** Reminders (cadence) already tell you when someone you care about is due; a second alert on the same people would double up on Today. Strength is shown where you decide: the person's page, the Strongest first sort, and warm paths.
+174. **Warm paths rank by your strength with the introducer first**, then by how much connects them, then name. Asking someone you barely know for an intro rarely works.
+175. **Intro outcomes live on the Goals tab**, not the Events tab: they're results of your network, not of rooms. "Met" means you logged a touch with the person on or after the day the intro was made.
+
 ## 2026-10-27: after Mesh and Affinity, and what we left out
 
 166. **Scoring takes sorted people first, then ones waiting to be sorted** (reported: "Score 60 people" stopped right after a Google import, when nobody was sorted yet). New goals open with **Start here**; saving Profile & goals with a new goal opens that goal. Errors read in plain words everywhere (`contracts/issues.ts`, `app/(app)/error.tsx`), and codes and causes go to the server log only. To reverse the scoring order: put back `triage_state = 'done'` in `scorePeople`.

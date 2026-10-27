@@ -40,5 +40,9 @@ test.describe.serial("Ask your network", () => {
     await expect(results.getByText(/Your notes on Kemi mention fintech/)).toBeVisible();
     await expect(results.getByText("Ranked with AI from what you've recorded. Only this Space was searched.")).toBeVisible();
     await expectAccessible(page);
+
+    // There's always a way back to where you came from.
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/people$/);
   });
 });

@@ -125,6 +125,11 @@ describe("the people list", () => {
     expect(names(await list({ tag: "client" }))).toEqual(["Tunde Bakare"]);
   });
 
+  it("sorts by relationship strength: closest first, never-in-touch last", async () => {
+    // Tunde: spoken to 4 days ago; Zainab: 53 days ago; Kemi and Seun: never.
+    expect(names(await list({ sort: "strength" }))).toEqual(["Tunde Bakare", "Zainab Bello", "Kemi Adebayo", "Seun Bello"]);
+  });
+
   it("by place: cities with counts, and the list for one", async () => {
     await sql`update people set city = 'Lagos' where id in (${ids.tunde}, ${ids.zainab})`;
     await sql`update people set city = ' lagos ' where id = ${ids.kemi}`;

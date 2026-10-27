@@ -60,7 +60,21 @@ export function AskNetwork({ spaces, defaultSpaceId, aiEnabled, initialQuestion 
               ))}
             </ul>
           ) : (
-            <p className="text-muted">Nothing you&apos;ve recorded matches {r.terms.length ? `“${r.terms.slice(0, 4).join("”, “")}”` : "that"}. Try other words, or add notes and interests to the people you know.</p>
+            <div className="grid gap-3">
+              <p className="text-muted">
+                No one you&apos;ve saved matches {r.terms.length ? `“${r.terms.slice(0, 4).join("”, “")}”` : "that"} yet. Inroads only looks through the people in your network and what you&apos;ve
+                noted about them.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="primary">
+                  <Link href={`/discover?q=${encodeURIComponent((state.question ?? "").slice(0, 200))}`}>Look further in Discover</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/people/new">Add someone you know</Link>
+                </Button>
+              </div>
+              <p className="text-small text-muted">Or try other words. Notes, interests and where you met make people easier to find.</p>
+            </div>
           )}
           <p className="text-small text-muted">{r.source === "ai" ? "Ranked with AI from what you've recorded." : "Matched on the words in your question."} Only this Space was searched.</p>
         </section>

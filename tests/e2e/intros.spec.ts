@@ -32,7 +32,7 @@ test.describe.serial("Intro requests", () => {
     await page.getByRole("button", { name: "Ask for an intro" }).click();
     const sheet = page.getByRole("dialog", { name: "Ask for an intro to Tunde" });
     await sheet.getByRole("radio", { name: /Ifeoma Nwosu/ }).check();
-    await expect(sheet.getByText("Also at Kestrel Ventures")).toBeVisible();
+    await expect(sheet.getByText("You haven't been in touch yet · Also at Kestrel Ventures")).toBeVisible();
     await sheet.getByLabel("For a goal").selectOption({ label: "Raise a pre-seed round" });
     await expect(sheet.getByLabel("Message to Ifeoma")).toHaveValue(/^Hi Ifeoma, hope you're well! I'd love to meet Tunde Bakare \(Partner at Kestrel Ventures\)\. I'm working on "Raise a pre-seed round"/);
     await expect(sheet.getByRole("link", { name: "Open in WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\/2348031234567\?text=Hi%20Ifeoma/);
@@ -63,5 +63,16 @@ test.describe.serial("Intro requests", () => {
     expect(await sql`select stage from goal_links where person_id = ${tunde}`).toEqual([{ stage: "introduced" }]);
     expect(await sql`select kind from person_links where from_person_id = ${tunde} and to_person_id = ${ifeoma}`).toEqual([{ kind: "introduced_by" }]);
     await sql.end();
+
+    // Asking logged a touch with Ifeoma, so her page shows how strong that relationship is now.
+    await page.goto(`/people/${ifeoma}`);
+    await expect(page.getByText(/(Strong|Good) relationship \(\d+\/100\)/)).toBeVisible();
+
+    // Goals tab: asked one, made one, not met yet.
+    await page.goto("/goals");
+    const intros = page.getByRole("region", { name: "Intros" });
+    await expect(intros.getByRole("definition").filter({ hasText: /^1$/ })).toHaveCount(2);
+    await expect(intros.getByText("you've since spoken to")).toBeVisible();
+    await expectAccessible(page);
   });
 });

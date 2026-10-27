@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueOn, dueState, effectiveCadence, personCadence, sinceLabel, warmth } from "./relationship";
+import { dueOn, dueState, effectiveCadence, personCadence, sinceLabel, strength, warmth } from "./relationship";
 
 describe("warmth", () => {
   const today = "2026-10-24";
@@ -50,5 +50,18 @@ describe("due dates", () => {
     expect(dueState("2026-10-24", "2026-10-24")).toMatchObject({ due: true, label: "Due today" });
     expect(dueState("2026-10-20", "2026-10-24")).toMatchObject({ due: true, overdueDays: 4, label: "4 days overdue" });
     expect(dueState(null, "2026-10-24")).toBeNull();
+  });
+});
+
+describe("strength", () => {
+  const today = "2026-10-24";
+  it("is recency and frequency together, 0–100, with a plain label and why", () => {
+    expect(strength({ lastTouchedOn: null, touches: 0, today })).toBeNull();
+    expect(strength({ lastTouchedOn: today, touches: 6, today })).toEqual({ value: 100, label: "Strong", why: "6 touches in 6 months, last today" });
+    // One chat today is a good start, not yet a strong relationship.
+    expect(strength({ lastTouchedOn: today, touches: 1, today })).toMatchObject({ value: 63, label: "Good" });
+    expect(strength({ lastTouchedOn: "2026-10-10", touches: 2, today })).toMatchObject({ value: 61, label: "Good" });
+    expect(strength({ lastTouchedOn: "2026-07-26", touches: 1, today })).toMatchObject({ value: 24, label: "Fading" });
+    expect(strength({ lastTouchedOn: "2025-10-24", touches: 0, today })).toMatchObject({ value: 0, label: "Weak", why: "No touches in 6 months, last over a year ago" });
   });
 });

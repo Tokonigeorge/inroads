@@ -7,6 +7,7 @@ import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 import { goalWithStages } from "./goals";
 import type { Result } from "./spaces";
+import { strengthSql } from "./strength";
 
 const fail = (message: string, field?: string): Result<never> => ({ ok: false, message, field });
 const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
@@ -18,13 +19,24 @@ const linkReason: Record<string, string> = {
   partner: "Their partner",
 };
 
-export type WarmPath = { personId: string; name: string; detail: string; reasons: string[]; phone: string | null; email: string | null };
+export type WarmPath = {
+  personId: string;
+  name: string;
+  detail: string;
+  reasons: string[];
+  phone: string | null;
+  email: string | null;
+  /** How strong your own relationship with them is, 0–100 (null: never been in touch). */
+  strength: number | null;
+};
 
 /**
  * Who in this Space could introduce you to someone, and why: people you've linked to them,
- * people at the same company, and people you've seen at the same rooms. Best evidence first.
+ * people at the same company, and people you've seen at the same rooms. Ranked like Affinity's
+ * warm-intro paths: how strong your own relationship with the introducer is first (asking
+ * someone you barely know rarely works), then how much evidence connects them.
  */
-export async function warmPaths(tx: Tx, targetId: string, spaceId: string): Promise<WarmPath[]> {
+export async function warmPaths(tx: Tx, targetId: string, spaceId: string, today: IsoDate): Promise<WarmPath[]> {
   const [target] = await tx.select({ company: t.people.company }).from(t.people).where(eq(t.people.id, targetId));
   if (!target) return [];
   const member = sql`exists (select 1 from person_spaces ps where ps.person_id = people.id and ps.space_id = ${spaceId} and ps.archived_at is null)`;
@@ -59,13 +71,21 @@ export async function warmPaths(tx: Tx, targetId: string, spaceId: string): Prom
   reasons.delete(targetId);
   if (!reasons.size) return [];
   const people = await tx
-    .select({ id: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position, phones: t.people.phones, emails: t.people.emails })
+    .select({
+      id: t.people.id,
+      name: t.people.name,
+      company: t.people.company,
+      position: t.people.position,
+      phones: t.people.phones,
+      emails: t.people.emails,
+      strength: sql<number | null>`case when ${t.people.lastTouchedOn} is null then null else ${strengthSql(sql`${t.people.lastTouchedOn}`, sql`${t.people.id}`, today)} end`,
+    })
     .from(t.people)
     .where(and(inArray(t.people.id, [...reasons.keys()]), isNull(t.people.deletedAt), member))
     .orderBy(asc(t.people.name));
   return people
-    .map((p) => ({ personId: p.id, name: p.name, detail: [p.position, p.company].filter(Boolean).join(" at "), reasons: reasons.get(p.id)!, phone: p.phones[0] ?? null, email: p.emails[0] ?? null }))
-    .sort((a, b) => b.reasons.length - a.reasons.length || a.name.localeCompare(b.name))
+    .map((p) => ({ personId: p.id, name: p.name, detail: [p.position, p.company].filter(Boolean).join(" at "), reasons: reasons.get(p.id)!, phone: p.phones[0] ?? null, email: p.emails[0] ?? null, strength: p.strength }))
+    .sort((a, b) => (b.strength ?? -1) - (a.strength ?? -1) || b.reasons.length - a.reasons.length || a.name.localeCompare(b.name))
     .slice(0, 8);
 }
 
@@ -148,4 +168,39 @@ export async function introsAbout(tx: Tx, personId: string) {
     .innerJoin(t.people, eq(t.people.id, t.commitments.personId))
     .where(and(eq(t.commitments.kind, "intro"), eq(t.commitments.aboutPersonId, personId), isNull(t.people.deletedAt)))
     .orderBy(desc(t.commitments.createdAt));
+}
+
+/**
+ * Intro outcomes (Affinity-style introductions reporting): how many you asked for, how many
+ * were made, and how many turned into a conversation (a touch with the person after the intro).
+ * Plus the ones you're still waiting on, oldest due first.
+ */
+export async function introOutcomes(tx: Tx, spaceId: string | null) {
+  const inSpace = spaceId ? sql`and c.space_id = ${spaceId}` : sql``;
+  const [[counts], waiting] = await Promise.all([
+    tx.execute<{ asked: number; made: number; met: number }>(sql`
+      select count(*)::int as asked,
+             count(c.done_at)::int as made,
+             count(*) filter (where c.done_at is not null and exists (
+               select 1 from interactions i
+                where i.person_id = c.about_person_id and i.occurred_on >= (c.done_at at time zone 'UTC')::date
+             ))::int as met
+        from commitments c
+        join people target on target.id = c.about_person_id and target.deleted_at is null
+       where c.kind = 'intro' ${inSpace}`),
+    tx.execute<{ id: string; connector_id: string; connector: string; target_id: string; target: string; due_on: string | null }>(sql`
+      select c.id, conn.id as connector_id, conn.name as connector, target.id as target_id, target.name as target, c.due_on::text as due_on
+        from commitments c
+        join people conn on conn.id = c.person_id and conn.deleted_at is null
+        join people target on target.id = c.about_person_id and target.deleted_at is null
+       where c.kind = 'intro' and c.done_at is null ${inSpace}
+       order by c.due_on asc nulls last
+       limit 10`),
+  ]);
+  return {
+    asked: counts?.asked ?? 0,
+    made: counts?.made ?? 0,
+    met: counts?.met ?? 0,
+    waiting: [...waiting].map((w) => ({ id: w.id, connectorId: w.connector_id, connector: w.connector, targetId: w.target_id, target: w.target, dueOn: w.due_on })),
+  };
 }
