@@ -9,6 +9,7 @@ import {
   createPerson,
   deletePerson,
   getPerson,
+  listCities,
   listPeople,
   logTouch,
   removeFromSpace,
@@ -122,6 +123,23 @@ describe("the people list", () => {
     expect(names(await list({ filter: "due" }))).toEqual(["Zainab Bello"]);
     expect(names(await list({ filter: "context" }))).toEqual(["Kemi Adebayo", "Zainab Bello"]);
     expect(names(await list({ tag: "client" }))).toEqual(["Tunde Bakare"]);
+  });
+
+  it("by place: cities with counts, and the list for one", async () => {
+    await sql`update people set city = 'Lagos' where id in (${ids.tunde}, ${ids.zainab})`;
+    await sql`update people set city = ' lagos ' where id = ${ids.kemi}`;
+    await sql`update people set city = 'Accra' where id = ${ids.seun}`;
+    expect(await as((tx) => listCities(tx, null))).toEqual([
+      { city: "Lagos", n: 3 },
+      { city: "Accra", n: 1 },
+    ]);
+    expect(await as((tx) => listCities(tx, personal))).toEqual([
+      { city: "Accra", n: 1 },
+      { city: "lagos", n: 1 },
+    ]);
+    expect(names(await list({ city: "LAGOS" }))).toEqual(["Kemi Adebayo", "Tunde Bakare", "Zainab Bello"]);
+    expect(names(await list({ city: "Accra", spaceId: work }))).toEqual([]);
+    await sql`update people set city = null where user_id = ${user.id}`;
   });
 
   it("uses circles for reminders when the person has no setting of their own", async () => {

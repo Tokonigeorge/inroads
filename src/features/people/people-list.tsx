@@ -22,6 +22,8 @@ type Props = {
   showSpaces: boolean;
   tags: string[];
   circles: { id: string; name: string }[];
+  /** Cities or areas your people are in, with counts. */
+  cities: { city: string; n: number }[];
   /** People from imports waiting to be sorted. */
   toSort: number;
   /** Possible duplicates from imports, waiting for review. */
@@ -75,12 +77,13 @@ function Row({ p, today, showSpaces }: { p: PersonListItem; today: string; showS
  * card of rows with warmth rings and fit scores. Virtualised and keyset-paged, so 10,000+ people
  * scroll smoothly.
  */
-export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circles, toSort, duplicates, total }: Props) {
+export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circles, cities, toSort, duplicates, total }: Props) {
   const capture = useCapture();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<PeopleFilter>("all");
   const [sort, setSort] = useState<PeopleSort>("priority");
   const [group, setGroup] = useState(""); // "tag:x" | "circle:id"
+  const [city, setCity] = useState("");
   const [cursor, setCursor] = useState(-1);
   const deferredQ = useDeferredValue(q.trim());
   const search = useRef<HTMLInputElement>(null);
@@ -90,9 +93,9 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
   const tag = group.startsWith("tag:") ? group.slice(4) : undefined;
   const circleId = group.startsWith("circle:") ? group.slice(7) : undefined;
   const query = useInfiniteQuery({
-    queryKey: ["people", "list", { q: deferredQ, filter, sort, spaceId, tag, circleId }],
+    queryKey: ["people", "list", { q: deferredQ, filter, sort, spaceId, tag, circleId, city }],
     queryFn: ({ pageParam }) =>
-      fetchPeople({ q: deferredQ, filter, sort, spaceId: spaceId ?? undefined, tag, circleId, cursor: pageParam ?? undefined, limit: "60" }),
+      fetchPeople({ q: deferredQ, filter, sort, spaceId: spaceId ?? undefined, tag, circleId, city: city || undefined, cursor: pageParam ?? undefined, limit: "60" }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -127,7 +130,7 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
   useShortcut("j", () => move(1));
   useShortcut("k", () => move(-1));
 
-  const filtered = Boolean(deferredQ || filter !== "all" || group);
+  const filtered = Boolean(deferredQ || filter !== "all" || group || city);
   const emptyText = filtered
     ? "No one matches. Try a different search or filter."
     : spaceName && total
@@ -168,7 +171,7 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
       <Link href="/ask" className="justify-self-start text-[14px] font-semibold text-accent hover:underline">
         Ask your network a question
       </Link>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+      <div className={`grid gap-2 ${cities.length > 1 ? "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]"}`}>
         <Input
           ref={search}
           type="search"
@@ -178,6 +181,16 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
           aria-label="Search people"
           autoComplete="off"
         />
+        {cities.length > 1 ? (
+          <Select aria-label="Place" value={city} onChange={(e) => setCity(e.target.value)} className="w-auto max-sm:order-last max-sm:col-span-full">
+            <option value="">Anywhere</option>
+            {cities.map((c) => (
+              <option key={c.city} value={c.city}>
+                {c.city} ({c.n.toLocaleString("en-GB")})
+              </option>
+            ))}
+          </Select>
+        ) : null}
         <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as PeopleSort)} className="w-auto">
           {sorts.map((s) => (
             <option key={s} value={s}>

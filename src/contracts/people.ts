@@ -187,6 +187,8 @@ export const peopleQuerySchema = z.object({
   filter: z.enum(peopleFilters).optional().default("all"),
   tag: z.string().trim().max(40).optional(),
   circleId: z.string().uuid().optional(),
+  /** People in one city or area ("Lagos", "Lekki"), as saved on them. */
+  city: z.string().trim().max(80).optional(),
   sort: z.enum(peopleSorts).optional().default("priority"),
   cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(60),

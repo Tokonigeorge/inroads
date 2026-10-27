@@ -114,6 +114,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
   if (q.circleId) having.push(sql`bool_or(ps.circle_id = ${q.circleId})`);
 
   const where: SQL[] = [sql`p.deleted_at is null`];
+  if (q.city) where.push(sql`lower(trim(p.city)) = lower(${q.city})`);
   if (q.q) {
     const like = `%${escapeLike(q.q)}%`;
     const digits = q.q.replace(/\D/g, "");
@@ -474,6 +475,17 @@ export async function saveCircle(tx: Tx, userId: string, input: { id?: string; s
 /** People in the circle keep their own settings and fall back to the Space default. */
 export async function deleteCircle(tx: Tx, id: string) {
   await tx.delete(t.circles).where(eq(t.circles.id, id));
+}
+
+/** Where your people are (their saved city or area), most first, for the Place filter (Mesh's map, without a map). */
+export async function listCities(tx: Tx, spaceId: string | null) {
+  const rows = await tx.execute<{ city: string; n: number }>(sql`
+    select min(trim(p.city)) as city, count(distinct p.id)::int as n
+      from people p join person_spaces ps on ps.person_id = p.id
+     where p.deleted_at is null and ps.archived_at is null and coalesce(trim(p.city), '') <> ''
+       ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}
+     group by lower(trim(p.city)) order by n desc, city asc limit 40`);
+  return [...rows];
 }
 
 /** Tags in use, for filter menus. */

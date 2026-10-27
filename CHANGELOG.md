@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: where your people are
+- People has a **Place** filter (when your people are in more than one city): every city or area saved on them, with counts, most first. Pick one to see only those people. Like Mesh's map, without sending anyone's address to a map service.
+
 ### Added: your last 8 weeks on each goal
 - Under a goal's "This week" meter: one bar per week against the dashed weekly target, counted the same way as the meter (touches with people on the goal, sessions of its rooms you went to). Hover or focus a bar for the count. Shown once there's anything to show.
 - Closing **Add people** opened from "Start here" no longer reopens it on reload.
