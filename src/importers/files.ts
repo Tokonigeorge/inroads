@@ -14,7 +14,7 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // Vercel's request body limit 
 const MAX_UNZIPPED_BYTES = 40 * 1024 * 1024;
 const MAX_CONTACTS = 20_000;
 
-export type ParsedFiles = { contacts: IncomingContact[]; events: IcsEvent[]; files: { name: string; contacts: number; events: number }[]; errors: string[] };
+export type ParsedFiles = { contacts: IncomingContact[]; events: IcsEvent[]; files: { name: string; contacts: number; events: number; calendar?: string }[]; errors: string[] };
 
 /** UTF-8 when it is valid UTF-8, otherwise Windows-1252 (older Outlook and phone exports). */
 export function decodeText(bytes: Uint8Array): string {
@@ -75,7 +75,13 @@ export function readImportFiles(files: { name: string; bytes: Uint8Array }[], re
       raw = parseContactCsv(text);
       // LinkedIn's export has other CSVs (messages, invitations); only connections are contacts.
       if (!raw.length && !inZip) out.errors.push(`${base} doesn't look like a contacts file. It needs a header row with names or email addresses.`);
-    } else events = parseIcs(text).events;
+    } else {
+      // Each .ics is one calendar (Google Takeout has one per calendar): tag its events with it, so
+      // the review can leave a whole calendar (holidays, birthdays) out.
+      const cal = parseIcs(text);
+      const calendar = cal.name || base.replace(/\.ics$/i, "");
+      events = cal.events.map((e) => ({ ...e, calendar }));
+    }
     const source = kind === "csv" && /connections\.csv$/i.test(base) ? "linkedin" : kind === "ics" ? "ics" : kind;
     let n = 0;
     for (const r of raw) {
@@ -87,7 +93,7 @@ export function readImportFiles(files: { name: string; bytes: Uint8Array }[], re
       n++;
     }
     out.events.push(...events);
-    if (n || events.length) out.files.push({ name: base, contacts: n, events: events.length });
+    if (n || events.length) out.files.push({ name: base, contacts: n, events: events.length, ...(events.length ? { calendar: events[0].calendar } : {}) });
   };
 
   for (const f of files) take(f.name, f.bytes, false);

@@ -7,39 +7,18 @@ import { isAiConfigured } from "@/server/ai/config";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { pendingForPerson } from "@/server/repos/suggestions";
+import { describeSuggestion } from "./suggestion-view";
 import { researchJobKind } from "@/server/jobs/ai-jobs";
 import { userContext } from "@/server/user-context";
 import { AiJobButton } from "./ai-job-button";
 import { DeleteResearchButton } from "./delete-research";
 import { JobStatus } from "./job-status";
 import { ResearchControls } from "./research-controls";
-import { SuggestionList, type SuggestionView } from "./suggestion-list";
+import { LookItUpYourself } from "./discover-view";
+import { AcceptAllButton, SuggestionList } from "./suggestion-list";
 
 type Space = { id: string; name: string; kind: SpaceKind; researchMode: "full" | "get_to_know" | "off" };
 type Src = { title: string; url: string };
-
-const fieldLabel: Record<string, string> = { position: "Role", company: "Company", city: "City", birthday: "Birthday" };
-
-export function describeSuggestion(s: Awaited<ReturnType<typeof pendingForPerson>>[number]): SuggestionView {
-  const p = s.payload as Record<string, unknown>;
-  const base = { id: s.id, kind: s.kind, why: s.why ?? "", sources: (s.sources as Src[]) ?? [] };
-  switch (s.kind) {
-    case "person_field":
-      return { ...base, title: `${fieldLabel[String(p.field)] ?? "Detail"}`, value: String(p.value), editable: true };
-    case "social":
-      return { ...base, title: `Profile: ${String(p.key)}`, value: String(p.value), editable: true };
-    case "goal_link":
-      return { ...base, title: "Add to a goal", value: String(p.goalText), editable: false };
-    case "interaction":
-      return { ...base, title: `Touch on ${String(p.occurredOn)}`, value: String(p.summary), editable: true };
-    case "commitment":
-      return { ...base, title: p.owner === "me" ? "A promise you made" : "A promise they made", value: `${String(p.text)}${p.dueOn ? ` (by ${String(p.dueOn)})` : ""}`, editable: true };
-    case "interests":
-      return { ...base, title: "Interests", value: (p.values as string[]).join(", "), editable: false };
-    default:
-      return { ...base, title: "Add to notes", value: String(p.text), editable: true };
-  }
-}
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -110,13 +89,18 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
+  // Details for their profile (role, company, city, birthday, profiles): one tap adds them all.
+  const fills = suggestions.filter((x) => x.kind === "person_field" || x.kind === "social");
   const first = name.split(/\s+/)[0];
 
   return (
     <>
       {suggestions.length ? (
-        <Block title={`Suggestions · ${suggestions.length}`}>
-          <p className="pb-3 text-small text-muted">Found by research or a chat import. Nothing is changed until you accept.</p>
+        <Block title={fills.length === suggestions.length ? "Missing from their profile" : `Suggestions · ${suggestions.length}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="hint">Found by research or a chat import. Nothing is changed until you accept.</p>
+            <AcceptAllButton ids={fills.map((f) => f.id)} />
+          </div>
           <SuggestionList items={suggestions.map(describeSuggestion)} />
         </Block>
       ) : null}
@@ -134,8 +118,13 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
               {live ? <JobStatus jobId={live.id} /> : null}
               {latest ? (
                 <div className="grid gap-3">
-                  <p className="text-small text-muted">
-                    {latest.mode === "example" ? "Example research" : `Updated ${when(latest.createdAt)}`} · {latest.confidence ?? "medium"} confidence
+                  <div className="tags">
+                    <span className="tag">
+                      {latest.mode === "example" ? "Example data" : ((latest.sources as Src[]) ?? []).length ? `Live web · ${((latest.sources as Src[]) ?? []).length} sources` : "From what you saved"}
+                    </span>
+                  </div>
+                  <p className="hint">
+                    {latest.mode === "example" ? "Example data, not research" : `Confidence: ${latest.confidence ?? "medium"} · ${when(latest.createdAt)}`}
                   </p>
                   {latest.mode === "full" || latest.mode === "example" || latest.mode === "knowledge" ? (
                     <>
@@ -177,6 +166,10 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                   <Sources list={(verify.sources as Src[]) ?? []} />
                 </div>
               ) : null}
+              <div className="grid gap-1.5">
+                <h4 className="text-[13px] font-semibold text-muted">Look them up yourself</h4>
+                <LookItUpYourself q={`"${name}"`} />
+              </div>
               <ResearchControls
                 personId={personId}
                 spaceId={s.id}

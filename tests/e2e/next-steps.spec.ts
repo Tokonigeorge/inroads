@@ -45,15 +45,14 @@ test.describe.serial("Always a next step (against a fake Claude)", () => {
   });
 
   test("look up an event: what to do next, add everyone, then add it as a room", async ({ page }) => {
-    await page.goto("/rooms");
-    await page.getByRole("link", { name: "Look something up" }).click();
+    await page.goto("/discover");
     await expect(async () => {
-      await page.getByRole("group", { name: "What is it" }).getByText("Event", { exact: true }).click();
-      await page.getByLabel("Name", { exact: true }).fill("Moonshot");
+      await page.getByRole("group", { name: "Search type" }).getByText("Event", { exact: true }).click();
+      await page.getByLabel("What to decode").fill("Moonshot");
       await expect(page.getByRole("radio", { name: "Event" })).toBeChecked({ timeout: 1000 });
-      await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Moonshot", { timeout: 1000 });
+      await expect(page.getByLabel("What to decode")).toHaveValue("Moonshot", { timeout: 1000 });
     }).toPass();
-    await page.getByRole("button", { name: "Look it up" }).click();
+    await page.getByRole("button", { name: "Decode" }).click();
     await expect(page.getByRole("heading", { name: "Moonshot by TechCabal", level: 1 })).toBeVisible({ timeout: 20_000 });
 
     const next = page.getByRole("region", { name: "What to do next" });
@@ -63,14 +62,14 @@ test.describe.serial("Always a next step (against a fake Claude)", () => {
     await expect(next.getByText("(0 of 2)")).toHaveCount(0);
     await expectAccessible(page);
 
-    await page.getByRole("region", { name: "Going?" }).getByRole("link", { name: "Add as a room" }).click();
+    await page.getByRole("link", { name: "+ Add to my events" }).click();
     await expect(page).toHaveURL(/\/rooms\/new\?prep=/);
-    await expect(page.getByRole("heading", { name: "Add a room", level: 1 })).toBeVisible();
-    // (The look-up page stays mounted but hidden, so match visible fields by role.)
-    await expect(page.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Moonshot by TechCabal");
-    await expect(page.getByRole("textbox", { name: "Date" })).toHaveValue(addDays(today, 10));
-    await expect(page.getByRole("textbox", { name: "Where" })).toHaveValue("Landmark Centre, Lagos");
-    await page.getByRole("button", { name: "Add room" }).click();
+    // "Add event" opens as a sheet over the look-up.
+    const form = page.getByRole("dialog", { name: "Add event" });
+    await expect(form.getByRole("textbox", { name: "Title", exact: true })).toHaveValue("Moonshot by TechCabal");
+    await expect(form.getByRole("textbox", { name: "Date" })).toHaveValue(addDays(today, 10));
+    await expect(form.getByRole("textbox", { name: "Location" })).toHaveValue("Landmark Centre, Lagos");
+    await form.getByRole("button", { name: "Add event" }).click();
     await expect(page.getByRole("heading", { name: "Moonshot by TechCabal", level: 1 })).toBeVisible();
     // The look-up became the room's plan, with what was kept.
     await expect(page.getByRole("region", { name: "Your plan" }).getByRole("link", { name: "In your people" }).first()).toBeVisible();

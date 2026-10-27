@@ -84,3 +84,26 @@ function SuggestionCard({ s, onDone }: { s: SuggestionView; onDone: () => void }
     </li>
   );
 }
+
+/** "Add these 3 to their profile" (prototype save-found, L1066): accept every missing detail at once. */
+export function AcceptAllButton({ ids }: { ids: string[] }) {
+  const [pending, start] = useTransition();
+  const toast = useToast();
+  if (!ids.length) return null;
+  return (
+    <Button
+      variant="primary"
+      size="sm"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          let saved = 0;
+          for (const id of ids) if ((await acceptSuggestionAction(id)).ok) saved++;
+          toast.show(saved === 1 ? "Added 1 detail to their profile." : `Added ${saved} details to their profile.`);
+        })
+      }
+    >
+      {pending ? "Adding…" : ids.length === 1 ? "Add it to their profile" : `Add these ${ids.length} to their profile`}
+    </Button>
+  );
+}

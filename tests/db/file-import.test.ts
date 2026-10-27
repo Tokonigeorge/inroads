@@ -33,7 +33,7 @@ describe("file imports", () => {
     const before = await sql`select count(*)::int as n from people where user_id = ${user.id}`;
     const r = await as((tx) => stageFileImport(tx, { userId: user.id, spaceId: work, parsed }));
     importId = r.importId;
-    expect(r.planned).toEqual({ found: 6, add: 5, fill: 1, unchanged: 0, possibleDuplicates: 1, events: 0 });
+    expect(r.planned).toEqual({ found: 6, add: 5, fill: 1, unchanged: 0, possibleDuplicates: 1, events: 0, nameless: 1 });
     const after = await sql`select count(*)::int as n from people where user_id = ${user.id}`;
     expect(after[0].n).toBe(before[0].n);
 
@@ -65,6 +65,38 @@ describe("file imports", () => {
     await as((tx) => cancelFileImport(tx, r.importId));
     const [imp] = await sql`select status from imports where id = ${r.importId}`;
     expect(imp.status).toBe("cancelled");
+  });
+
+  it("the review's choices: skip entries with no name, leave a calendar out, keep solo events", async () => {
+    const u = await createUser(sql, "Choosy Importer");
+    const uWork = (await db.withUser(u.id, (tx) => listSpaces(tx))).find((s) => s.kind === "work")!.id;
+    const soon = (d: number) => {
+      const x = new Date(`${TODAY}T00:00:00Z`);
+      x.setUTCDate(x.getUTCDate() + d);
+      return x.toISOString().slice(0, 10).replace(/-/g, "");
+    };
+    const ics = (name: string, uid: string, title: string, guests: string[]) =>
+      new TextEncoder().encode(
+        `BEGIN:VCALENDAR\r\nX-WR-CALNAME:${name}\r\nBEGIN:VEVENT\r\nUID:${uid}\r\nSUMMARY:${title}\r\nDTSTART:${soon(3)}T090000Z\r\n${guests.map((g) => `ATTENDEE;CN=${g}:mailto:${g.toLowerCase()}@example.com\r\n`).join("")}END:VEVENT\r\nEND:VCALENDAR\r\n`,
+      );
+    const parsed = readImportFiles(
+      [
+        file("iphone.vcf"),
+        { name: "work.ics", bytes: ics("Work", "w1", "Gym session", []) },
+        { name: "holidays.ics", bytes: ics("Holidays", "h1", "Independence Day", []) },
+      ],
+      "NG",
+    );
+    expect(parsed.files.map((f) => f.calendar).filter(Boolean)).toEqual(["Work", "Holidays"]);
+    const staged = await db.withUser(u.id, (tx) => stageFileImport(tx, { userId: u.id, spaceId: uWork, parsed }));
+    const r = await db.withUser(u.id, (tx) =>
+      commitFileImport(tx, { userId: u.id, importId: staged.importId, spaceId: uWork, today: TODAY, meEmails: [], options: { contacts: true, skipNameless: true, calendars: ["Work"], includeSolo: true } }),
+    );
+    const names = (await sql`select name from people where user_id = ${u.id} order by name`).map((p) => p.name);
+    expect(names).not.toContain("+2348098765432");
+    expect(r?.contacts?.added).toBe(staged.planned.add - 1);
+    const events = (await sql`select title from events where user_id = ${u.id}`).map((e) => e.title);
+    expect(events).toEqual(["Gym session"]);
   });
 
   it("5,000 contacts from a vCard import in well under a minute", async () => {

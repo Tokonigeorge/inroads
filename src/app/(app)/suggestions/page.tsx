@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { describeSuggestion } from "@/features/ai/person-ai";
+import { describeSuggestion } from "@/features/ai/suggestion-view";
 import { SuggestionList } from "@/features/ai/suggestion-list";
 import { LoadingRows } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";

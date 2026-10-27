@@ -83,10 +83,16 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
           <CardScan onDone={close} aiEnabled={Boolean(spaces?.aiEnabled)} />
         ) : state.mode === "chat" && !spaces?.aiEnabled ? (
           <p className="text-small text-muted">Reading chats needs AI, which isn&apos;t set up on this server yet.</p>
+        ) : state.mode === "chat" ? (
+          <ChatImportForm
+            key={state.key}
+            person={state.person ? { id: state.person.id, name: state.person.name } : undefined}
+            spaces={state.person?.spaces ?? spaces?.spaces.map((s) => ({ id: s.id, name: s.name })) ?? []}
+            myName=""
+            onDone={close}
+          />
         ) : !state.person ? (
           <PersonPicker spaceId={spaceId} onPick={(person) => setState((s) => ({ ...s, person }))} />
-        ) : state.mode === "chat" ? (
-          <ChatImportForm personId={state.person.id} spaces={state.person.spaces} myName="" onDone={close} />
         ) : state.mode === "touch" ? (
           <LogTouchForm person={state.person} defaultSpaceId={spaceId} onDone={close} />
         ) : (

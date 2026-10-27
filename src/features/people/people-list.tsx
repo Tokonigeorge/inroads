@@ -165,6 +165,9 @@ export function PeopleList({ today, spaceId, spaceName, showSpaces, tags, circle
           ) : null}
         </div>
       ) : null}
+      <Link href="/ask" className="justify-self-start text-[14px] font-semibold text-accent hover:underline">
+        Ask your network a question
+      </Link>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <Input
           ref={search}

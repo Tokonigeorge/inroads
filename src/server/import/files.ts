@@ -11,7 +11,10 @@ import { applyContacts, loadExisting, type ContactsSummary } from "./contacts";
 import { finishImport, startImport } from "./imports";
 import { computeTriageSuggestions } from "./triage";
 
-export type StagedCounts = { found: number; add: number; fill: number; unchanged: number; possibleDuplicates: number; events: number };
+export type StagedCounts = { found: number; add: number; fill: number; unchanged: number; possibleDuplicates: number; events: number; nameless?: number };
+/** The review's choices (prototype L2305–2326). */
+export type CommitOptions = { contacts: boolean; skipNameless: boolean; calendars: string[] | null; includeSolo: boolean };
+export const defaultCommitOptions: CommitOptions = { contacts: true, skipNameless: false, calendars: null, includeSolo: false };
 export type StagedFile = { files: ParsedFiles["files"]; errors: string[]; planned: StagedCounts };
 
 const CHUNK = 500;
@@ -38,6 +41,7 @@ export async function stageFileImport(tx: Tx, input: { userId: string; spaceId: 
     unchanged: plan.unchanged.length + plan.merges.length - fills,
     possibleDuplicates: plan.possibleDuplicates.length,
     events: input.parsed.events.length,
+    nameless: plan.adds.filter(({ contact }) => !contact.hasName).length,
   };
   await tx
     .update(t.imports)
@@ -77,16 +81,23 @@ export async function getStagedImport(tx: Tx, importId: string, opts: { page: nu
 }
 
 /** Applies a reviewed import through the same pipeline as connected accounts, then forgets the staged rows. */
-export async function commitFileImport(tx: Tx, input: { userId: string; importId: string; spaceId: string; today: IsoDate; meEmails: string[] }): Promise<{ contacts: ContactsSummary | null; calendar: CalendarSummary | null } | null> {
+export async function commitFileImport(
+  tx: Tx,
+  input: { userId: string; importId: string; spaceId: string; today: IsoDate; meEmails: string[]; options?: CommitOptions },
+): Promise<{ contacts: ContactsSummary | null; calendar: CalendarSummary | null } | null> {
+  const o = input.options ?? defaultCommitOptions;
   const [imp] = await tx.select().from(t.imports).where(and(eq(t.imports.id, input.importId), eq(t.imports.status, "review")));
   if (!imp) return null;
-  const items = await tx.select({ kind: t.importItems.kind, normalised: t.importItems.normalised }).from(t.importItems).where(eq(t.importItems.importId, input.importId));
-  const contacts = items.filter((i) => i.kind === "person").map((i) => i.normalised as IncomingContact);
-  const events = items.filter((i) => i.kind === "event").map((i) => i.normalised as IcsEvent);
+  const items = await tx.select({ kind: t.importItems.kind, action: t.importItems.action, normalised: t.importItems.normalised }).from(t.importItems).where(eq(t.importItems.importId, input.importId));
+  // "Skip entries with no name" only leaves out new entries; details for people you have still fill in.
+  const contacts = o.contacts
+    ? items.filter((i) => i.kind === "person" && !(o.skipNameless && i.action === "add" && !(i.normalised as IncomingContact).hasName)).map((i) => i.normalised as IncomingContact)
+    : [];
+  const events = items.filter((i) => i.kind === "event").map((i) => i.normalised as IcsEvent).filter((e) => !o.calendars || o.calendars.includes(e.calendar ?? ""));
   await tx.update(t.imports).set({ status: "committing", spaceId: input.spaceId }).where(eq(t.imports.id, imp.id));
   const ctx = { userId: input.userId, importId: imp.id, spaceId: input.spaceId, today: input.today, source: "file" };
   const c = contacts.length ? await applyContacts(tx, ctx, contacts) : null;
-  const cal = events.length ? await applyCalendar(tx, { ...ctx, source: "calendar", meEmails: input.meEmails, connectionId: null }, events) : null;
+  const cal = events.length ? await applyCalendar(tx, { ...ctx, source: "calendar", meEmails: input.meEmails, connectionId: null, includeSolo: o.includeSolo }, events) : null;
   await computeTriageSuggestions(tx, { today: input.today, importId: imp.id });
   await tx.delete(t.importItems).where(eq(t.importItems.importId, imp.id));
   await finishImport(tx, imp.id, { ...(imp.counts as object), contacts: c, calendar: cal });

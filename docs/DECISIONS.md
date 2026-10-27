@@ -2,6 +2,15 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: records as sheets, People and Events, Discover
+
+153. **People, events, their forms and an import's review open as sheets over the page you're on, using Next's intercepting routes** (`src/app/(app)/@sheet`). The URL still changes, so Back closes a sheet and a link or a refresh opens the same record as a full page. The alternative, a `?sheet=` query parameter, would re-render the page underneath on every open.
+154. **Nothing else sits at `/people/<word>` or `/rooms/<word>`.** An intercepted `[id]` catches every path at that depth before the file system does, so `/people/triage`, `/people/duplicates`, `/people/ask`, `/people/suggestions` and `/rooms/suggested` moved to `/sort`, `/duplicates`, `/ask`, `/suggestions` and the Events page's Radar section, with permanent redirects. `/people/new` and `/rooms/new` are handled inside the intercept.
+155. **A form saved inside a sheet goes back (edit) or replaces itself with the record (add).** On a full page it loads the record as a page, because a soft navigation from a full-page form would open the record as a sheet over the form.
+156. **The People list sorts by Priority by default**, as the prototype does: starred first, then the latest goal-fit score, then name. Filters are chips, as in the prototype; "Not sorted yet" and "Archived" stay as extra chips at the end.
+157. **Discover has the prototype's three kinds: Person, Place, Event.** "Place" covers companies, venues, hubs and cities. "Company" still works for old look-ups and links.
+158. **Toasts mount on the page body when they appear**, so an open sheet (which hides the rest of the page from screen readers) doesn't hide them too.
+
 ## 2026-10-26: Profile & goals, backup and restore, no wizard
 
 150. **The Goals tab is the prototype's "Profile & goals" and holds what the prototype keeps there.** That covers profile, goals, scores, imports, backup, examples and connections. Time zone, phone region, brief time, Spaces, AI usage and account deletion are the app's own additions, so they sit on an Account page linked from the bottom of Goals. Goal pipelines stay as drill-ins from each goal row.

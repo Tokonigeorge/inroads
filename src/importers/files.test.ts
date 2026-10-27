@@ -111,7 +111,7 @@ describe("readImportFiles", () => {
     expect(r.events).toHaveLength(1);
     expect(r.files).toEqual([
       { name: "All Contacts.vcf", contacts: 4, events: 0 },
-      { name: "me.ics", contacts: 0, events: 1 },
+      { name: "me.ics", contacts: 0, events: 1, calendar: expect.any(String) },
       { name: "Connections.csv", contacts: 2, events: 0 },
     ]);
     expect(r.errors).toEqual(["photo.jpg isn't a contacts (.vcf, .csv) or calendar (.ics, .zip) file, so it was skipped."]);

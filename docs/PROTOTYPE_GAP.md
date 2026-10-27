@@ -1,6 +1,6 @@
 # Prototype gap report
 
-Status: audit, 2026-10-26. Compares the Next.js app (`src/`) with the original prototype (`prototype/index.html`, 2,655 lines). Line numbers `L123` refer to the prototype.
+Status: audit, 2026-10-26. Done: M1–M3 (P1–P3), M6–M7 (P6–P7), M4–M5 and M8 (2026-10-27; see CHANGELOG). Prompts: `PROTOTYPE_PROMPTS.md`. Compares the Next.js app (`src/`) with the original prototype (`prototype/index.html`, 2,655 lines). Line numbers `L123` refer to the prototype.
 
 **Why this exists.** The product owner's feedback: *"the UI currently focuses on the wrong thing; it's not the same as the prototype. It should be the same UI and UX: the same questions asked (onboarding), the same things in settings, the same UI and flow."* They also asked about downloads (Settings → Backup).
 

@@ -1,8 +1,21 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 
-type Toast = { id: number; message: string; action?: { label: string; onClick: () => void } };
+type Toast = {
+  id: number;
+  message: string;
+  action?: { label: string; onClick: () => void };
+};
 type ToastApi = { show: (message: string, action?: Toast["action"]) => void };
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -11,7 +24,10 @@ const ToastContext = createContext<ToastApi | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const seq = useRef(0);
-  const dismiss = useCallback((id: number) => setToasts((ts) => ts.filter((t) => t.id !== id)), []);
+  const dismiss = useCallback(
+    (id: number) => setToasts((ts) => ts.filter((t) => t.id !== id)),
+    [],
+  );
   const show = useCallback<ToastApi["show"]>(
     (message, action) => {
       const id = ++seq.current;
@@ -24,29 +40,39 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={api}>
       {children}
-      <div
-        role="status"
-        aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-[calc(80px+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 md:bottom-7"
-      >
-        {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto flex items-center gap-4 rounded-[12px] bg-ink px-4 py-3 text-[14px] font-[550] text-bg shadow-pop">
-            <span>{t.message}</span>
-            {t.action ? (
-              <button
-                type="button"
-                className="font-semibold underline underline-offset-2"
-                onClick={() => {
-                  t.action?.onClick();
-                  dismiss(t.id);
-                }}
-              >
-                {t.action.label}
-              </button>
-            ) : null}
-          </div>
-        ))}
-      </div>
+      {/* Mounted on body when a toast appears, so a sheet that's open (which hides the rest of the
+          page from assistive tech) doesn't hide the toast too. */}
+      {toasts.length
+        ? createPortal(
+            <div
+              role="status"
+              aria-live="polite"
+              className="pointer-events-none fixed inset-x-4 bottom-[calc(80px+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 md:bottom-7"
+            >
+              {toasts.map((t) => (
+                <div
+                  key={t.id}
+                  className="pointer-events-auto flex items-center gap-4 rounded-[12px] bg-ink px-4 py-3 text-[14px] font-[550] text-bg shadow-pop"
+                >
+                  <span>{t.message}</span>
+                  {t.action ? (
+                    <button
+                      type="button"
+                      className="font-semibold underline underline-offset-2"
+                      onClick={() => {
+                        t.action?.onClick();
+                        dismiss(t.id);
+                      }}
+                    >
+                      {t.action.label}
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
     </ToastContext>
   );
 }

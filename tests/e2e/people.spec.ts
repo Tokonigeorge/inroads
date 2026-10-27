@@ -21,7 +21,7 @@ test.describe.serial("People", () => {
   test("adding a person with everything you know", async ({ page }) => {
     await page.goto("/people/new");
     await page.getByLabel("Name", { exact: true }).fill(name);
-    await page.getByLabel("Role").fill("Head of partnerships");
+    await page.getByLabel("Position").fill("Head of partnerships");
     await page.getByLabel("Company").fill("Paystack");
     await page.getByLabel("Phone 1").fill("0803 123 4567");
     await page.getByLabel("Email 1").fill("ADA@Paystack.example");
@@ -34,7 +34,8 @@ test.describe.serial("People", () => {
     await expect(page.getByRole("link", { name: "+234 803 123 4567" })).toBeVisible();
     await expect(page.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/2348031234567");
     await expect(page.getByRole("link", { name: "ada@paystack.example" })).toBeVisible();
-    await expect(page.getByText("#fintech #partner")).toBeVisible();
+    await expect(page.getByText("#fintech", { exact: true })).toBeVisible();
+    await expect(page.getByText("#partner", { exact: true })).toBeVisible();
     await expectAccessible(page);
   });
 
@@ -53,7 +54,7 @@ test.describe.serial("People", () => {
     await page.getByRole("searchbox", { name: "Search people" }).fill("803123");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
     await page.getByRole("searchbox", { name: "Search people" }).fill("");
-    await page.getByLabel("Show").selectOption({ label: "No touches yet" });
+    await page.getByRole("group", { name: "Filter" }).getByRole("button", { name: "No touches yet" }).click();
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
     if (!isMobile) {
       // Keyboard: / focuses search.

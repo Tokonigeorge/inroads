@@ -4,6 +4,54 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: records open as sheets; People, Events and Discover as the prototype has them (P4, P5, P8)
+- **Sheets:**
+  - People and events open as a sheet over the page you're on: a panel from the right on a laptop, rising from the bottom on a phone. Back closes it, and a link or a refresh opens the same record as a full page.
+  - Add person, Edit person, Add event, Edit event, and the import review open as sheets too.
+  - Saving "Add person" or "Add event" shows the new record in its place.
+- **Person record**, in the prototype's order:
+  - Who they are, with a warmth ring and tags (warmth and days, fit score, goals, #tags), plus the fit reason.
+  - A ★ priority toggle.
+  - One row of actions: Log a touch, Draft message, Decode their world, Edit, and More.
+  - Then Context (where you met, interests, notes, birthday, email and phone with Copy, profile links), Dossier, Promises (one checklist) and Timeline (with "+ Log a touch" and "Import chat history").
+  - Introductions, events and goal stages follow.
+- **Dossier:**
+  - A source badge ("Live web · 6 sources").
+  - "Look them up yourself" links (Google, LinkedIn, X, News).
+  - "Add these N to their profile" accepts every missing detail at once.
+- **Add person** follows the prototype field for field. Space, circle and reminder sit in a "More" fold.
+- **People:**
+  - "Your network", with how many people there are and how many are cooling.
+  - Five ways in: + Add person, Import from Google, Scan a business card, Import contacts, Import a chat.
+  - Search, and a sort that defaults to Priority.
+  - Filter chips: All, Priority, Going cold, Needs context, No dossier, your circles and #tags.
+  - Rows with warmth rings, "Met: …", fit scores and days since you spoke, then the legend.
+- **Events** is one page, "Rooms that matter":
+  - Next 30 days, with date tiles and at most two sessions per series.
+  - Radar, with Scan for this week or Refresh radar, and cards with "+ My events" and "Decode".
+  - Recurring, with attendance.
+  - "Where your network gathers", the places you meet people most.
+  - Past, folded.
+- **Event record:** in the prototype's order (Decode the room, Notes, Attendance, Coming up, People), with the event page link in the actions. The form uses the prototype's labels (Title, Location, Repeats until).
+- **Discover:**
+  - The room decoder is Person / Place / Event, with one search box, "Decode" and "Add what you already know".
+  - The result shows under it in the prototype's sections: Key facts, Key people, Your warm paths in, Opportunities for your goals, How to work the room, Sources, Look it up yourself, then "+ Add to my events" and "Clear result".
+  - Recent rooms have date tiles.
+- **Chat import** has the prototype's three steps:
+  1. Choose a WhatsApp .txt or Telegram .json, or paste.
+  2. "Which one is you?" with message counts and the date range, and who to save to (someone new is fine).
+  3. Key moments, Promises and Details to add, then "Save to {name}".
+- **Import review:**
+  - Contacts on or off, "Skip N entries with no name", one checkbox per calendar (holidays and birthdays start unticked), "Also add upcoming events with no other guests", and "Your email address in these calendars" (remembered on your profile).
+  - Then an "Import complete" summary with what was added, and links to sort new people or see events.
+- **Moved:**
+  - Sort new people → `/sort`
+  - Duplicates → `/duplicates`
+  - Ask your network → `/ask`
+  - Suggestions → `/suggestions`
+  - Suggested rooms → the Events page's Radar.
+  - The old addresses redirect.
+
 ### Changed: the Goals tab is the prototype's "Profile & goals", and there's no set-up wizard (P6–P7)
 - **Goals tab** (prototype L967–995), in the prototype's order:
   - The hero (your name, headline, "Edit profile & goals").

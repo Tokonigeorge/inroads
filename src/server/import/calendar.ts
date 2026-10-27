@@ -32,7 +32,7 @@ const MAX_NEW_PEOPLE = 200;
  */
 export async function applyCalendar(
   tx: Tx,
-  ctx: ImportContext & { meEmails: string[]; connectionId: string | null },
+  ctx: ImportContext & { meEmails: string[]; connectionId: string | null; includeSolo?: boolean },
   events: IcsEvent[],
 ): Promise<CalendarSummary & { eventRooms: CalendarEventRoom[] }> {
   const me = new Set(ctx.meEmails.map((e) => e.toLowerCase()));
@@ -101,7 +101,8 @@ export async function applyCalendar(
     }
 
     const kind = roomKindFromTitle(summary);
-    if (next.length && (others.length || kind)) {
+    // Upcoming events with nobody else on them are personal blocks; keep them only if asked.
+    if (next.length && (others.length || kind || ctx.includeSolo)) {
       const supported = !rec.unsupported;
       rooms.push({
         row: {

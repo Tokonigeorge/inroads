@@ -90,10 +90,10 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
       {children}
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
+          <Dialog.Overlay className="fixed inset-0 z-[75] bg-black/30" />
           <Dialog.Content
             aria-describedby={undefined}
-            className="fixed inset-x-2 top-2 z-50 overflow-hidden rounded-lg bg-surface shadow-pop md:inset-x-auto md:top-[12vh] md:left-1/2 md:w-[560px] md:-translate-x-1/2"
+            className="fixed inset-x-2 top-2 z-[76] overflow-hidden rounded-lg bg-surface shadow-pop md:inset-x-auto md:top-[12vh] md:left-1/2 md:w-[560px] md:-translate-x-1/2"
           >
             <Dialog.Title className="sr-only">Search and commands</Dialog.Title>
             {open ? <Palette close={() => setOpen(false)} showHelp={() => setHelp(true)} /> : null}
@@ -144,7 +144,7 @@ function Palette({ close, showHelp }: { close: () => void; showHelp: () => void 
       { id: "add-person", group: "Actions", label: "Add a person", run: later(() => capture.open({ mode: "person" })), keywords: "new contact" },
       { id: "log-touch", group: "Actions", label: "Log a touch", run: later(() => capture.open({ mode: "touch" })), keywords: "met call coffee" },
       { id: "add-promise", group: "Actions", label: "Add a promise", run: later(() => capture.open({ mode: "promise" })), keywords: "owe commitment" },
-      { id: "add-room", group: "Actions", label: "Add a room", run: go("/rooms/new"), keywords: "event meeting" },
+      { id: "add-room", group: "Actions", label: "Add event", run: go("/rooms/new"), keywords: "room meeting" },
       { id: "add-goal", group: "Actions", label: "Add a goal", run: go("/goals/new") },
       { id: "sort", group: "Actions", label: "Sort new people", run: go("/sort"), keywords: "triage import" },
       { id: "ask", group: "Actions", label: "Ask your network", run: go("/ask"), keywords: "who do i know search question find" },
