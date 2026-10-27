@@ -4,6 +4,7 @@ import type { SpaceKind } from "@/contracts/spaces";
 import { formatLongDate } from "@/domain/dates";
 import { instantInZone } from "@/domain/zoned";
 import { isAiConfigured } from "@/server/ai/config";
+import { KNOWLEDGE_ONLY_BADGE } from "@/server/ai/prompts/shared";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { pendingForPerson } from "@/server/repos/suggestions";
@@ -70,8 +71,8 @@ const List = ({ title, items }: { title: string; items: (string | { text: string
 /** Research, suggestions, drafts and chat import on a person's page, per Space. */
 export async function PersonAi({ userId, personId, name, spaces }: { userId: string; personId: string; name: string; spaces: Space[] }) {
   const aiEnabled = isAiConfigured();
-  const { dossiers, suggestions, ctx, running } = await db.withUser(userId, async (tx) => {
-    const [dossiers, suggestions, ctx, [running]] = await Promise.all([
+  const { dossiers, suggestions, ctx, running, notes } = await db.withUser(userId, async (tx) => {
+    const [dossiers, suggestions, ctx, [running], notes] = await Promise.all([
       spaces.length
         ? tx.select().from(t.dossiers).where(and(eq(t.dossiers.personId, personId), inArray(t.dossiers.spaceId, spaces.map((s) => s.id)))).orderBy(desc(t.dossiers.version))
         : Promise.resolve([]),
@@ -84,8 +85,10 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         .where(and(eq(t.jobs.kind, researchJobKind(personId)), inArray(t.jobs.status, ["queued", "running"]), sql`${t.jobs.createdAt} > now() - interval '15 minutes'`))
         .orderBy(desc(t.jobs.createdAt))
         .limit(1),
+      // What you pasted for research last time, per Space (prototype sourceNotes).
+      tx.select({ spaceId: t.personSpaces.spaceId, sourceNotes: t.personSpaces.sourceNotes }).from(t.personSpaces).where(eq(t.personSpaces.personId, personId)),
     ]);
-    return { dossiers, suggestions, ctx, running };
+    return { dossiers, suggestions, ctx, running, notes };
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
@@ -120,9 +123,16 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                 <div className="grid gap-3">
                   <div className="tags">
                     <span className="tag">
-                      {latest.mode === "example" ? "Example data" : ((latest.sources as Src[]) ?? []).length ? `Live web · ${((latest.sources as Src[]) ?? []).length} sources` : "From what you saved"}
+                      {latest.mode === "example"
+                        ? "Example data"
+                        : p.answeredFrom === "knowledge"
+                          ? KNOWLEDGE_ONLY_BADGE
+                          : ((latest.sources as Src[]) ?? []).length
+                            ? `Live web · ${((latest.sources as Src[]) ?? []).length} sources`
+                            : "From what you saved"}
                     </span>
                   </div>
+                  {Array.isArray(p.used) && p.used.length ? <p className="hint">Used your saved details: {(p.used as string[]).join(", ")}</p> : null}
                   <p className="hint">
                     {latest.mode === "example" ? "Example data, not research" : `Confidence: ${latest.confidence ?? "medium"} · ${when(latest.createdAt)}`}
                   </p>
@@ -176,6 +186,7 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                 name={name}
                 aiEnabled={aiEnabled}
                 canLookUp={s.kind === "work"}
+                savedPasted={notes.find((n) => n.spaceId === s.id)?.sourceNotes ?? ""}
                 label={s.researchMode === "full" ? (latest ? "Research again" : `Research ${first}`) : latest ? "Look again" : "Get to know"}
               />
               {s.kind !== "work" ? (

@@ -5,6 +5,7 @@ import { LookupForm } from "@/features/ai/lookup-form";
 import { PlanView } from "@/features/ai/plan";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { isAiConfigured } from "@/server/ai/config";
+import { KNOWLEDGE_ONLY_BADGE } from "@/server/ai/prompts/shared";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
@@ -100,6 +101,8 @@ export async function DiscoverView({ resultId, q, type }: { resultId?: string; q
 function DecodeResult({ plan, sources }: { plan: Plan; sources: { title: string; url: string }[] }) {
   const r = plan.result;
   const isEvent = (r.kind || "").toLowerCase() === "event" || Boolean(r.when?.startsOn);
+  // Added by the prompt-parity look-up (lookup@4); older results don't have them.
+  const extra = r as typeof r & { usedNames?: string[]; used?: string[]; answeredFrom?: string };
   return (
     <article aria-label={r.title} className="grid gap-4 pt-[22px]">
       <header className="grid gap-2">
@@ -107,12 +110,18 @@ function DecodeResult({ plan, sources }: { plan: Plan; sources: { title: string;
           {r.kind || "Result"} · confidence {r.confidence || "unknown"}
         </p>
         <h1 className="text-[26px] leading-[1.15] font-[720] tracking-[-0.02em]">{r.title}</h1>
-        {sources.length ? (
-          <div className="tags">
-            <span className="tag">Live web · {sources.length === 1 ? "1 source" : `${sources.length} sources`}</span>
-          </div>
-        ) : null}
+        <div className="tags">
+          <span className="tag">
+            {extra.answeredFrom === "knowledge" ? KNOWLEDGE_ONLY_BADGE : sources.length ? `Live web · ${sources.length === 1 ? "1 source" : `${sources.length} sources`}` : "From what you saved"}
+          </span>
+        </div>
         {r.overview ? <p className="lede">{r.overview}</p> : null}
+        {extra.usedNames?.length ? (
+          <p className="hint">
+            Built on what you saved about {extra.usedNames.join(", ")}
+            {extra.used?.length ? `: ${extra.used.join(", ")}` : ""}.
+          </p>
+        ) : null}
       </header>
       {r.facts.length || r.website ? (
         <section className="sec" aria-label="Key facts">

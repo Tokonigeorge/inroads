@@ -1,22 +1,27 @@
 import "server-only";
-import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { goalPriorityLabels } from "@/contracts/goals";
 import { addDays, formatLongDate, type IsoDate } from "@/domain/dates";
 import { weekOf } from "@/domain/goal-progress";
 import { normalisePhone } from "@/domain/normalise";
+import { recurrenceLabel } from "@/domain/recurrence";
+import { warmth } from "@/domain/relationship";
 import { isValidTimeZone } from "@/domain/zoned";
 import { db as appDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import type { Database, Tx } from "@/server/db/with-user";
 import { listGoals } from "@/server/repos/goals";
 import { listNudges, todayAgenda } from "@/server/repos/nudges";
-import { listUpcoming } from "@/server/repos/rooms";
+import { personRollup } from "@/server/repos/people";
+import { listUpcoming, recurrenceOf } from "@/server/repos/rooms";
 import { createSuggestions, type NewSuggestion } from "@/server/repos/suggestions";
 import { userContext } from "@/server/user-context";
 import type { AnthropicLike } from "./client";
-import { cell, identityRules, loadMe, meBlock, personBlock, webRules } from "./context/blocks";
-import { loadNetworkDigest, loadPersonContext, loadSpaceContext } from "./context/space-context";
+import { briefPerson, cell, eventBlock, identityRules, loadMe, meBlock, personBlock, profileUsed, webRules } from "./context/blocks";
+import { localPaths, matchCompany, matchEvents, matchPeople } from "./context/known";
+import { loadNetworkDigest, loadPersonContext, loadSpaceContext, type PersonContext } from "./context/space-context";
 import { lookupPrompt, lookupSchema, LOOKUP_VERSION, lookupWhat, type Lookup, type LookupType } from "./prompts/lookup";
-import { radarPrompt, radarSchema, RADAR_VERSION } from "./prompts/radar";
+import { homeCity, radarPrompt, radarSchema, RADAR_VERSION } from "./prompts/radar";
 import { getToKnowPrompt, getToKnowSchema, GET_TO_KNOW_VERSION, researchFullPrompt, researchFullSchema, RESEARCH_FULL_VERSION, verifyPrompt, verifySchema, VERIFY_VERSION } from "./prompts/research";
 import {
   BRIEF_VERSION,
@@ -31,7 +36,8 @@ import {
   weeklyBriefPrompt,
   type DraftPurpose,
 } from "./prompts/writing";
-import { AiError, runAI } from "./run";
+import { shortDate } from "./prompts/shared";
+import { AiError, runAI, runWithWebFallback } from "./run";
 import { mergeSources, type Source } from "./sources";
 
 export type FeatureDeps = { db?: Pick<typeof appDb, "withUser">; sys?: Database; client?: AnthropicLike };
@@ -60,6 +66,7 @@ async function base(deps: FeatureDeps, userId: string, spaceId: string) {
 export async function researchPerson(deps: FeatureDeps, userId: string, input: { personId: string; spaceId: string; mode: "research" | "verify"; pasted?: string; jobId?: string }, progress: Progress = noop) {
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
+  const today = b.ctx.today;
   const person = await data.withUser(userId, (tx) => loadPersonContext(tx, input.spaceId, input.personId));
   if (!person) throw new AiError("failed", "They're not in this Space.");
   const mode = b.space.researchMode;
@@ -70,14 +77,16 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
 
   let dossier: { mode: string; payload: unknown; sources: Source[]; confidence: string; promptVersion: string; model: string };
   const suggestions: NewSuggestion[] = [];
+  // Full research remembers pasted material (prototype sourceNotes, L1580): none given means last time's.
+  let keepPasted: string | null | undefined;
   if (input.mode === "verify") {
-    const r = await runAI({ ...run, prompt: verifyPrompt({ today: b.ctx.today, person: personBlock(person) }), schema: verifySchema, web: { search: { maxUses: 4 }, fetch: { maxUses: 3 } } }, deps);
+    const r = await runAI({ ...run, prompt: verifyPrompt({ today, person: personBlock(person, { today }) }), schema: verifySchema, web: { search: { maxUses: 4 }, fetch: { maxUses: 3 } } }, deps);
     dossier = { mode: "verify", payload: { ...r.output, redFlags: take(r.output.redFlags, 6) }, sources: mergeSources(r.output.sources, r.seen), confidence: r.output.answer, promptVersion: VERIFY_VERSION, model: r.model };
   } else if (mode === "get_to_know") {
     const r = await runAI(
       {
         ...run,
-        prompt: getToKnowPrompt({ today: b.ctx.today, me: b.meText, person: personBlock(person), space: b.space.space.name }),
+        prompt: getToKnowPrompt({ today, me: b.meText, person: personBlock(person, { today }), space: b.space.space.name }),
         schema: getToKnowSchema,
         // Saved links are opened first (fetch is limited to what's already in the conversation).
         web: { search: { maxUses: 3 }, fetch: { maxUses: Math.max(1, Math.min(3, savedLinks.length || 2)) } },
@@ -96,18 +105,22 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
     const starters = [...items(r.output.thingsToAsk), ...items(r.output.sharedInterests)].slice(0, 4).map((x) => `- ${x.text}`);
     if (starters.length) suggestions.push({ kind: "note", spaceId: input.spaceId, targetId: input.personId, why: "Conversation starters from Get to know", payload: { personId: input.personId, spaceId: input.spaceId, text: `Things to talk about:\n${starters.join("\n")}` } });
   } else {
-    const r = await runAI(
+    const saved = person.relationship.sourceNotes ?? "";
+    const pasted = (input.pasted ?? saved).trim().slice(0, 12000);
+    if (input.pasted !== undefined && pasted !== saved) keepPasted = pasted || null;
+    const r = await runWithWebFallback(
       {
         ...run,
         effort: "high",
-        prompt: researchFullPrompt({
-          today: b.ctx.today,
-          web: webRules(true, "their saved social profiles and handles; their full name with their company, role and city; their LinkedIn; recent news, talks or posts; their organisation"),
-          identity: identityRules(),
-          me: b.meText,
-          person: personBlock(person, { history: true }),
-          pasted: input.pasted,
-        }),
+        prompt: (m) =>
+          researchFullPrompt({
+            today,
+            web: webRules(m, "their saved social profiles and handles; their full name with their company, role and city; their LinkedIn; recent news, talks or posts; their organisation"),
+            identity: identityRules(m),
+            me: b.meText,
+            person: personBlock(person, { history: true, today }),
+            pasted,
+          }),
         schema: researchFullSchema,
         web: { search: { maxUses: 4 }, fetch: { maxUses: 3 } },
       },
@@ -116,7 +129,7 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
     const o = r.output;
     const profiles = Object.fromEntries(Object.entries(o.profiles).filter(([, v]) => isHttp(v)));
     const found = { position: o.found.position.trim(), company: o.found.company.trim(), city: o.found.city.trim(), birthday: mmdd(o.found.birthday.trim()) };
-    const sources = mergeSources(o.sources, r.seen);
+    const sources = r.mode === "web" ? mergeSources(o.sources, r.seen) : [];
     dossier = {
       mode: "full",
       payload: {
@@ -133,6 +146,10 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
         profiles,
         found,
         caveats: o.caveats,
+        /** The saved details this run drew on (prototype `used`). */
+        used: [...profileUsed(person), ...(pasted ? ["material you pasted"] : [])],
+        /** "knowledge" when the web tools weren't available: show KNOWLEDGE_ONLY_BADGE. */
+        answeredFrom: r.mode,
       },
       sources,
       confidence: o.confidence,
@@ -164,6 +181,9 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
       .insert(t.dossiers)
       .values({ userId, personId: input.personId, spaceId: input.spaceId, version: v + 1, mode: dossier.mode, payload: dossier.payload, sources: dossier.sources, confidence: dossier.confidence, model: dossier.model, promptVersion: dossier.promptVersion, jobId: input.jobId ?? null })
       .returning({ id: t.dossiers.id });
+    if (keepPasted !== undefined) {
+      await tx.update(t.personSpaces).set({ sourceNotes: keepPasted }).where(and(eq(t.personSpaces.personId, input.personId), eq(t.personSpaces.spaceId, input.spaceId)));
+    }
     const n = await createSuggestions(tx, userId, "research", row.id, suggestions);
     return { dossierId: row.id, personId: input.personId, suggestions: n };
   });
@@ -171,48 +191,101 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
 
 /* ======================================================================= look up */
 
+type Known = { text: string; names: string[]; used: string[]; personId: string };
+
+/** The people in a Space, light, for matching a look-up's name, handle or company. */
+async function spacePeople(tx: Tx, spaceId: string) {
+  const rows = await tx
+    .select({ id: t.people.id, name: t.people.name, company: t.people.company, socials: t.people.socials })
+    .from(t.personSpaces)
+    .innerJoin(t.people, eq(t.people.id, t.personSpaces.personId))
+    .where(and(eq(t.personSpaces.spaceId, spaceId), isNull(t.personSpaces.archivedAt), isNull(t.people.deletedAt)))
+    .orderBy(desc(t.personSpaces.starred), asc(t.people.name));
+  return rows.map((r) => ({ ...r, socials: (r.socials ?? {}) as Record<string, string> }));
+}
+
+/**
+ * What I've already saved about a look-up's target (prototype knownFor(), L1536): the room it
+ * was started from; else people matching the name or a saved handle; rooms on my list matching
+ * an event's title; or people who work at a company or place.
+ */
+async function knownFor(tx: Tx, input: { spaceId: string; type: LookupType; q: string; personId?: string; eventId?: string }, today: IsoDate): Promise<Known> {
+  const out: Known = { text: "", names: [], used: [], personId: "" };
+  if (input.eventId) {
+    // A room's prep: what's saved about the room steers the search to the right event.
+    const room = await roomForPrep(tx, input.eventId, input.spaceId);
+    if (!room) throw new AiError("failed", "That room isn't in this Space.");
+    return { ...out, text: room };
+  }
+  const blocks: string[] = [];
+  if (input.type === "person") {
+    const ids = input.personId ? [input.personId] : matchPeople(input.q, await spacePeople(tx, input.spaceId)).map((p) => p.id);
+    const found: string[] = [];
+    for (const id of ids) {
+      const p = await loadPersonContext(tx, input.spaceId, id);
+      if (!p) continue;
+      blocks.push(`IN MY NETWORK: ${p.identity.name}\n${personBlock(p, { history: true, today })}`);
+      out.names.push(p.identity.name);
+      out.used.push(...profileUsed(p));
+      found.push(id);
+    }
+    if (found.length === 1) out.personId = found[0];
+  } else if (input.type === "event") {
+    const rooms = await tx
+      .select()
+      .from(t.events)
+      .where(and(eq(t.events.spaceId, input.spaceId), isNull(t.events.deletedAt), isNull(t.events.archivedAt)));
+    for (const e of matchEvents(input.q, rooms)) {
+      const people = await tx
+        .selectDistinct({ name: t.people.name, company: t.people.company })
+        .from(t.eventPeople)
+        .innerJoin(t.people, eq(t.people.id, t.eventPeople.personId))
+        .where(and(eq(t.eventPeople.eventId, e.id), isNull(t.people.deletedAt)))
+        .limit(20);
+      blocks.push(`ON MY EVENTS LIST: ${e.title}\n${eventBlock({ ...e, recurrence: recurrenceOf(e), people }, today)}`);
+      out.names.push(e.title);
+    }
+  } else {
+    for (const c of matchCompany(input.q, await spacePeople(tx, input.spaceId))) {
+      const p = await loadPersonContext(tx, input.spaceId, c.id);
+      if (!p) continue;
+      blocks.push(`IN MY NETWORK, WORKS THERE: ${p.identity.name}\n${personBlock(p, { today })}`);
+      out.names.push(p.identity.name);
+    }
+  }
+  out.text = blocks.join("\n\n");
+  out.used = [...new Set(out.used)];
+  return out;
+}
+
 /** "Look up" a person, company, place or event: who matters there and how you're connected. */
 export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId: string; type: LookupType; q: string; context?: string; personId?: string; eventId?: string }, progress: Progress = noop) {
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
   const { network, known } = await data.withUser(userId, async (tx) => {
     const network = await loadNetworkDigest(tx, input.spaceId);
-    let known = "";
-    if (input.eventId) {
-      // A room's prep: what's saved about the room steers the search to the right event.
-      const room = await roomForPrep(tx, input.eventId, input.spaceId);
-      if (!room) throw new AiError("failed", "That room isn't in this Space.");
-      known = room;
-    } else if (input.type === "person" && input.personId) {
-      const p = await loadPersonContext(tx, input.spaceId, input.personId);
-      if (p) known = `IN MY NETWORK: ${p.identity.name}\n${personBlock(p, { history: true })}`;
-    } else if (input.type === "company") {
-      const q = input.q.toLowerCase();
-      known = network
-        .filter((n) => n.company && (n.company.toLowerCase().includes(q) || q.includes(n.company.toLowerCase())))
-        .slice(0, 4)
-        .map((n) => `IN MY NETWORK, WORKS THERE: ${n.name}${n.position ? ` (${n.position})` : ""}`)
-        .join("\n");
-    }
+    const known = await knownFor(tx, input, b.ctx.today);
     return { network, known };
   });
-  const r = await runAI(
+  const networkRows = network.map((n) => [n.id, n.name, n.position, n.company, n.whereMet, n.tags.join("/"), n.interests.slice(0, 3).join("/")].map(cell).join(" | ")).join("\n");
+  const r = await runWithWebFallback(
     {
       userId,
       feature: "lookup",
       tier: "strong",
       onProgress: progress,
-      prompt: lookupPrompt({
-        type: input.type,
-        q: input.q,
-        today: b.ctx.today,
-        web: webRules(true, lookupWhat(input.type)),
-        known,
-        context: input.context ?? "",
-        me: b.meText,
-        network: network.map((n) => [n.id, n.name, n.position, n.company, n.whereMet, n.tags.join("/"), n.interests.slice(0, 3).join("/")].map(cell).join(" | ")).join("\n"),
-        identity: identityRules(),
-      }),
+      prompt: (m) =>
+        lookupPrompt({
+          type: input.type,
+          q: input.q,
+          today: b.ctx.today,
+          web: webRules(m, lookupWhat(input.type)),
+          known: known.text,
+          context: input.context ?? "",
+          me: b.meText,
+          network: networkRows,
+          identity: identityRules(m),
+        }),
       schema: lookupSchema,
       web: { search: { maxUses: 4 }, fetch: { maxUses: 3 } },
     },
@@ -221,20 +294,7 @@ export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId
   const o = r.output;
   // Warm paths may only point at people in this Space (validated, not trusted).
   const ids = new Set(network.map((n) => n.id));
-  const terms = [o.title, input.q, ...o.stakeholders.map((s) => s.name)].map((x) => x.trim().toLowerCase()).filter((x) => x.length >= 4);
-  const local = network
-    .flatMap((n) => {
-      const name = n.name.toLowerCase();
-      const company = (n.company ?? "").toLowerCase();
-      const met = (n.whereMet ?? "").toLowerCase();
-      for (const term of terms) {
-        if (name === term) return [{ contactId: n.id, how: "Already in your network", angle: "" }];
-        if (company.length >= 3 && (term.includes(company) || company.includes(term))) return [{ contactId: n.id, how: `Works at ${n.company}`, angle: "" }];
-        if (met && met.includes(term)) return [{ contactId: n.id, how: `You met them at ${n.whereMet}`, angle: "" }];
-      }
-      return [];
-    })
-    .slice(0, 8);
+  const local = localPaths([o.title, input.q, ...o.stakeholders.map((s) => s.name)], network);
   const seen = new Set<string>();
   const warmPaths = [...o.warmPaths.filter((w) => ids.has(w.contactId)), ...local].filter((w) => !seen.has(w.contactId) && seen.add(w.contactId)).slice(0, 10);
   const result = {
@@ -246,11 +306,17 @@ export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId
     opportunities: o.opportunities.filter((x) => x.idea).slice(0, 5),
     playbook: take(o.playbook, 6),
     when: input.type === "event" ? cleanWhen(o.when, b.ctx.today) : null,
+    /** What it recognised from what you'd saved: "Using what you saved about Ada…". */
+    usedNames: known.names,
+    used: known.used,
+    /** The one saved person it matched, so the result can link to them. */
+    personId: known.personId || null,
+    answeredFrom: r.mode,
   };
   return data.withUser(userId, async (tx) => {
     const [row] = await tx
       .insert(t.searches)
-      .values({ userId, spaceId: input.spaceId, type: input.type, query: input.q.slice(0, 200), result, sources: mergeSources(o.sources, r.seen), model: r.model, promptVersion: LOOKUP_VERSION, eventId: input.eventId ?? null })
+      .values({ userId, spaceId: input.spaceId, type: input.type, query: input.q.slice(0, 200), result, sources: r.mode === "web" ? mergeSources(o.sources, r.seen) : [], model: r.model, promptVersion: LOOKUP_VERSION, eventId: input.eventId ?? null })
       .returning({ id: t.searches.id });
     return { searchId: row.id };
   });
@@ -302,25 +368,34 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
   const horizon = addDays(b.ctx.today, 21);
-  const { gathers, mine } = await data.withUser(userId, async (tx) => {
+  const { gathers, top, mine } = await data.withUser(userId, async (tx) => {
     const gathers = await tx
       .select({ label: t.personSpaces.whereMet, n: sql<number>`count(*)::int` })
       .from(t.personSpaces)
       .where(and(eq(t.personSpaces.spaceId, input.spaceId), sql`${t.personSpaces.whereMet} is not null`))
       .groupBy(t.personSpaces.whereMet)
       .orderBy(desc(sql`count(*)`))
-      .limit(6);
-    const mine = await tx.select({ title: t.events.title }).from(t.events).where(and(eq(t.events.spaceId, input.spaceId), isNull(t.events.deletedAt))).limit(30);
-    return { gathers: gathers.map((g) => `${g.label} (${g.n})`).join(", "), mine: mine.map((m) => m.title).join("; ") };
+      .limit(7);
+    const mine = await tx
+      .select({ title: t.events.title, rrule: t.events.rrule, startsOn: t.events.startsOn, untilOn: t.events.untilOn })
+      .from(t.events)
+      .where(and(eq(t.events.spaceId, input.spaceId), isNull(t.events.deletedAt)))
+      .limit(30);
+    return {
+      gathers: gathers.map((g) => `${g.label} (${g.n})`).join(", "),
+      top: gathers[0]?.label ?? null,
+      mine: mine.map((m) => `${m.title} (${recurrenceLabel(recurrenceOf(m))})`).join("; "),
+    };
   });
-  const r = await runAI(
+  const r = await runWithWebFallback(
     {
       userId,
       feature: "radar",
       tier: "strong",
       onProgress: progress,
-      prompt: radarPrompt({ today: b.ctx.today, horizon, me: b.meText, city: b.me.location ?? b.ctx.timezone.split("/").pop()?.replace(/_/g, " ") ?? "", gathers, mine }),
+      prompt: (m) => radarPrompt({ mode: m, today: b.ctx.today, horizon, me: b.meText, city: homeCity(b.me.location, top), gathers, mine }),
       schema: radarSchema,
+      // The time zone is only a location hint for the search tool, never "my city".
       web: { search: { maxUses: 5, userLocation: b.me.location ? { city: b.me.location } : { timezone: b.ctx.timezone } }, fetch: { maxUses: 3 } },
     },
     deps,
@@ -334,7 +409,7 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
   return data.withUser(userId, async (tx) => {
     const [row] = await tx
       .insert(t.searches)
-      .values({ userId, spaceId: input.spaceId, type: "radar", query: `${b.ctx.today}..${horizon}`, result: { items, from: b.ctx.today, to: horizon }, sources: mergeSources(r.output.sources, r.seen), model: r.model, promptVersion: RADAR_VERSION })
+      .values({ userId, spaceId: input.spaceId, type: "radar", query: `${b.ctx.today}..${horizon}`, result: { items, from: b.ctx.today, to: horizon, answeredFrom: r.mode }, sources: r.mode === "web" ? mergeSources(r.output.sources, r.seen) : [], model: r.model, promptVersion: RADAR_VERSION })
       .returning({ id: t.searches.id });
     return { searchId: row.id };
   });
@@ -342,41 +417,113 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
 
 /* ======================================================================= briefs */
 
+/**
+ * People in a Space who are going cold, as the prototype's coldList() (L598): past their
+ * reminder interval since the last touch, and starred or scored 40+ (no score counts as 50).
+ * Highest score first, then the longest silence. Up to 8.
+ */
+async function coldList(tx: Tx, spaceId: string, today: IsoDate) {
+  const rows = await tx.execute<{ id: string; score: number | null }>(sql`
+    ${personRollup([sql`ps.archived_at is null`, sql`ps.space_id = ${spaceId}`])}
+    select id, score from (
+      select id, starred, last_touched_on,
+             (select s.value from scores s where s.person_id = base.id and (s.goal_id is null or s.goal_id in (select g.id from goals g where g.space_id = ${spaceId})) order by s.created_at desc limit 1)::int as score
+        from base
+       where deleted_at is null and not unsorted and last_touched_on is not null and r_due_on < ${today}::date
+    ) x
+    where starred or coalesce(score, 50) >= 40
+    order by coalesce(score, 50) desc, last_touched_on asc
+    limit 8`);
+  return [...rows];
+}
+
 /** The daily or weekly brief for one Space. Never mixes Spaces (§4.7). */
 export async function writeBrief(deps: FeatureDeps, userId: string, input: { spaceId: string; kind: "daily" | "weekly" }, progress: Progress = noop) {
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
-  const c = { spaceId: input.spaceId, today: b.ctx.today, tz: b.ctx.timezone };
+  const today = b.ctx.today;
+  const c = { spaceId: input.spaceId, today, tz: b.ctx.timezone };
+  const contexts = async (tx: Tx, ids: string[]) => {
+    const out = new Map<string, PersonContext>();
+    for (const id of new Set(ids)) {
+      const p = await loadPersonContext(tx, input.spaceId, id);
+      if (p) out.set(id, p);
+    }
+    return out;
+  };
   const inputs = await data.withUser(userId, async (tx: Tx) => {
     const nudges = (await listNudges(tx, c)).map((n) => ({ kind: n.kind, title: n.title, detail: n.body }));
     if (input.kind === "daily") {
-      const agenda = (await todayAgenda(tx, c)).map((a) => ({ time: a.time ?? "all day", title: a.title, location: a.location, people: a.attendees.map((p) => ({ name: p.name, role: p.detail, lastTouch: p.lastTouch, owe: p.promise })) }));
-      const companies = [...new Set((await todayAgenda(tx, c)).flatMap((a) => a.attendees.map((p) => p.detail.split(" at ").pop() ?? "")).filter(Boolean))].slice(0, 4);
-      return { agenda, nudges, companies };
+      const entries = await todayAgenda(tx, c);
+      const people = await contexts(
+        tx,
+        entries.flatMap((a) => a.attendees.map((p) => p.id)),
+      );
+      const agenda = entries.map((a) => ({
+        time: a.time ?? "all day",
+        title: a.title,
+        location: a.location,
+        people: a.attendees.map((p) => {
+          const pc = people.get(p.id);
+          return pc ? briefPerson(pc) : { name: p.name, role: p.detail || "No role added yet" };
+        }),
+      }));
+      const companies = [...new Set([...people.values()].map((p) => p.identity.company?.trim() ?? "").filter((x) => x && !/^independent$/i.test(x)))].slice(0, 4);
+      return { agenda, nudges, companies, rooms: [], cold: [], goals: [], openings: [] };
     }
-    const rooms = (await listUpcoming(tx, input.spaceId, b.ctx.today, b.ctx.timezone, 7)).map((r) => ({ date: r.date, time: r.time, title: r.title, kind: r.kind }));
-    const goals = (await listGoals(tx, { spaceId: input.spaceId, today: b.ctx.today, tz: b.ctx.timezone })).filter((g) => g.active).map((g) => ({ goal: g.text, ...g.progress }));
+    const upcoming = await listUpcoming(tx, input.spaceId, today, b.ctx.timezone, 7);
+    const eventIds = [...new Set(upcoming.map((r) => r.eventId))];
+    const linked = eventIds.length
+      ? await tx
+          .selectDistinct({ eventId: t.eventPeople.eventId, name: t.people.name })
+          .from(t.eventPeople)
+          .innerJoin(t.people, eq(t.people.id, t.eventPeople.personId))
+          .where(and(inArray(t.eventPeople.eventId, eventIds), isNull(t.people.deletedAt)))
+      : [];
+    const rooms = upcoming.map((r) => ({ date: r.date, time: r.time, title: r.title, kind: r.kind, people: linked.filter((l) => l.eventId === r.eventId).map((l) => l.name) }));
+    const coldRows = await coldList(tx, input.spaceId, today);
+    const coldPeople = await contexts(
+      tx,
+      coldRows.map((r) => r.id),
+    );
+    const cold = coldRows.flatMap((r) => {
+      const pc = coldPeople.get(r.id);
+      return pc ? [{ ...briefPerson(pc), daysSinceTouch: warmth(pc.identity.lastTouchedOn, today).days, score: r.score }] : [];
+    });
+    const goals = (await listGoals(tx, { spaceId: input.spaceId, today, tz: b.ctx.timezone }))
+      .filter((g) => g.active)
+      .map((g) => ({ goal: g.text, priority: goalPriorityLabels[g.priority as 1 | 2 | 3] ?? "Medium", linked: g.people, ...g.progress }));
     const openings = await tx
       .select({ payload: t.dossiers.payload, name: t.people.name })
       .from(t.dossiers)
       .innerJoin(t.people, eq(t.people.id, t.dossiers.personId))
       .where(and(eq(t.dossiers.spaceId, input.spaceId), eq(t.dossiers.mode, "full"), gte(t.dossiers.createdAt, new Date(Date.now() - 7 * 86_400_000))))
       .limit(10);
-    return { rooms, goals, nudges, openings: openings.map((o) => ({ name: o.name, opportunities: (o.payload as { opportunities?: string[] }).opportunities ?? [] })) };
+    return { agenda: [], companies: [], rooms, cold, goals, nudges, openings: openings.map((o) => ({ name: o.name, opportunities: (o.payload as { opportunities?: string[] }).opportunities ?? [] })) };
   });
-  const week = { from: weekOf(b.ctx.today).start, to: weekOf(b.ctx.today).end };
-  const prompt =
-    input.kind === "daily"
-      ? dailyBriefPrompt({ date: formatLongDate(b.ctx.today), me: b.meText, agenda: inputs.agenda, nudges: inputs.nudges, news: (inputs as { companies: string[] }).companies ?? [] })
-      : weeklyBriefPrompt({ from: formatLongDate(week.from), to: formatLongDate(week.to), me: b.meText, rooms: inputs.rooms, due: inputs.nudges.filter((n) => n.kind === "due"), goals: inputs.goals, openings: inputs.openings, nudges: inputs.nudges });
-  const news = input.kind === "daily" && ((inputs as { companies?: string[] }).companies ?? []).length > 0;
-  const r = await runAI({ userId, feature: "brief", tier: "strong", onProgress: progress, prompt, ...(news ? { web: { search: { maxUses: 2 } } } : {}) }, deps);
-  const periodKey = input.kind === "daily" ? b.ctx.today : `week-of-${weekOf(b.ctx.today).start}`;
+  const week = { from: weekOf(today).start, to: weekOf(today).end };
+  const run = { userId, feature: "brief" as const, tier: "strong" as const, onProgress: progress };
+  const daily = (news: string[]) => dailyBriefPrompt({ date: formatLongDate(today), me: b.meText, agenda: inputs.agenda, nudges: inputs.nudges, news });
+  const r =
+    input.kind === "daily" && inputs.companies.length
+      ? // News searches need the web; without it the brief is written from the data alone.
+        await runWithWebFallback<string>({ ...run, web: { search: { maxUses: 2 } }, prompt: (m) => daily(m === "web" ? inputs.companies : []) }, deps)
+      : await runAI(
+          {
+            ...run,
+            prompt:
+              input.kind === "daily"
+                ? daily([])
+                : weeklyBriefPrompt({ from: formatLongDate(week.from), to: formatLongDate(week.to), me: b.meText, rooms: inputs.rooms, cold: inputs.cold, goals: inputs.goals, openings: inputs.openings, nudges: inputs.nudges }),
+          },
+          deps,
+        );
+  const periodKey = input.kind === "daily" ? today : `week-of-${weekOf(today).start}`;
   return data.withUser(userId, async (tx) => {
     const [row] = await tx
       .insert(t.briefs)
       .values({ userId, spaceId: input.spaceId, kind: input.kind, periodKey, markdown: r.output.slice(0, 8000), sources: r.seen.slice(0, 8), inputs: { version: BRIEF_VERSION }, model: r.model })
-      .onConflictDoUpdate({ target: [t.briefs.userId, t.briefs.spaceId, t.briefs.kind, t.briefs.periodKey], set: { markdown: r.output.slice(0, 8000), sources: r.seen.slice(0, 8), model: r.model, createdAt: new Date() } })
+      .onConflictDoUpdate({ target: [t.briefs.userId, t.briefs.spaceId, t.briefs.kind, t.briefs.periodKey], set: { markdown: r.output.slice(0, 8000), sources: r.seen.slice(0, 8), inputs: { version: BRIEF_VERSION }, model: r.model, createdAt: new Date() } })
       .returning({ id: t.briefs.id });
     return { briefId: row.id };
   });
@@ -429,7 +576,7 @@ export async function draftMessage(deps: FeatureDeps, userId: string, input: { p
   if (!person) throw new AiError("failed", "They're not in this Space.");
   const angles = (person.research?.payload as { talkingPoints?: string[] } | undefined)?.talkingPoints ?? [];
   const r = await runAI(
-    { userId, feature: "draft", tier: "fast", maxTokens: 2000, prompt: draftPrompt({ purpose: input.purpose, name: person.identity.name, today: b.ctx.today, person: personBlock(person), angles, me: b.meText, space: b.space.space.kind }) },
+    { userId, feature: "draft", tier: "fast", maxTokens: 2000, prompt: draftPrompt({ purpose: input.purpose, name: person.identity.name, today: b.ctx.today, person: personBlock(person, { today: b.ctx.today }), angles, me: b.meText, space: b.space.space.kind }) },
     deps,
   );
   return { text: r.output.trim(), phone: person.identity.phones[0] ?? null, email: person.identity.emails[0] ?? null };
@@ -466,8 +613,10 @@ export async function importChat(deps: FeatureDeps, userId: string, input: { spa
   const r = await runAI({ userId, feature: "chat", tier: "fast", schema: chatSchema, prompt: chatPrompt({ me: input.me, other: person.identity.name, today: input.today, transcript: input.transcript.slice(-30000) }) }, deps);
   const o = r.output;
   const p = { personId: input.personId, spaceId: input.spaceId };
+  // The last message's date: undated moments land there, and accepting them moves the last touch to it.
+  const lastDate = isIso(o.lastDate.trim()) && o.lastDate.trim() <= input.today ? o.lastDate.trim() : input.today;
   const list: NewSuggestion[] = [
-    ...o.interactions.filter((i) => i.summary.trim()).slice(0, 8).map((i) => ({ kind: "interaction" as const, ...p, targetId: input.personId, why: "From the chat", payload: { ...p, occurredOn: isIso(i.date) && i.date <= input.today ? i.date : input.today, summary: i.summary } })),
+    ...o.interactions.filter((i) => i.summary.trim()).slice(0, 8).map((i) => ({ kind: "interaction" as const, ...p, targetId: input.personId, why: "From the chat", payload: { ...p, occurredOn: isIso(i.date) && i.date <= input.today ? i.date : lastDate, summary: i.summary } })),
     ...o.commitments.filter((c) => c.text.trim()).slice(0, 8).map((c) => ({ kind: "commitment" as const, ...p, targetId: input.personId, why: c.owner === "me" ? "You promised this in the chat" : "They promised this in the chat", payload: { ...p, text: c.text, owner: c.owner, dueOn: isIso(c.due) ? c.due : null } })),
   ];
   for (const field of ["company", "position"] as const) {
@@ -478,6 +627,9 @@ export async function importChat(deps: FeatureDeps, userId: string, input: { spa
   if (bday && !person.identity.birthday) list.push({ kind: "person_field", ...p, targetId: input.personId, why: "Mentioned in the chat", payload: { personId: input.personId, field: "birthday", value: bday } });
   const interests = take(o.details.interests, 8).filter((x) => !person.relationship.interests.includes(x));
   if (interests.length) list.push({ kind: "interests", ...p, targetId: input.personId, why: "Mentioned in the chat", payload: { ...p, values: interests } });
+  // The prototype's "From chat" note (L1932): the summary and the other useful details. No family line (see chatSchema).
+  const fromChat = [o.summary.trim() && `From chat (${shortDate(input.today)}): ${o.summary.trim()}`, ...take(o.details.other, 5)].filter(Boolean).join("\n");
+  if (fromChat) list.push({ kind: "note", ...p, targetId: input.personId, why: "Summary of the chat", payload: { ...p, text: fromChat.slice(0, 2000) } });
   if (o.nextStep.trim()) list.push({ kind: "note", ...p, targetId: input.personId, why: "Suggested next step", payload: { ...p, text: `Next step: ${o.nextStep.trim()}` } });
   const n = await data.withUser(userId, (tx) => createSuggestions(tx, userId, "chat", null, list));
   return { summary: o.summary, sentiment: o.sentiment, suggestions: n };

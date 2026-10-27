@@ -2,6 +2,15 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: prompt parity (docs/PROTOTYPE_PROMPTS.md)
+
+159. **Every AI call gets one shared system prompt, the injection guard**: pasted material, chat transcripts, saved notes and web pages are data, never instructions. A call can still pass its own. The prototype had no system prompt; this changes no output shape.
+160. **No web tools means knowledge only, not a failure.** When a request with web tools on is rejected (anything but a rate limit, auth or size error), research, look-up, suggested rooms and the daily brief retry once without tools, using the prototype's "NO WEB ACCESS" wording. The result records `answeredFrom: "knowledge"` and keeps no sources. The UI's badge text is "Knowledge only (no web)". The retry doesn't count against the daily limit a second time.
+161. **Pasted research material is now kept** (`person_spaces.source_notes`, per Space), as the prototype's `sourceNotes` was, and reused when research runs without new material. This revises decision 132 ("it isn't stored"). Why: re-research loses the bio you pasted, and a pasted bio or LinkedIn About is the person's public self-description, not conversation material. The dossier's `used` list says "material you pasted" when it was used. To reverse: stop writing the column in `researchPerson` and drop it.
+162. **Chat import keeps `other`, not `family`.** The prototype's `family` field conflicts with the privacy rule (brief §4.0), so it stays out, along with the "Don't record anything about their family…" sentence (owner to confirm). The summary and the other details become a "From chat (date): …" note *suggestion*, not a silent note.
+163. **Look-up "place" covers companies too.** The prototype's three types are Person / Place / Event. A place's search focus covers both a company (leadership, partnerships) and a venue (who runs it, what happens there, who goes). "company" stays valid for older callers and behaves the same way.
+164. **"Going cold" in the weekly brief uses the app's reminder interval**, not the prototype's fixed cadence by score: past your reminder since the last touch, and starred or scored 40+ (no score counts as 50).
+
 ## 2026-10-27: records as sheets, People and Events, Discover
 
 153. **People, events, their forms and an import's review open as sheets over the page you're on, using Next's intercepting routes** (`src/app/(app)/@sheet`). The URL still changes, so Back closes a sheet and a link or a refresh opens the same record as a full page. The alternative, a `?sheet=` query parameter, would re-render the page underneath on every open.

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { defaultSpaceDefaults, spaceDefaultsSchema, type SpaceKind } from "@/contracts/spaces";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
@@ -33,8 +33,17 @@ export async function loadSpaceContext(tx: Tx, spaceId: string) {
   };
 }
 
-/** A compact list of the people in one Space, for prompts that need "my network". */
+/** The latest goal-fit score for a person, from a goal in this Space (or no goal). */
+export const latestScoreSql = (spaceId: string) =>
+  sql<number | null>`(select s.value from scores s where s.person_id = ${t.people.id} and (s.goal_id is null or s.goal_id in (select g.id from goals g where g.space_id = ${spaceId})) order by s.created_at desc limit 1)`;
+
+/**
+ * A compact list of the people in one Space, for prompts that need "my network". Ordered as the
+ * prototype's byPriority: starred first, then the latest score, then name. Notes come along for
+ * local warm paths only; the prompt's network rows don't print them.
+ */
 export async function loadNetworkDigest(tx: Tx, spaceId: string, limit = 180) {
+  const score = latestScoreSql(spaceId);
   return tx
     .select({
       id: t.people.id,
@@ -44,11 +53,12 @@ export async function loadNetworkDigest(tx: Tx, spaceId: string, limit = 180) {
       whereMet: t.personSpaces.whereMet,
       tags: t.personSpaces.tags,
       interests: t.personSpaces.interests,
+      notes: t.personSpaces.notes,
     })
     .from(t.personSpaces)
     .innerJoin(t.people, eq(t.people.id, t.personSpaces.personId))
     .where(and(eq(t.personSpaces.spaceId, spaceId), isNull(t.personSpaces.archivedAt), isNull(t.people.deletedAt)))
-    .orderBy(desc(t.personSpaces.starred), asc(t.people.name))
+    .orderBy(desc(t.personSpaces.starred), sql`${score} desc nulls last`, asc(t.people.name))
     .limit(limit);
 }
 
@@ -79,7 +89,7 @@ export async function loadPersonContext(tx: Tx, spaceId: string, personId: strin
       .innerJoin(t.goals, eq(t.goals.id, t.goalLinks.goalId))
       .where(and(eq(t.goalLinks.personId, personId), eq(t.goals.spaceId, spaceId))),
     tx
-      .select({ version: t.dossiers.version, mode: t.dossiers.mode, payload: t.dossiers.payload, createdAt: t.dossiers.createdAt })
+      .select({ version: t.dossiers.version, mode: t.dossiers.mode, payload: t.dossiers.payload, sources: t.dossiers.sources, createdAt: t.dossiers.createdAt })
       .from(t.dossiers)
       .where(and(eq(t.dossiers.personId, personId), eq(t.dossiers.spaceId, spaceId)))
       .orderBy(desc(t.dossiers.version))
@@ -108,6 +118,8 @@ export async function loadPersonContext(tx: Tx, spaceId: string, personId: strin
       tags: m.tags,
       starred: m.starred,
       lastTouchedHereOn: m.lastTouchedOn,
+      /** Material pasted for research last time (a bio, a LinkedIn About), reused when none is given. */
+      sourceNotes: m.sourceNotes,
     },
     touches,
     promises,

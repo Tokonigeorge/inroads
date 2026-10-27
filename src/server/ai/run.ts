@@ -8,16 +8,24 @@ import { aiConfig, estimateCostMicroUsd, isAiConfigured, type AiFeature, type Ti
 import { extractJson, lenient } from "./json";
 import type { Database } from "@/server/db/with-user";
 import { checkLimit, recordUsage } from "./limits";
+import { INROADS_SYSTEM, type WebMode } from "./prompts/shared";
 import type { Source } from "./sources";
 
 export class AiError extends Error {
   constructor(
     public code: "not_configured" | "refused" | "invalid_output" | "failed",
     message: string,
+    /** Set when the call failed while web tools were on: worth one retry without them. */
+    public webUnavailable = false,
   ) {
     super(message);
   }
 }
+
+const BUSY = "Inroads is busy right now. Try again in a minute.";
+const NO_ANSWER = "Inroads couldn't get an answer this time. Try again shortly.";
+const REFUSED = "Inroads couldn't do this one. Try rewording it or adding more context.";
+const BAD_SHAPE = "The answer came back in an unexpected shape. Try again.";
 
 export type WebOptions = {
   search?: { maxUses: number; allowedDomains?: string[]; userLocation?: { city?: string; country?: string; timezone?: string } };
@@ -28,6 +36,7 @@ export type RunInput<T> = {
   feature: AiFeature;
   tier: Tier;
   userId: string;
+  /** Defaults to INROADS_SYSTEM, the shared prompt-injection guard. */
   system?: string;
   /** Text, or content blocks (e.g. an image and a question). */
   prompt: string | BetaContentBlockParam[];
@@ -99,7 +108,7 @@ function progressFor(block: BetaContentBlock): string | null {
 }
 
 /**
- * The one way the app calls Claude (TECH_PLAN §5.1). Checks limits, streams the request
+ * The one way the app calls the model (TECH_PLAN §5.1). Checks limits, streams the request
  * (resuming paused server-tool turns), reports web activity as progress, validates JSON with
  * Zod (structured outputs when no web tools are used; otherwise the JSON is pulled from the
  * reply and, if it doesn't validate, repaired once), records usage, and maps refusals and
@@ -123,7 +132,7 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
       const stream = client.beta.messages.stream({
         model,
         max_tokens: input.maxTokens ?? 16000,
-        ...(input.system ? { system: input.system } : {}),
+        system: input.system ?? INROADS_SYSTEM,
         messages,
         ...(webTools.length ? { tools: webTools } : {}),
         output_config: {
@@ -148,16 +157,17 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
       messages.push({ role: "assistant", content: final.content as BetaContentBlockParam[] });
     }
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) throw new AiError("failed", "Claude is busy right now. Try again in a minute.");
-    if (e instanceof Anthropic.APIError) throw new AiError("failed", "Claude didn't answer this time. Try again shortly.");
+    if (e instanceof Anthropic.RateLimitError) throw new AiError("failed", BUSY);
+    // With web tools on, a rejected request (tools not enabled, or the tools failing) gets one retry without them.
+    if (e instanceof Anthropic.APIError) throw new AiError("failed", NO_ANSWER, webTools.length > 0 && e.status !== 401 && e.status !== 413);
     throw e;
   } finally {
     if (totals.input || totals.output) {
       await recordUsage({ userId: input.userId, feature: input.feature, model, inputTokens: totals.input, outputTokens: totals.output, webSearches: totals.searches, costMicroUsd: estimateCostMicroUsd(model, totals) }, deps.sys).catch(() => undefined);
     }
   }
-  if (!final) throw new AiError("failed", "Claude didn't answer this time. Try again shortly.");
-  if (final.stop_reason === "refusal") throw new AiError("refused", "Claude declined this one. Try rewording it or adding more context.");
+  if (!final) throw new AiError("failed", NO_ANSWER);
+  if (final.stop_reason === "refusal") throw new AiError("refused", REFUSED);
 
   const text = textOf(final.content);
   const seen = seenSources(final.content);
@@ -166,7 +176,7 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
   const raw = extractJson(text);
   const parsed = input.schema.safeParse(raw === undefined ? raw : lenient(input.schema, raw));
   if (parsed.success) return { output: parsed.data, text, seen, model };
-  if (input.isRepair) throw new AiError("invalid_output", "Claude's answer came back in the wrong shape. Try again.");
+  if (input.isRepair) throw new AiError("invalid_output", BAD_SHAPE);
 
   // One repair: ask the fast model to restate the answer in the exact schema.
   const repair = await runAI(
@@ -181,6 +191,25 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
     },
     deps,
   ).catch(() => null);
-  if (!repair) throw new AiError("invalid_output", "Claude's answer came back in the wrong shape. Try again.");
+  if (!repair) throw new AiError("invalid_output", BAD_SHAPE);
   return { output: repair.output, text, seen, model };
+}
+
+/**
+ * A web call with the prototype's knowledge-mode fallback (askClaude, L1423): if the request
+ * fails with the web tools on, it's sent once more without them, with the prompt built for
+ * "knowledge" mode (no tools, sources [], say what to verify). The result says which it was.
+ */
+export async function runWithWebFallback<T>(
+  input: Omit<RunInput<T>, "prompt" | "web"> & { web: WebOptions; prompt: (mode: WebMode) => RunInput<T>["prompt"] },
+  deps: RunDeps = {},
+): Promise<RunResult<T> & { mode: WebMode }> {
+  const { prompt, web, ...rest } = input;
+  try {
+    return { ...(await runAI({ ...rest, web, prompt: prompt("web") }, deps)), mode: "web" };
+  } catch (e) {
+    if (!(e instanceof AiError) || !e.webUnavailable) throw e;
+    input.onProgress?.("Web search isn't available, so answering from what's already known");
+    return { ...(await runAI({ ...rest, skipLimit: true, prompt: prompt("knowledge") }, deps)), mode: "knowledge" };
+  }
 }

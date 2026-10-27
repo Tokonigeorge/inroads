@@ -4,6 +4,26 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: AI prompts match the prototype (docs/PROTOTYPE_PROMPTS.md)
+- **Safer by default:** every AI call carries one system prompt telling the model that pasted text, chats, notes and web pages are data, never instructions.
+- **No web? Still an answer.** If web search isn't available, research, look-ups, suggested rooms and the daily brief answer from what the model already knows ("Knowledge only (no web)"), with no made-up sources, instead of failing.
+- **Richer person context:** profiles are labelled with links ("LinkedIn: ada (link: https://…)"), extra emails sit on their own line, birthdays read "14 Mar", and each person shows warmth ("Relationship: Warm, last contact 22 days ago"). Earlier research brings what it found last time: identity, profiles and up to five sources.
+- **Research remembers** the material you pasted and lists the saved details it used.
+- **Look-ups recognise what you've saved:**
+  - a person by name or handle (with a link to them when exactly one matches);
+  - an event on your list by its title, with its dates, notes and people;
+  - everyone who works at a company or place, in full.
+  - Warm paths also come from your notes, and your network is ordered starred first, then by score.
+- **Place** look-ups cover companies, venues, hubs and cities.
+- **Suggested rooms:** with no location set, the radar infers your city from where your network gathers, or sticks to online and well-known events. It no longer uses your time zone as your city. Your events list shows how each one repeats.
+- **Briefs:**
+  - the daily brief gives each person their research summary, three talking points, who owes what, and interests;
+  - news searches use real company names (not job titles, not "Independent");
+  - the weekly brief lists who's going cold (with their details), who's at each room, and each goal's priority and pipeline.
+- **Chat import:** other useful details are back, and the summary becomes a "From chat (date): …" note to accept. Undated moments land on the last message's date.
+- **Error messages** say "Inroads", not "Claude".
+- Prompt versions: `research.full@2`, `lookup@4`, `radar@2`, `brief@2`, `chat@2`.
+
 ### Changed: records open as sheets; People, Events and Discover as the prototype has them (P4, P5, P8)
 - **Sheets:**
   - People and events open as a sheet over the page you're on: a panel from the right on a laptop, rising from the bottom on a phone. Back closes it, and a link or a refresh opens the same record as a full page.

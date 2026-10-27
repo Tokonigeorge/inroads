@@ -1,6 +1,6 @@
 # Prototype prompt parity
 
-Status: audit, 2026-10-26. This compares every AI call in the prototype (`prototype/index.html`; `L123` = prototype line) with the app's prompts (`src/server/ai/**`). It covers the AI side only. For UI and flow, see `docs/PROTOTYPE_GAP.md`.
+Status: audit, 2026-10-26. **Plan items 1–8 done 2026-10-27** (see §12 and DECISIONS 150–155); item 9 is open. This compares every AI call in the prototype (`prototype/index.html`; `L123` = prototype line) with the app's prompts (`src/server/ai/**`). It covers the AI side only. For UI and flow, see `docs/PROTOTYPE_GAP.md`.
 
 **The short version.** Most app prompts are near-verbatim ports of the prototype's. The gaps that change what the user sees are mostly in **the inputs**, not the instructions:
 
@@ -275,16 +275,16 @@ Model IDs stay in `config.ts`.
 
 ## 12. Ordered plan
 
-1. **`run.ts`**: add the shared injection-guard system prompt; rename the user-facing "Claude" errors to Inroads.
-2. **`context/blocks.ts` `personBlock`**: social labels and `(link: url)`, `Other emails:`, formatted birthday, the `Relationship: <warmth>, last contact N days ago` line, and the full earlier-research line. This improves research, Decode, drafts and briefs at once.
-3. **Knowledge-mode fallback** for research, lookup and radar. Retry without tools using `webRules(false, …)` and the radar knowledge head; store `mode`; show the badge. Bump `research.full@2`, `lookup@4`, `radar@2`.
-4. **Briefs** (`brief@2`):
+1. ✅ **`run.ts`**: add the shared injection-guard system prompt; rename the user-facing "Claude" errors to Inroads. *Done: `INROADS_SYSTEM` in `prompts/shared.ts` is the default `system`.*
+2. ✅ **`context/blocks.ts` `personBlock`**: social labels and `(link: url)`, `Other emails:`, formatted birthday, the `Relationship: <warmth>, last contact N days ago` line, and the full earlier-research line. This improves research, Decode, drafts and briefs at once. *Done: `socialUrl` is in `domain/socials.ts`. The birthday reads "14 Mar", as the prototype's `fmtBday` gives it.*
+3. ✅ **Knowledge-mode fallback** for research, lookup and radar. Retry without tools using `webRules(false, …)` and the radar knowledge head; store `mode`; show the badge. Bump `research.full@2`, `lookup@4`, `radar@2`. *Done: `runWithWebFallback` in `run.ts`, also used by the daily brief's news. The mode is stored as `answeredFrom` on the dossier payload and the search result; the badge text is `KNOWLEDGE_ONLY_BADGE`. The UI still has to render it.*
+4. ✅ **Briefs** (`brief@2`):
    - daily: the `person()` shape (dossier, 3 talking points, labelled promises, interests); fix the company extraction;
    - weekly: rooms with people, the real going-cold list with its details, goal priority.
-5. **Lookup `knownFor` port**: fuzzy person and handle match, event-title match with an `eventBlock`, full blocks for company and place matches, notes in local warm paths, `byPriority` ordering, and returning `usedNames`/`used`.
-6. **Radar inputs**: `homeCity()` fallbacks and recurrence labels on the existing-list line.
-7. **Chat import** (`chat@2`): restore `other[]`, save the "From chat" summary note, use `lastDate`; keep `family` out (owner to confirm).
-8. **Research extras**: remember pasted material; record the details research used (`used`).
-9. Optional: stream drafts; move `score` to the strong tier if quality lags.
+5. ✅ **Lookup `knownFor` port**: fuzzy person and handle match, event-title match with an `eventBlock`, full blocks for company and place matches, notes in local warm paths, `byPriority` ordering, and returning `usedNames`/`used`. *Done: the matchers are in `context/known.ts`. The result also has `personId` when exactly one person matched. "place" now has a search focus that covers companies and venues, and "company" is kept as an alias (DECISIONS 154).*
+6. ✅ **Radar inputs**: `homeCity()` fallbacks and recurrence labels on the existing-list line. *Done: the label is `EVENTS ALREADY ON MY LIST`, to match the Events tab.*
+7. ✅ **Chat import** (`chat@2`): restore `other[]`, save the "From chat" summary note, use `lastDate`; keep `family` out (owner to confirm). *Done: the note is a suggestion. `lastDate` sets the date of undated moments, and accepting them moves the last touch.*
+8. ✅ **Research extras**: remember pasted material; record the details research used (`used`). *Done: `person_spaces.source_notes` (migration `20261027000548`) is reused when research runs without new material (DECISIONS 152). Pre-filling the "Give Inroads more to work with" box is UI work and still open.*
+9. Optional: stream drafts; move `score` to the strong tier if quality lags. *Not done: optional, and streaming is a flow change.*
 
 Bump each prompt's version constant when its text or inputs change. Prompt versions are stored on dossiers, searches and briefs, so before-and-after quality can be compared.

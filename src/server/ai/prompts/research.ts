@@ -5,7 +5,7 @@ const sources = z.array(source);
 
 /* ---------------- full research (Work Spaces) ---------------- */
 
-export const RESEARCH_FULL_VERSION = "research.full@1";
+export const RESEARCH_FULL_VERSION = "research.full@2";
 
 export const researchFullSchema = z.object({
   identity: z.string(),
