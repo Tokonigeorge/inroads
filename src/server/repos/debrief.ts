@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { roomDebriefSchema, type RoomDebriefInput } from "@/contracts/rooms";
@@ -20,7 +21,7 @@ const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
  */
 export async function saveRoomDebrief(tx: Tx, userId: string, raw: RoomDebriefInput, today: IsoDate): Promise<Result<{ people: number; created: string[]; spaceId: string }>> {
   const parsed = roomDebriefSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.");
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."));
   const d = parsed.data;
   const [e] = await tx.select().from(t.events).where(and(eq(t.events.id, d.eventId), isNull(t.events.deletedAt)));
   if (!e) return fail("This room no longer exists.");

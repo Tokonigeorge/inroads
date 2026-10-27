@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { and, asc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isoDateSchema } from "@/contracts/people";
@@ -23,7 +24,7 @@ export type GoalStep = { id: string; text: string; dueOn: string | null; doneAt:
 
 export async function addGoalStep(tx: Tx, userId: string, raw: GoalStepInput, searchId: string | null = null): Promise<Result<{ id: string }>> {
   const input = goalStepSchema.safeParse(raw);
-  if (!input.success) return fail(input.error.issues[0]?.message ?? "Check the step.", String(input.error.issues[0]?.path.at(-1) ?? ""));
+  if (!input.success) return fail(firstIssue(input.error, "Check the step."), String(input.error.issues[0]?.path.at(-1) ?? ""));
   const [goal] = await tx
     .select({ id: t.goals.id })
     .from(t.goals)

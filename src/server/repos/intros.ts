@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { introRequestSchema, type IntroRequestInput } from "@/contracts/people";
 import { addDays, type IsoDate } from "@/domain/dates";
@@ -91,7 +92,7 @@ async function advanceTo(tx: Tx, userId: string, goalId: string, personId: strin
  */
 export async function requestIntro(tx: Tx, userId: string, raw: IntroRequestInput, today: IsoDate): Promise<Result<{ id: string }>> {
   const parsed = introRequestSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.");
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."));
   const d = parsed.data;
   if (d.targetId === d.connectorId) return fail("Choose someone else to make the intro.");
   const names = await tx.select({ id: t.people.id, name: t.people.name }).from(t.people).where(and(inArray(t.people.id, [d.targetId, d.connectorId]), isNull(t.people.deletedAt)));

@@ -9,7 +9,7 @@ import { askNetworkAction, type AskState } from "./actions";
 const EXAMPLES = ["Who do I know in fintech in Accra who's raised before?", "Who could help me hire a designer?", "Who did I meet at Lagos Startup Week?"];
 
 /** Ask a question about your own people, in one Space. */
-export function AskNetwork({ spaces, defaultSpaceId, aiEnabled }: { spaces: { id: string; name: string }[]; defaultSpaceId: string; aiEnabled: boolean }) {
+export function AskNetwork({ spaces, defaultSpaceId, aiEnabled, initialQuestion = "" }: { spaces: { id: string; name: string }[]; defaultSpaceId: string; aiEnabled: boolean; initialQuestion?: string }) {
   const [state, action, pending] = useActionState<AskState, FormData>(askNetworkAction, {});
   const errors = state.fieldErrors ?? {};
   const r = state.result;
@@ -17,7 +17,7 @@ export function AskNetwork({ spaces, defaultSpaceId, aiEnabled }: { spaces: { id
     <div className="grid gap-8">
       <form action={action} className="grid max-w-[640px] gap-4" noValidate>
         <Field label="Your question" hint={`For example: “${EXAMPLES[0]}”`} error={errors.question}>
-          {({ id, describedBy, invalid }) => <Textarea id={id} name="question" rows={2} maxLength={300} defaultValue={state.question ?? ""} aria-describedby={describedBy} aria-invalid={invalid} />}
+          {({ id, describedBy, invalid }) => <Textarea id={id} name="question" rows={2} maxLength={300} defaultValue={state.question ?? initialQuestion} aria-describedby={describedBy} aria-invalid={invalid} />}
         </Field>
         {spaces.length > 1 ? (
           <Field label="Space" hint="Inroads only looks in one Space at a time." error={errors.spaceId}>

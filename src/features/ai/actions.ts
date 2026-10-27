@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { firstIssue } from "@/contracts/issues";
 import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
@@ -27,7 +28,7 @@ const message = (e: unknown) => (e instanceof AiError || e instanceof AiLimitErr
 export async function startAiJobAction(input: unknown): Promise<{ jobId?: string; message?: string }> {
   const user = await requireUser();
   const parsed = aiJobSchema.safeParse(input);
-  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the details." };
+  if (!parsed.success) return { message: firstIssue(parsed.error, "Check the details.") };
   try {
     return { jobId: await enqueueAiJob(user.id, parsed.data) };
   } catch (e) {
@@ -80,7 +81,7 @@ export async function readCardAction(form: FormData): Promise<{ fields?: Record<
 export async function importChatAction(input: { spaceId: string; personId: string; transcript: string; me: string }): Promise<{ summary?: string; suggestions?: number; message?: string }> {
   const user = await requireUser();
   const transcript = z.string().trim().min(20, "Paste more of the chat.").max(500_000).safeParse(input.transcript);
-  if (!transcript.success) return { message: transcript.error.issues[0].message };
+  if (!transcript.success) return { message: firstIssue(transcript.error) };
   try {
     const today = await db.withUser(user.id, async (tx) => (await userContext(tx)).today);
     const r = await importChat({}, user.id, { spaceId: id.parse(input.spaceId), personId: id.parse(input.personId), transcript: transcript.data, me: z.string().max(80).parse(input.me ?? ""), today });

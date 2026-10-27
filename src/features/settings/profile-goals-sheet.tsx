@@ -59,6 +59,7 @@ export function ProfileGoalsButton({ values, label, variant = "primary" }: { val
 }
 
 function ProfileGoalsSheet({ values, open, onOpenChange }: { values: ProfileGoalsValues; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const router = useRouter();
   const [v, setV] = useState(values);
   const [rows, setRows] = useState<Row[]>(() => (values.goals.length ? values.goals.map((g) => ({ ...g, key: g.id ?? `new-${n++}` })) : [blank()]));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -77,8 +78,12 @@ function ProfileGoalsSheet({ values, open, onOpenChange }: { values: ProfileGoal
         setErrors(r.fieldErrors ?? {});
         return setMessage(r.message ?? "That didn't save.");
       }
-      toast.show("Profile saved.");
       onOpenChange(false);
+      // A goal you just added opens on its own page, where "Start here" says what to do next.
+      if (r.id) {
+        toast.show("Saved. Here's your new goal.");
+        router.push(`/goals/${r.id}`);
+      } else toast.show("Profile saved.");
     });
   }
 

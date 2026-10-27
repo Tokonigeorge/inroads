@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -69,7 +70,7 @@ export async function acceptSuggestion(tx: Tx, userId: string, id: string, edite
     else if (kind === "commitment") raw.text = editedValue;
   }
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the value.");
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the value."));
   const p = parsed.data as Record<string, unknown> & { personId: string };
 
   switch (kind) {

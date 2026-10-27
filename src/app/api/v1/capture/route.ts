@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { firstIssue } from "@/contracts/issues";
 import { captureSchema } from "@/contracts/people";
 import { autoResearch } from "@/server/ai/auto-research";
 import { apiRoute, unprocessable } from "@/server/api";
@@ -12,7 +13,7 @@ import { userContext } from "@/server/user-context";
  */
 export const POST = apiRoute(async (req, user) => {
   const parsed = captureSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return unprocessable(parsed.error.issues[0]?.message ?? "That couldn't be saved.");
+  if (!parsed.success) return unprocessable(firstIssue(parsed.error, "That couldn't be saved."));
   const c = parsed.data;
   const result = await db.withUser(user.id, async (tx) => {
     const { today } = await userContext(tx);

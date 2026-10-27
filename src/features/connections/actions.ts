@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { firstIssue } from "@/contracts/issues";
 import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
@@ -79,7 +80,7 @@ export async function addIcsLinkAction(_prev: IcsFormState, formData: FormData):
 export async function importPickedContactsAction(input: unknown): Promise<{ ok: boolean; message?: string; added?: number; updated?: number }> {
   const user = await requireUser();
   const parsed = pickedContactsSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Those contacts couldn't be read." };
+  if (!parsed.success) return { ok: false, message: firstIssue(parsed.error, "Those contacts couldn't be read.") };
   const r = await db.withUser(user.id, async (tx) => {
     const spaces = await listSpaces(tx);
     if (!spaces.some((s) => s.id === parsed.data.spaceId)) return null;

@@ -293,6 +293,17 @@ describe("look up, briefs, scores, chat, drafts", () => {
     expect(await sql`select 1 from goal_links where person_id = ${other}`).toHaveLength(0);
   });
 
+  it("scoring includes people from an import still waiting to be sorted, after the sorted ones", async () => {
+    const fresh = randomUUID();
+    await as((tx) => createPerson(tx, user.id, { id: fresh, identity: { name: "Fresh Import" }, membership: { spaceId: work } }, TODAY));
+    await sql`update person_spaces set triage_state = 'pending' where person_id = ${fresh}`;
+    const fake = fakeAnthropic(() => ({ json: { scores: [{ id: fresh, score: 40, why: "Unclear fit", goalId: "" }] } }));
+    const r = await scorePeople({ client: fake.client, sys, db }, user.id, { spaceId: work });
+    expect(r.scored).toBe(1);
+    const rows = promptText(fake.calls[0]).split("\n").filter((l) => /^[0-9a-f-]{36} \|/.test(l));
+    expect(rows.at(-1)).toContain("Fresh Import");
+  });
+
   it("chat import suggests touches and promises, and stores no transcript", async () => {
     const fake = fakeAnthropic(() => ({ json: { summary: "Warm", lastDate: TODAY, interactions: [{ date: TODAY, summary: "Agreed to meet" }], commitments: [{ text: "Send the deck", owner: "me", due: "" }], details: { company: "", position: "Partner", interests: ["fintech"], birthday: "" }, sentiment: "warm", nextStep: "Book a coffee" } }));
     const r = await importChat({ client: fake.client, sys, db }, user.id, { spaceId: work, personId: kemi, transcript: "SECRET-CHAT-TEXT", me: "Ada", today: TODAY });

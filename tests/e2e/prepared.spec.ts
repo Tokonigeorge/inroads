@@ -45,7 +45,10 @@ test.describe.serial("Walk in prepared, follow up in one tap (against a fake Cla
     await sheet.getByRole("button", { name: "+ Add goal" }).click();
     await sheet.getByRole("group", { name: "Goal 2" }).getByRole("textbox", { name: "Goal" }).fill("Meet three seed investors");
     await sheet.getByRole("button", { name: "Save profile" }).click();
-    await expect(page).toHaveURL(/\/goals$/);
+    // The first new goal opens, with what to do next.
+    await expect(page.getByRole("heading", { name: "Raise a funding round", level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Start here" })).toBeVisible();
+    await page.goto("/goals");
     await expect(page.getByRole("link", { name: /Raise a funding round/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Meet three seed investors/ })).toBeVisible();
     await page.goto("/today");

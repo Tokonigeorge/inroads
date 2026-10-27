@@ -7,15 +7,18 @@ import { goalPriorityLabels, goalTypeLabels } from "@/contracts/goals";
 import { formatLongDate } from "@/domain/dates";
 import { progressMeter, progressSummary } from "@/domain/goal-progress";
 import { instantInZone } from "@/domain/zoned";
+import { AiJobButton } from "@/features/ai/ai-job-button";
 import { GoalActions } from "@/features/goals/goal-actions";
 import { GoalSteps } from "@/features/goals/goal-steps";
 import { Pipeline } from "@/features/goals/pipeline";
 import { LoadingRows } from "@/features/shell/page-frame";
+import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
 import { getGoal, type GoalDetail } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
+import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
 import { Meter, TargetHit } from "@/ui/meter";
 
@@ -45,6 +48,50 @@ async function Goal({ params }: { params: Promise<{ id: string }> }) {
   return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} />;
 }
 
+/** A new goal has nothing in it yet: three ways to get it moving (people, fit, rooms). */
+function StartHere({ g }: { g: GoalDetail }) {
+  const step = "grid gap-1.5 rounded-md border border-border bg-surface p-4";
+  return (
+    <section aria-labelledby="start" className="mb-8 grid gap-3">
+      <div>
+        <h2 id="start" className="font-semibold">
+          Start here
+        </h2>
+        <p className="text-small text-muted">Your goal is saved. Get it moving with any of these.</p>
+      </div>
+      <ol className="grid gap-3 md:grid-cols-3">
+        <li className={step}>
+          <span className="font-[550]">1. Add people who can help</span>
+          <span className="text-small text-muted">Pick people you already know. They go into the pipeline below.</span>
+          <div className="pt-1">
+            <Button asChild size="sm" variant="primary">
+              <Link href={`/goals/${g.id}?add=1`} replace scroll={false}>
+                Add people
+              </Link>
+            </Button>
+          </div>
+        </li>
+        <li className={step}>
+          <span className="font-[550]">2. Find who fits</span>
+          <span className="text-small text-muted">Scores people in {g.space.name} against your goals and suggests the strongest fits.</span>
+          <div className="pt-1">
+            <AiJobButton aiEnabled={isAiConfigured()} job={{ kind: "score", spaceId: g.space.id }} label="Find who fits" />
+          </div>
+        </li>
+        <li className={step}>
+          <span className="font-[550]">3. Find rooms to be in</span>
+          <span className="text-small text-muted">Events in the next three weeks, matched to this goal and where your network gathers.</span>
+          <div className="pt-1">
+            <Button asChild size="sm">
+              <Link href="/rooms#radar">Open Radar</Link>
+            </Button>
+          </div>
+        </li>
+      </ol>
+    </section>
+  );
+}
+
 function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: string; steps: GoalStep[] }) {
   const m = progressMeter(g.progress);
   const label = (key: string | null) => (key ? (g.stages.find((s) => s.key === key)?.label ?? "a removed stage") : "");
@@ -64,6 +111,8 @@ function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: s
         subtitle={subtitle}
         actions={<GoalActions goalId={g.id} text={g.text} spaceId={g.space.id} spaceName={g.space.name} stages={g.stages} active={g.active} archived={g.archived} />}
       />
+
+      {g.active && !g.archived && !g.people && !g.rooms.length && !steps.length ? <StartHere g={g} /> : null}
 
       {g.active && !g.archived ? (
         <section aria-labelledby="week" className="mb-8 grid max-w-[560px] gap-2">

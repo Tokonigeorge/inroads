@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { and, asc, desc, eq, inArray, isNull, ne, sql, type SQL } from "drizzle-orm";
 import {
   createPersonSchema,
@@ -277,7 +278,7 @@ export type PersonDetail = NonNullable<Awaited<ReturnType<typeof getPerson>>>;
 
 function normaliseIdentity(input: PersonIdentityInput, region: string): Result<ReturnType<typeof personIdentitySchema.parse> & { emails: string[]; phones: string[] }> {
   const parsed = personIdentitySchema.safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path[0] ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path[0] ?? ""));
   const lists = normaliseContactLists({ emails: parsed.data.emails, phones: parsed.data.phones }, region);
   const bad = lists.invalid[0];
   if (bad) {
@@ -295,7 +296,7 @@ async function checkCircle(tx: Tx, circleId: string | null, spaceId: string): Pr
 /** Idempotent on `id`: replaying the same capture returns the existing person. */
 export async function createPerson(tx: Tx, userId: string, raw: CreatePersonInput, today: IsoDate): Promise<Result<{ id: string; created: boolean }>> {
   const input = createPersonSchema.safeParse(raw);
-  if (!input.success) return fail(input.error.issues[0]?.message ?? "Check the details.", String(input.error.issues[0]?.path.at(-1) ?? ""));
+  if (!input.success) return fail(firstIssue(input.error, "Check the details."), String(input.error.issues[0]?.path.at(-1) ?? ""));
   const [existing] = await tx.select({ id: t.people.id }).from(t.people).where(eq(t.people.id, input.data.id));
   if (existing) return { ok: true, data: { id: existing.id, created: false } };
 
@@ -325,7 +326,7 @@ export async function updatePersonIdentity(tx: Tx, id: string, raw: PersonIdenti
 /** Adds the person to a Space, or updates their relationship details there. */
 export async function saveMembership(tx: Tx, userId: string, personId: string, raw: MembershipInput, today: IsoDate): Promise<Result<null>> {
   const parsed = membershipSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path[0] ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path[0] ?? ""));
   const m = parsed.data;
   if (!(await checkCircle(tx, m.circleId, m.spaceId))) return fail("That circle belongs to a different Space.", "circleId");
   const [existing] = await tx
@@ -402,7 +403,7 @@ async function assertMember(tx: Tx, personId: string, spaceId: string) {
 /** Idempotent on the touch id (and the promise id), so offline replays are safe. */
 export async function logTouch(tx: Tx, userId: string, raw: TouchInput): Promise<Result<{ id: string }>> {
   const parsed = touchSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path.at(-1) ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path.at(-1) ?? ""));
   const d = parsed.data;
   if (!(await assertMember(tx, d.personId, d.spaceId))) return fail("They're not in that Space.", "spaceId");
   await tx
@@ -429,7 +430,7 @@ export async function deleteTouch(tx: Tx, id: string) {
 
 export async function addPromise(tx: Tx, userId: string, raw: PromiseInput): Promise<Result<{ id: string }>> {
   const parsed = promiseSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path.at(-1) ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path.at(-1) ?? ""));
   const d = parsed.data;
   if (!(await assertMember(tx, d.personId, d.spaceId))) return fail("They're not in that Space.", "spaceId");
   await tx.insert(t.commitments).values({ userId, ...d }).onConflictDoNothing({ target: t.commitments.id });

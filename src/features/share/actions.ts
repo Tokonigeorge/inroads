@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { firstIssue } from "@/contracts/issues";
 import { z } from "zod";
 import { socialKeys } from "@/contracts/people";
 import type { FormState } from "@/features/forms";
@@ -27,7 +28,7 @@ const addSchema = z.object({
 export async function addSharedPersonAction(input: z.input<typeof addSchema>): Promise<FormState & { personId?: string }> {
   const user = await requireUser();
   const parsed = addSchema.safeParse(input);
-  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the details." };
+  if (!parsed.success) return { message: firstIssue(parsed.error, "Check the details.") };
   const d = parsed.data;
   const r = await db.withUser(user.id, async (tx) => {
     if (!(await getShare(tx, d.shareId))) return { ok: false as const, message: "This share was already added or discarded." };

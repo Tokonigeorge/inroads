@@ -4,10 +4,25 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: "Score people" no longer stops without a word
+- Scoring now includes people from an import you haven't sorted yet (after the ones you have). Before, a fresh Google import meant nobody to score, and the job stopped.
+- When it finishes, the button says what it did ("Scored 60 people.") and links the strong fits to review.
+- When any background AI job fails (score, research, look-up, Find details, export, backup), the reason now stays on screen instead of vanishing with the progress box.
+
+### Changed: a new goal says what to do next
+- A goal with nothing in it yet opens with **Start here**: add people who can help, find who in your network fits, and open Radar for rooms to be in.
+- Saving Profile & goals with a new goal takes you to that goal, instead of back to the list.
+- A plan's role with no name yet ("Event planners who hire photographers") is no longer a dead end: **Check your network** asks your network for it, and **Add as a step** keeps "Find event planners who hire photographers" on the goal.
+
+### Changed: friendly errors, details in the logs
+- A page that breaks shows a plain apology with **Try again** and **Go to Today** (and a short reference to match the server log), instead of the browser's default error.
+- Form and action errors read in plain words ("This can't be empty.", "Keep it under 80 characters.") instead of the validator's developer wording, everywhere.
+- Sync failures no longer show a code on screen; the code and cause go to the server log. AI job failures are logged with their cause too.
+
 ### Fixed: Google sync for new accounts
 - Inroads now records what Google actually granted, not what it asked for. If Contacts or Calendar was left unticked on Google's screen, it syncs what was shared and says what's missing, instead of failing the whole sync.
 - A shared calendar Inroads can't read (free/busy only, or removed) is skipped instead of stopping the sync.
-- A failed sync now shows a short reason code (for example "provider 403" or "db 23514") and logs the cause, so it can be traced.
+- A failed sync logs a short reason code (for example "provider 403" or "db 23514") with the cause, so it can be traced.
 - An old "The sync didn't finish" card no longer comes back after a later sync worked. A finished sync is dropped from the page address, and a failed one is hidden once the account has synced since.
 
 ### Changed: chat import picks up family details again
