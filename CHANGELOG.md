@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: your last 8 weeks on each goal
+- Under a goal's "This week" meter: one bar per week against the dashed weekly target, counted the same way as the meter (touches with people on the goal, sessions of its rooms you went to). Hover or focus a bar for the count. Shown once there's anything to show.
+- Closing **Add people** opened from "Start here" no longer reopens it on reload.
+
 ### Added: new roles and companies for your priority people (like Mesh's job-change alerts)
 - Priority (starred) people in Work Spaces get their research refreshed about once a month, two a day at your brief time.
 - When research finds a different company or role than the one you saved (from the web, not when it's unsure), it suggests the update, and Today shows "Kemi is now at Airtel Africa" with **Congratulate** (a new "Congrats" draft) and **Update details**.

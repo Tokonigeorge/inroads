@@ -16,11 +16,12 @@ import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { listGoalSteps, type GoalStep } from "@/server/repos/goal-steps";
-import { getGoal, type GoalDetail } from "@/server/repos/goals";
+import { getGoal, goalHistory, type GoalDetail } from "@/server/repos/goals";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
 import { Meter, TargetHit } from "@/ui/meter";
+import { WeekTrend } from "@/ui/week-trend";
 
 export const metadata: Metadata = { title: "Goal" };
 
@@ -42,10 +43,12 @@ async function Goal({ params }: { params: Promise<{ id: string }> }) {
   const data = await db.withUser(user.id, async (tx) => {
     const ctx = await userContext(tx);
     const goal = await getGoal(tx, id, ctx.today, ctx.timezone);
-    return { goal, ctx, steps: goal ? await listGoalSteps(tx, goal.id) : [] };
+    if (!goal) return { goal, ctx, steps: [], history: [] };
+    const [steps, history] = await Promise.all([listGoalSteps(tx, goal.id), goalHistory(tx, { id: goal.id, spaceId: goal.space.id }, ctx.today)]);
+    return { goal, ctx, steps, history };
   });
   if (!data.goal) notFound();
-  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} />;
+  return <GoalView g={data.goal} today={data.ctx.today} tz={data.ctx.timezone} steps={data.steps} history={data.history} />;
 }
 
 /** A new goal has nothing in it yet: three ways to get it moving (people, fit, rooms). */
@@ -92,7 +95,7 @@ function StartHere({ g }: { g: GoalDetail }) {
   );
 }
 
-function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: string; steps: GoalStep[] }) {
+function GoalView({ g, today, tz, steps, history }: { g: GoalDetail; today: string; tz: string; steps: GoalStep[]; history: { start: string; done: number }[] }) {
   const m = progressMeter(g.progress);
   const label = (key: string | null) => (key ? (g.stages.find((s) => s.key === key)?.label ?? "a removed stage") : "");
   const subtitle = [
@@ -127,6 +130,7 @@ function GoalView({ g, today, tz, steps }: { g: GoalDetail; today: string; tz: s
           </div>
           <Meter value={m.done} max={m.target} label="This week" valueText={`${m.done} of ${m.target}`} />
           <p className="text-small text-muted">{progressSummary(g.progress)}</p>
+          {history.some((w) => w.done) ? <div className="pt-3"><WeekTrend weeks={history} target={g.weeklyTarget} /></div> : null}
         </section>
       ) : null}
 
