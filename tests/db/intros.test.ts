@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addDays } from "@/domain/dates";
+import { addDays, todayIn } from "@/domain/dates";
 import type { Tx } from "@/server/db/with-user";
 import { createGoal, linkPeople } from "@/server/repos/goals";
-import { introsAbout, requestIntro, warmPaths } from "@/server/repos/intros";
+import { introOutcomes, introsAbout, requestIntro, warmPaths } from "@/server/repos/intros";
 import { createPerson, logTouch, setPromiseDone } from "@/server/repos/people";
 import { createRoom, linkPerson } from "@/server/repos/rooms";
 import { listSpaces } from "@/server/repos/spaces";
@@ -84,6 +84,20 @@ describe("intro requests", () => {
     expect(await sql`select kind, to_person_id from person_links where from_person_id = ${tunde} and kind = 'introduced_by'`).toEqual([{ kind: "introduced_by", to_person_id: kemi }]);
     expect(await sql`select stage from goal_links where person_id = ${tunde}`).toEqual([{ stage: "introduced" }]);
     expect((await as((tx) => warmPaths(tx, tunde, work, TODAY))).find((p) => p.name === "Kemi Adebayo")?.reasons).toContain("Introduced you");
+  });
+
+  it("outcomes: asked, made, met, and who you're still waiting on", async () => {
+    // Kemi's intro to Tunde is done (above). Ask Chidi for one to Ifeoma, due yesterday.
+    await as((tx) => requestIntro(tx, user.id, { targetId: ifeoma, connectorId: chidi, spaceId: work, dueInDays: 1 }, TODAY));
+    await sql`update commitments set due_on = ${addDays(TODAY, -1)} where person_id = ${chidi} and kind = 'intro'`;
+    let o = await as((tx) => introOutcomes(tx, null));
+    expect(o).toMatchObject({ asked: 2, made: 1, met: 0 });
+    expect(o.waiting).toEqual([{ id: expect.any(String), connectorId: chidi, connector: "Chidi Okeke", targetId: ifeoma, target: "Ifeoma Nwosu", dueOn: addDays(TODAY, -1) }]);
+    // Speaking to Tunde after the intro counts as met.
+    await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: tunde, spaceId: work, occurredOn: todayIn("UTC"), type: "coffee" }));
+    o = await as((tx) => introOutcomes(tx, work));
+    expect(o).toMatchObject({ asked: 2, made: 1, met: 1 });
+    expect((await as((tx) => introOutcomes(tx, personal))).asked).toBe(0);
   });
 
   it("keeps Spaces separate and refuses nonsense", async () => {

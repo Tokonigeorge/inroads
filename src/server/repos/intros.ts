@@ -169,3 +169,38 @@ export async function introsAbout(tx: Tx, personId: string) {
     .where(and(eq(t.commitments.kind, "intro"), eq(t.commitments.aboutPersonId, personId), isNull(t.people.deletedAt)))
     .orderBy(desc(t.commitments.createdAt));
 }
+
+/**
+ * Intro outcomes (Affinity-style introductions reporting): how many you asked for, how many
+ * were made, and how many turned into a conversation (a touch with the person after the intro).
+ * Plus the ones you're still waiting on, oldest due first.
+ */
+export async function introOutcomes(tx: Tx, spaceId: string | null) {
+  const inSpace = spaceId ? sql`and c.space_id = ${spaceId}` : sql``;
+  const [[counts], waiting] = await Promise.all([
+    tx.execute<{ asked: number; made: number; met: number }>(sql`
+      select count(*)::int as asked,
+             count(c.done_at)::int as made,
+             count(*) filter (where c.done_at is not null and exists (
+               select 1 from interactions i
+                where i.person_id = c.about_person_id and i.occurred_on >= (c.done_at at time zone 'UTC')::date
+             ))::int as met
+        from commitments c
+        join people target on target.id = c.about_person_id and target.deleted_at is null
+       where c.kind = 'intro' ${inSpace}`),
+    tx.execute<{ id: string; connector_id: string; connector: string; target_id: string; target: string; due_on: string | null }>(sql`
+      select c.id, conn.id as connector_id, conn.name as connector, target.id as target_id, target.name as target, c.due_on::text as due_on
+        from commitments c
+        join people conn on conn.id = c.person_id and conn.deleted_at is null
+        join people target on target.id = c.about_person_id and target.deleted_at is null
+       where c.kind = 'intro' and c.done_at is null ${inSpace}
+       order by c.due_on asc nulls last
+       limit 10`),
+  ]);
+  return {
+    asked: counts?.asked ?? 0,
+    made: counts?.made ?? 0,
+    met: counts?.met ?? 0,
+    waiting: [...waiting].map((w) => ({ id: w.id, connectorId: w.connector_id, connector: w.connector, targetId: w.target_id, target: w.target, dueOn: w.due_on })),
+  };
+}

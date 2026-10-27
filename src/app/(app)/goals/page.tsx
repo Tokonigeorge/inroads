@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { goalTypeLabels } from "@/contracts/goals";
+import { formatLongDate } from "@/domain/dates";
 import { progressMeter, progressSummary } from "@/domain/goal-progress";
 import { AiJobButton } from "@/features/ai/ai-job-button";
 import { Backup } from "@/features/settings/backup";
@@ -18,6 +19,7 @@ import * as t from "@/server/db/schema";
 import { getAccountOverview } from "@/server/repos/account";
 import { listConnections } from "@/server/repos/connections";
 import { listGoals, type GoalSummary } from "@/server/repos/goals";
+import { introOutcomes } from "@/server/repos/intros";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
 import { EmptyState, PageHeader, Section } from "@/ui/layout";
@@ -56,14 +58,15 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
     db.withUser(user.id, async (tx) => {
       const [view, ctx] = await Promise.all([loadSpaceView(tx), userContext(tx)]);
       const opts = { spaceId: view.selected?.id ?? null, today: ctx.today, tz: ctx.timezone };
-      const [goals, archivedGoals, accounts, [scored]] = await Promise.all([
+      const [goals, archivedGoals, accounts, [scored], intros] = await Promise.all([
         listGoals(tx, { ...opts, archived }),
         archived ? Promise.resolve([]) : listGoals(tx, { ...opts, archived: true }),
         listConnections(tx),
         tx.select({ n: sql<number>`count(distinct ${t.scores.personId})::int` }).from(t.scores),
+        introOutcomes(tx, opts.spaceId),
       ]);
       const [mine] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false))).limit(1);
-      return { goals, archivedCount: archivedGoals.length, accounts, scored: scored?.n ?? 0, spaces: view.spaces, hasOwnGoals: Boolean(mine) };
+      return { goals, archivedCount: archivedGoals.length, accounts, scored: scored?.n ?? 0, spaces: view.spaces, hasOwnGoals: Boolean(mine), intros, today: ctx.today };
     }),
   ]);
 
@@ -128,6 +131,49 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
             Archived goals ({data.archivedCount})
           </Link>
         ) : null}
+      </Section>
+
+      <Section title="Intros" count={data.intros.asked ? `${data.intros.asked} asked` : undefined}>
+        {data.intros.asked ? (
+          <>
+            <dl className="grid grid-cols-3 gap-2 text-center">
+              {(
+                [
+                  ["Asked", data.intros.asked, "for an introduction"],
+                  ["Made", data.intros.made, "introductions done"],
+                  ["Met", data.intros.met, "you've since spoken to"],
+                ] as const
+              ).map(([k, v, hint]) => (
+                <div key={k} className="grid gap-0.5 rounded-md border border-line bg-surface px-2 py-3">
+                  <dt className="text-[12px] font-semibold tracking-[0.04em] text-muted uppercase">{k}</dt>
+                  <dd className="font-display text-[26px] leading-none font-[680] tabular-nums">{v}</dd>
+                  <dd className="text-[12px] text-muted">{hint}</dd>
+                </div>
+              ))}
+            </dl>
+            {data.intros.waiting.length ? (
+              <div className="grid gap-1.5 pt-2">
+                <h3 className="text-[14px] font-semibold">Waiting on</h3>
+                <ul className="grid gap-1 text-[14px]">
+                  {data.intros.waiting.map((w) => (
+                    <li key={w.id}>
+                      <Link href={`/people/${w.connectorId}`} className="font-[550] hover:underline">
+                        {w.connector}
+                      </Link>{" "}
+                      to introduce you to{" "}
+                      <Link href={`/people/${w.targetId}`} className="hover:underline">
+                        {w.target}
+                      </Link>
+                      {w.dueOn ? <span className={w.dueOn < data.today ? "font-[550] text-accent" : "text-muted"}> · {w.dueOn < data.today ? "overdue, follow up" : `by ${formatLongDate(w.dueOn, data.today)}`}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-[13.5px] text-muted">Ask for an introduction from someone&apos;s page (&ldquo;Who could introduce you&rdquo;). How many were made, and how many became a conversation, show here.</p>
+        )}
       </Section>
 
       {about ? (
