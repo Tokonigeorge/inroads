@@ -154,7 +154,8 @@ function RoleActions({ role, goal }: { role: string; goal: Goal | undefined }) {
           <Button
             size="sm"
             disabled={pending}
-            aria-label={`Add "${step}" as a step on "${goal.text}"`}
+            aria-label={`Add as a step: ${step}`}
+            title={`Adds "${step}" to "${goal.text}"`}
             onClick={() =>
               start(async () => {
                 const r = await addGoalStepAction(goal.id, step, null);

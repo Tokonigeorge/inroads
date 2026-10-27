@@ -51,7 +51,7 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     // A role with no name yet: look among your people, or keep it as a step on the goal.
     const role = plan.getByRole("listitem").filter({ hasText: "Investor relations lead" });
     await expect(role.getByRole("link", { name: "Check your network" })).toHaveAttribute("href", /\/ask\?q=/);
-    await role.getByRole("button", { name: /Add "Find investor relations lead" as a step/ }).click();
+    await role.getByRole("button", { name: "Add as a step: Find investor relations lead" }).click();
     await expect(role.getByText("Added as a step")).toBeVisible();
     await expectAccessible(page);
 
