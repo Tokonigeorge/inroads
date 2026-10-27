@@ -33,7 +33,7 @@ async function connectGoogle(refresh = "fake-refresh", expired = true) {
     userId: user.id,
     provider: "google",
     accountEmail: FAKE_GOOGLE_EMAIL,
-    scopes: ["contacts.readonly"],
+    scopes: ["https://www.googleapis.com/auth/contacts.readonly", "https://www.googleapis.com/auth/calendar.events.readonly", "https://www.googleapis.com/auth/calendar.calendarlist.readonly"],
     spaceId: work,
     tokens: { access_token: "old", refresh_token: refresh, expires_at: expired ? 0 : Date.now() + 3_600_000, scope: "" },
   });
@@ -118,5 +118,58 @@ describe("Google sync", () => {
     const other = await createUser(sql, "Other");
     expect(await asUser(other.id, (tx) => tx`select id from jobs`)).toHaveLength(0);
     expect(await asUser(other.id, (tx) => tx`select id from connections`)).toHaveLength(0);
+  });
+});
+
+describe("Google sync for a new account (what Google actually granted)", () => {
+  const GRANTS = {
+    contacts: "https://www.googleapis.com/auth/contacts.readonly",
+    events: "https://www.googleapis.com/auth/calendar.events.readonly",
+    list: "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+  };
+  async function fresh(scopes: string[], fetchImpl = deps.fetch) {
+    const u = await createUser(sql, "New Googler");
+    const space = (await db.withUser(u.id, (tx) => listSpaces(tx))).find((s) => s.kind === "work")!.id;
+    const id = await connectionsStore(sys).upsert({
+      userId: u.id,
+      provider: "google",
+      accountEmail: FAKE_GOOGLE_EMAIL,
+      scopes,
+      spaceId: space,
+      tokens: { access_token: "old", refresh_token: "fake-refresh", expires_at: 0, scope: "" },
+    });
+    const jobId = await jobsStore(sys).create(u.id, "sync:google");
+    const r = await runConnectionSync(id, jobId, { ...deps, fetch: fetchImpl, skipPrep: true });
+    const [job] = await sql`select status, error from jobs where id = ${jobId}`;
+    return { r, job };
+  }
+
+  it("a calendar it can't read (free/busy only) is skipped, and the rest syncs", async () => {
+    const base = fakeGoogleFetch(today);
+    const withBusyOnly = async (input: string, init?: RequestInit) => {
+      const u = new URL(input);
+      if (u.pathname === "/calendar/v3/users/me/calendarList") {
+        const list = (await (await base(input, init)).json()) as { items: object[] };
+        return Response.json({ items: [...list.items, { id: "busy@group.calendar.google.com", selected: true, accessRole: "owner", summary: "Team" }] });
+      }
+      if (u.pathname.includes("busy%40group")) return Response.json({ error: { code: 403 } }, { status: 403 });
+      return base(input, init);
+    };
+    const { r, job } = await fresh([GRANTS.contacts, GRANTS.events, GRANTS.list], withBusyOnly);
+    expect(job.status).toBe("done");
+    expect(r.contacts?.added).toBeGreaterThan(0);
+    expect(r.calendar?.rooms).toBeGreaterThan(0);
+  });
+
+  it("only contacts shared: contacts sync, the calendar isn't read", async () => {
+    const { r, job } = await fresh([GRANTS.contacts]);
+    expect(job.status).toBe("done");
+    expect(r.contacts?.added).toBeGreaterThan(0);
+    expect(r.calendar).toBeNull();
+  });
+
+  it("nothing shared: asks to reconnect and tick the boxes, instead of failing quietly", async () => {
+    const { job } = await fresh(["openid", "email"]);
+    expect(job).toEqual({ status: "failed", error: expect.stringContaining("tick both boxes") });
   });
 });

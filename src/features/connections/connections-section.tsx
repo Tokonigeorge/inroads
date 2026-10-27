@@ -9,7 +9,7 @@ import { listConnections, recentImports } from "@/server/repos/connections";
 import { listSpaces } from "@/server/repos/spaces";
 import { userContext } from "@/server/user-context";
 import { ConnectionsPanel, type ConnectionRow, type ImportRow } from "./connections-panel";
-import { errorNotice } from "./notices";
+import { errorNotice, missingNotice } from "./notices";
 
 const importNames: Record<string, string> = {
   google: "Google",
@@ -73,7 +73,7 @@ export async function ConnectionsSection({ searchParams, returnTo }: { searchPar
       imports={importRows}
       configured={{ google: isProviderConfigured("google"), microsoft: isProviderConfigured("microsoft") }}
       initialJobId={job && /^[0-9a-f-]{36}$/i.test(job) ? job : null}
-      notice={errorNotice(one(q.error), one(q.provider))}
+      notice={errorNotice(one(q.error), one(q.provider)) ?? missingNotice(one(q.missing), one(q.provider))}
       returnTo={returnTo}
     />
   );

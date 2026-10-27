@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: Google sync for new accounts
+- Innoads now records what Google actually granted, not what it asked for. If Contacts or Calendar was left unticked on Google's screen, it syncs what was shared and says what's missing, instead of failing the whole sync.
+- A shared calendar Inroads can't read (free/busy only, or removed) is skipped instead of stopping the sync.
+- A failed sync now shows a short reason code (for example "provider 403" or "db 23514") and logs the cause, so it can be traced.
+
 ### Changed: chat import picks up family details again
 - As in the prototype, what someone says about their family in a chat you import ("two daughters, Ada and Tobi") comes back as a "Family: …" suggestion on their profile, separate from the rest so you can keep or dismiss it. Health, money and past relationships are still left out.
 

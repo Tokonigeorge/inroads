@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getSessionUser, safeNext } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { googleGrants } from "@/server/integrations/google";
 import { completeOAuth, OAUTH_COOKIE, oauthClient, type OAuthProvider } from "@/server/integrations/oauth";
 import { enqueueSync } from "@/server/jobs/enqueue";
 import { listSpaces } from "@/server/repos/spaces";
@@ -33,6 +34,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/oauth/[p
 
   try {
     const result = await completeOAuth(provider as OAuthProvider, fetch, { ...client, code: q.get("code")!, redirectUri: `${request.nextUrl.origin}/api/oauth/${provider}/callback` });
+    // Contacts and calendar are separate checkboxes on Google's screen; with neither ticked there's nothing to sync.
+    const grants = provider === "google" ? googleGrants(result.scopes) : { contacts: true, calendar: true };
+    if (!grants.contacts && !grants.calendar) return to({ error: "scopes", provider });
     const spaces = await db.withUser(user.id, (tx) => listSpaces(tx));
     const spaceId = spaces.find((s) => s.id === saved.data.spaceId)?.id ?? spaces[0]?.id;
     if (!spaceId) return to({ error: "no_space", provider });
@@ -45,7 +49,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/oauth/[p
       spaceId,
     });
     const jobId = await enqueueSync(user.id, connectionId, provider);
-    return to({ job: jobId, connected: provider });
+    return to({ job: jobId, connected: provider, ...(!grants.contacts ? { missing: "contacts" } : !grants.calendar ? { missing: "calendar" } : {}) });
   } catch (e) {
     console.error("oauth callback", e);
     return to({ error: "provider_error", provider });
