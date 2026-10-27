@@ -6,7 +6,7 @@ import { socialKeys, socialLabels, touchTypeLabels, type TouchType } from "@/con
 import { roomRoleLabels } from "@/contracts/rooms";
 import { cadenceLabel } from "@/contracts/spaces";
 import { formatLongDate } from "@/domain/dates";
-import { formatPhone, whatsappDigits } from "@/domain/normalise";
+import { formatPhone } from "@/domain/normalise";
 import { dueOn, dueState, effectiveCadence, personCadence, warmth } from "@/domain/relationship";
 import { ChatImportButton } from "@/features/ai/chat-import";
 import { DraftButton } from "@/features/ai/draft-sheet";
@@ -26,7 +26,7 @@ import { readSelectedSpaceId } from "@/server/space-selection";
 import { userContext } from "@/server/user-context";
 import { Avatar } from "@/ui/list-row";
 import { WarmthTag } from "@/ui/warmth";
-import { CopyButton, StarToggle } from "./record-controls";
+import { CopyButton, StarToggle, WhatsAppLink } from "./record-controls";
 
 const first = (n: string) => n.trim().split(/\s+/)[0] ?? n;
 
@@ -266,9 +266,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
                   {formatPhone(ph)}
                 </a>
                 <CopyButton text={formatPhone(ph)} label={formatPhone(ph)} />
-                <a href={`https://wa.me/${whatsappDigits(ph)}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-[13px] font-semibold text-accent hover:underline">
-                  WhatsApp
-                </a>
+                <WhatsAppLink phone={ph} personId={p.id} spaceId={(spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0])?.id ?? null} name={p.name} />
               </dd>
             </div>
           ))}

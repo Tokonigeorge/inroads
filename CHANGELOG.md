@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Added: new roles and companies for your priority people (like Mesh's job-change alerts)
 - Priority (starred) people in Work Spaces get their research refreshed about once a month, two a day at your brief time.
 - When research finds a different company or role than the one you saved (from the web, not when it's unsure), it suggests the update, and Today shows "Kemi is now at Airtel Africa" with **Congratulate** (a new "Congrats" draft) and **Update details**.
+- **WhatsApp** next to a phone number now asks "Messaged Ada? Log it" when you come back, so warmth stays right without a separate step.
 - Suggestions are no longer repeated: one already waiting, or one you dismissed, isn't suggested again by a later run.
 
 ### Fixed: "Score people" no longer stops without a word
