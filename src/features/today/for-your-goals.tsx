@@ -20,7 +20,7 @@ export function ForYourGoals({ steps, rooms, today, canSearch }: { steps: DueSte
         {rooms?.items.length ? (
           <div className="grid gap-3">
             <RoomIdeas searchId={rooms.searchId} items={rooms.items} />
-            <Link href="/rooms/suggested" className="text-small font-[550] text-accent hover:underline">
+            <Link href="/rooms#radar" className="text-small font-[550] text-accent hover:underline">
               See all suggested rooms
             </Link>
           </div>

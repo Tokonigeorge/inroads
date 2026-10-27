@@ -10,9 +10,7 @@ import { pendingForPerson } from "@/server/repos/suggestions";
 import { researchJobKind } from "@/server/jobs/ai-jobs";
 import { userContext } from "@/server/user-context";
 import { AiJobButton } from "./ai-job-button";
-import { ChatImportButton } from "./chat-import";
 import { DeleteResearchButton } from "./delete-research";
-import { DraftButton } from "./draft-sheet";
 import { JobStatus } from "./job-status";
 import { ResearchControls } from "./research-controls";
 import { SuggestionList, type SuggestionView } from "./suggestion-list";
@@ -45,8 +43,8 @@ export function describeSuggestion(s: Awaited<ReturnType<typeof pendingForPerson
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border py-6">
-      <h2 className="pb-3 text-title font-semibold">{title}</h2>
+    <section className="sec" aria-label={title}>
+      <h3>{title}</h3>
       {children}
     </section>
   );
@@ -93,14 +91,13 @@ const List = ({ title, items }: { title: string; items: (string | { text: string
 /** Research, suggestions, drafts and chat import on a person's page, per Space. */
 export async function PersonAi({ userId, personId, name, spaces }: { userId: string; personId: string; name: string; spaces: Space[] }) {
   const aiEnabled = isAiConfigured();
-  const { dossiers, suggestions, ctx, me, running } = await db.withUser(userId, async (tx) => {
-    const [dossiers, suggestions, ctx, [me], [running]] = await Promise.all([
+  const { dossiers, suggestions, ctx, running } = await db.withUser(userId, async (tx) => {
+    const [dossiers, suggestions, ctx, [running]] = await Promise.all([
       spaces.length
         ? tx.select().from(t.dossiers).where(and(eq(t.dossiers.personId, personId), inArray(t.dossiers.spaceId, spaces.map((s) => s.id)))).orderBy(desc(t.dossiers.version))
         : Promise.resolve([]),
       pendingForPerson(tx, personId),
       userContext(tx),
-      tx.select({ name: t.profiles.name }).from(t.profiles),
       // Research started for them (by hand or automatically when they were added) and still going.
       tx
         .select({ id: t.jobs.id })
@@ -109,20 +106,14 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         .orderBy(desc(t.jobs.createdAt))
         .limit(1),
     ]);
-    return { dossiers, suggestions, ctx, me, running };
+    return { dossiers, suggestions, ctx, running };
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
-  const spaceChoices = spaces.map((s) => ({ id: s.id, name: s.name }));
   const first = name.split(/\s+/)[0];
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 pb-2">
-        <DraftButton personId={personId} name={name} spaces={spaceChoices} aiEnabled={aiEnabled} />
-        <ChatImportButton personId={personId} name={name} spaces={spaceChoices} aiEnabled={aiEnabled} myName={me?.name ?? ""} />
-      </div>
-
       {suggestions.length ? (
         <Block title={`Suggestions · ${suggestions.length}`}>
           <p className="pb-3 text-small text-muted">Found by research or a chat import. Nothing is changed until you accept.</p>
@@ -138,7 +129,7 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
         const p = (latest?.payload ?? {}) as Record<string, unknown>;
         const v = (verify?.payload ?? {}) as { answer?: string; summary?: string; redFlags?: string[] };
         return (
-          <Block key={s.id} title={researchable.length > 1 ? `${s.researchMode === "full" ? "Research" : "Get to know"} · ${s.name}` : s.researchMode === "full" ? "Research" : "Get to know"}>
+          <Block key={s.id} title={researchable.length > 1 ? `${s.researchMode === "full" ? "Dossier" : "Get to know"} · ${s.name}` : s.researchMode === "full" ? "Dossier" : "Get to know"}>
             <div className="grid gap-4">
               {live ? <JobStatus jobId={live.id} /> : null}
               {latest ? (

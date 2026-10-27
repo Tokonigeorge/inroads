@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 type SheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
 };

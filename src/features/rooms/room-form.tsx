@@ -9,6 +9,7 @@ import { zoneCity } from "@/domain/zoned";
 import { Button } from "@/ui/button";
 import { Field, Input, Select, Textarea } from "@/ui/field";
 import { useToast } from "@/ui/toast";
+import { useFinishForm } from "@/features/shell/route-sheet";
 import { JobStatus } from "@/features/ai/job-status";
 import { startAiJobAction } from "@/features/ai/actions";
 import { quickGoalAction, roomDetailsAction, saveRoomAction } from "./actions";
@@ -79,6 +80,7 @@ export function RoomForm({
   fromPrep?: { searchId: string; found: Found } | null;
 }) {
   const router = useRouter();
+  const finish = useFinishForm();
   const toast = useToast();
   const [v, setV] = useState(() => (fromPrep ? withFound(values, fromPrep.found, spaces.find((x) => x.id === values.spaceId)?.goals ?? []) : values));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,16 +112,16 @@ export function RoomForm({
     setErrors(r.fieldErrors ?? {});
     setMessage(r.message ?? null);
     if (r.ok && r.id) {
-      toast.show(roomId ? "Room saved." : "Room added.");
-      router.push(`/rooms/${r.id}`);
+      toast.show(roomId ? "Event saved." : "Event added.");
+      finish(`/rooms/${r.id}`, roomId ? "back" : "replace");
     }
   }
 
   return (
     <form onSubmit={submit} className="grid gap-6" noValidate>
-      <Field label="Name" error={errors.title}>
+      <Field label="Title" error={errors.title}>
         {({ id, describedBy, invalid }) => (
-          <Input id={id} value={v.title} onChange={(e) => set("title", e.target.value)} maxLength={200} placeholder="Founders breakfast, fintech mixer…" aria-describedby={describedBy} aria-invalid={invalid} autoComplete="off" />
+          <Input id={id} value={v.title} onChange={(e) => set("title", e.target.value)} maxLength={200} placeholder="Board dinner, fintech mixer…" aria-describedby={describedBy} aria-invalid={invalid} autoComplete="off" />
         )}
       </Field>
       {roomId ? null : (
@@ -250,13 +252,13 @@ export function RoomForm({
           </div>
         ) : null}
         {v.freq !== "none" ? (
-          <Field label="Until" hint="Leave empty to keep repeating." error={errors.untilOn}>
+          <Field label="Repeats until" hint="Leave blank to keep going." error={errors.untilOn}>
             {({ id, describedBy, invalid }) => <Input id={id} type="date" value={v.untilOn ?? ""} min={v.startsOn} onChange={(e) => set("untilOn", e.target.value || null)} aria-describedby={describedBy} aria-invalid={invalid} className="w-auto" />}
           </Field>
         ) : null}
       </fieldset>
 
-      <Field label="Where" error={errors.location}>
+      <Field label="Location" error={errors.location}>
         {({ id }) => <Input id={id} value={v.location ?? ""} onChange={(e) => set("location", e.target.value)} maxLength={300} placeholder="Venue, area or video link" autoComplete="off" />}
       </Field>
       <Field label="Event page" hint="Optional." error={errors.url}>
@@ -281,9 +283,12 @@ export function RoomForm({
           {message}
         </p>
       ) : null}
-      <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] -mx-4 border-t border-border bg-bg px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">
-        <Button type="submit" variant="primary" size="lg" disabled={busy} className="w-full md:w-auto">
-          {busy ? "Saving…" : roomId ? "Save changes" : "Add room"}
+      <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t border-line bg-bg px-4 py-3">
+        <Button variant="ghost" onClick={() => router.back()}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" disabled={busy}>
+          {busy ? "Saving…" : roomId ? "Save changes" : "Add event"}
         </Button>
       </div>
     </form>

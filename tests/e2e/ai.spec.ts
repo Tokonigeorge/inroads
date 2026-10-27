@@ -101,7 +101,7 @@ test.describe.serial("AI features (against a fake Claude)", () => {
   });
 
   test("suggested rooms can be added as rooms", async ({ page }) => {
-    await page.goto("/rooms/suggested");
+    await page.goto("/rooms#radar");
     await page.getByRole("button", { name: "Find rooms" }).click();
     const idea = page.getByRole("article", { name: "Fintech Founders Mixer" });
     await expect(idea).toBeVisible({ timeout: 20_000 });

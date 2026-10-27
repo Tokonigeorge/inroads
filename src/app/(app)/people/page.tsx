@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PeopleListPane } from "@/features/people/people-list-pane";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 
 export const metadata: Metadata = { title: "People" };
 
-/** Desktop only: the detail pane before anyone is chosen. On mobile the list fills the screen. */
-export default function PeopleIndex() {
+export default function PeoplePage() {
   return (
-    <div className="flex h-full items-center justify-center p-8">
-      <p className="max-w-[320px] text-center text-muted">Choose someone to see what you know about them, or press c to capture something new.</p>
-    </div>
+    <PageFrame>
+      <Suspense fallback={<LoadingRows rows={8} />}>
+        <PeopleListPane />
+      </Suspense>
+    </PageFrame>
   );
 }

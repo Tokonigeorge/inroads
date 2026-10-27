@@ -42,6 +42,10 @@ export type PersonListItem = {
   dueOn: IsoDate | null;
   unsorted: boolean;
   spaces: { id: string; name: string }[];
+  /** Where you met them (their first Space that has it). */
+  whereMet: string | null;
+  /** Latest goal-fit score, 0–100. */
+  score: number | null;
 };
 
 type Cursor = { k: string; id: string };
@@ -72,6 +76,7 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
              max(ps.cadence_anchor_on) as anchor,
              bool_or(ps.triage_state = 'pending') as unsorted,
              bool_and(ps.where_met is null and cardinality(ps.interests) = 0) as needs_context,
+             (array_agg(ps.where_met order by s.position) filter (where ps.where_met is not null))[1] as where_met,
              array_agg(s.name order by s.position) as spaces,
              array_agg(s.id order by s.position) as space_ids
         from person_spaces ps
@@ -82,7 +87,7 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
       having ${sql.join(having, sql` and `)}
     ),
     base as (
-      select p.*, m.starred, m.cadence, m.unsorted, m.spaces, m.space_ids, m.needs_context,
+      select p.*, m.starred, m.cadence, m.unsorted, m.spaces, m.space_ids, m.needs_context, m.where_met,
              case when m.cadence is null then null
                   else coalesce(p.last_touched_on, m.anchor, (p.created_at at time zone 'UTC')::date) + m.cadence end as r_due_on
         from people p join m on m.person_id = p.id
@@ -125,11 +130,14 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
   if (q.filter === "starred") where.push(sql`p.starred`);
   if (q.filter === "due") where.push(sql`p.r_due_on <= ${today}::date`);
   if (q.filter === "context") where.push(sql`p.needs_context`);
+  if (q.filter === "no_dossier") where.push(sql`not exists (select 1 from dossiers d where d.person_id = p.id)`);
   if (q.filter === "untouched") where.push(sql`p.last_touched_on is null`);
   if (q.filter === "unsorted") where.push(sql`p.unsorted`);
 
   // Sort key as text so one keyset comparison works for every sort.
+  // Priority (prototype L597): starred first, then the best goal fit, then name.
   const sorts = {
+    priority: { key: sql`(case when p.starred then '0' else '1' end) || to_char(100 - coalesce(p.score, -1), 'FM000') || lower(p.name)`, dir: "asc" },
     name: { key: sql`lower(p.name)`, dir: "asc" },
     recent: { key: sql`coalesce(p.last_touched_on, '0001-01-01'::date)::text`, dir: "desc" },
     due: { key: sql`coalesce(p.r_due_on, '9999-12-31'::date)::text`, dir: "asc" },
@@ -157,11 +165,21 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     spaces: string[];
     space_ids: string[];
     sort_key: string;
+    where_met: string | null;
+    score: number | null;
   }>(sql`
     ${personRollup(membershipWhere, having)}
     select p.id, p.name, p.company, p.position, p.last_touched_on::text as last_touched_on, p.starred, p.cadence,
-           p.r_due_on::text as due_on, p.unsorted, p.spaces, p.space_ids, p.sort_key
-      from (select p.*, ${sort.key} as sort_key from base p where ${sql.join(where, sql` and `)}) p
+           p.r_due_on::text as due_on, p.unsorted, p.spaces, p.space_ids, p.sort_key, p.where_met, p.score
+      from (
+        select p.*, ${sort.key} as sort_key
+          from (
+            select b.*, sc.value::int as score
+              from base b
+              left join lateral (select value from scores where person_id = b.id order by created_at desc limit 1) sc on true
+          ) p
+         where ${sql.join(where, sql` and `)}
+      ) p
      where true ${keyset}
      order by ${order}
      limit ${q.limit + 1}
@@ -181,9 +199,24 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     dueOn: r.due_on,
     unsorted: r.unsorted,
     spaces: r.spaces.map((name, i) => ({ id: r.space_ids[i], name })),
+    whereMet: r.where_met,
+    score: r.score,
   }));
   const last = page.at(-1);
   return { items, nextCursor: more && last ? encodeCursor({ k: last.sort_key, id: last.id }) : null };
+}
+
+/** For the People hero (prototype L857): how many people, and how many have gone past their reminder. */
+export async function peopleCounts(tx: Tx, spaceId: string | null, today: IsoDate) {
+  const membershipWhere: SQL[] = [sql`ps.archived_at is null`];
+  if (spaceId) membershipWhere.push(sql`ps.space_id = ${spaceId}`);
+  const [r] = await tx.execute<{ total: number; cooling: number }>(sql`
+    ${personRollup(membershipWhere)}
+    select count(*)::int as total,
+           count(*) filter (where p.last_touched_on is not null and p.r_due_on < ${today}::date)::int as cooling
+      from base p where p.deleted_at is null
+  `);
+  return { total: r?.total ?? 0, cooling: r?.cooling ?? 0 };
 }
 
 /* ======================================================================= detail */
@@ -337,6 +370,11 @@ export async function setPersonArchived(tx: Tx, personId: string, archived: bool
     .update(t.personSpaces)
     .set({ archivedAt: archived ? new Date() : null })
     .where(eq(t.personSpaces.personId, personId));
+}
+
+/** The prototype's ★ priority toggle: one flag for the person, across their Spaces. */
+export async function setPersonStarred(tx: Tx, personId: string, starred: boolean) {
+  await tx.update(t.personSpaces).set({ starred }).where(eq(t.personSpaces.personId, personId));
 }
 
 /** Soft delete: gone from the app now, restorable for 30 days, then purged. */

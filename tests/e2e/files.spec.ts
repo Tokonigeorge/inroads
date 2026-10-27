@@ -43,7 +43,7 @@ test.describe.serial("Importing files and merging duplicates", () => {
   });
 
   test("merge a possible duplicate, then undo", async ({ page }) => {
-    await page.goto("/people/duplicates");
+    await page.goto("/duplicates");
     const pair = page.getByRole("article", { name: "Possible duplicate: Ifeoma Nwosú" });
     await expect(pair).toBeVisible();
     await expectAccessible(page);

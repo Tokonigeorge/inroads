@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
       // Look-ups moved to the Discover tab.
       { source: "/rooms/lookup", destination: "/discover", permanent: true },
       { source: "/rooms/lookup/:id", destination: "/discover/:id", permanent: true },
+      // /people/[id] and /rooms/[id] open as sheets over the page you're on, so nothing else may
+      // sit at that depth (an intercepted [id] would catch it).
+      { source: "/people/triage", destination: "/sort", permanent: true },
+      { source: "/people/duplicates", destination: "/duplicates", permanent: true },
+      { source: "/people/ask", destination: "/ask", permanent: true },
+      { source: "/people/suggestions", destination: "/suggestions", permanent: true },
+      { source: "/rooms/suggested", destination: "/rooms#radar", permanent: true },
+      { source: "/radar", destination: "/rooms#radar", permanent: true },
     ];
   },
   async headers() {

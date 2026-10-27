@@ -22,7 +22,7 @@ export async function commitImportAction(importId: string, spaceId: string): Pro
   if (r === "space") return { message: "Choose one of your Spaces." };
   if (!r) return { message: "This import was already saved or cancelled." };
   const added = (r.contacts?.added ?? 0) + (r.calendar?.newPeople ?? 0);
-  redirect(added ? "/people/triage" : "/settings/connections");
+  redirect(added ? "/sort" : "/settings/connections");
 }
 
 export async function cancelImportAction(importId: string) {

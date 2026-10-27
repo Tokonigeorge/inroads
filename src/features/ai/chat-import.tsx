@@ -11,13 +11,27 @@ import { importChatAction } from "./actions";
  * Paste a WhatsApp (or any) chat with this person. Touches, promises and details come back as
  * suggestions to accept. The text itself is never stored.
  */
-export function ChatImportButton({ personId, name, spaces, aiEnabled, myName }: { personId: string; name: string; spaces: { id: string; name: string }[]; aiEnabled: boolean; myName: string }) {
+export function ChatImportButton({
+  personId,
+  name,
+  spaces,
+  aiEnabled,
+  myName,
+  label = "Import a chat",
+}: {
+  personId: string;
+  name: string;
+  spaces: { id: string; name: string }[];
+  aiEnabled: boolean;
+  myName: string;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   if (!spaces.length) return null;
   return (
     <>
       <Button variant="ghost" disabled={!aiEnabled} title={aiEnabled ? undefined : "AI features aren't set up on this server yet."} onClick={() => setOpen(true)}>
-        Import a chat
+        {label}
       </Button>
       <Sheet open={open} onOpenChange={setOpen} title={`Import a chat with ${name.split(/\s+/)[0]}`} description="In WhatsApp: open the chat, tap the name, Export chat, Without media. The text is read once and not kept.">
         {open ? <ChatImportForm personId={personId} spaces={spaces} myName={myName} onDone={() => setOpen(false)} /> : null}

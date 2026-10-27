@@ -9,7 +9,7 @@ export function FinishOnboarding({ toSort }: { toSort: number }) {
   return (
     <div className="flex flex-wrap gap-2">
       {toSort > 0 ? (
-        <Button variant="primary" disabled={pending} onClick={() => start(() => finishOnboardingAction("/people/triage"))}>
+        <Button variant="primary" disabled={pending} onClick={() => start(() => finishOnboardingAction("/sort"))}>
           Sort {toSort.toLocaleString("en-GB")} new {toSort === 1 ? "person" : "people"}
         </Button>
       ) : null}

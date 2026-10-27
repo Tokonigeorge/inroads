@@ -376,7 +376,7 @@ create policy "owner can delete" on people for delete using (user_id = (select a
 | `readImportFiles`, `loadJSZip` | `jobs/import-parse` (server: `fflate` unzip, size limits) | Runs server-side from Storage. Zip-bomb guard (entry count, total uncompressed size). |
 | `contactIndex`, `planContacts`, `fillBlanks` | `domain/dedupe.ts` (pure) | Match order: external ID → email → E.164 phone → name only as `suggest_merge`. **Never a silent name merge.** Fixes bugs 1 and 2. |
 | `bulk` | Inngest step batching (500 rows per step) | |
-| `importReviewSheet`, `runImport`, `importCalendars`, `addCalendarPerson`, `icsSheet` | `/settings/imports/[id]/review` → `jobs/import-commit` → `/people/triage` | Calendar people become `suggestions(kind='new_person')` with meeting counts. |
+| `importReviewSheet`, `runImport`, `importCalendars`, `addCalendarPerson`, `icsSheet` | `/settings/imports/[id]/review` → `jobs/import-commit` → `/sort` | Calendar people become `suggestions(kind='new_person')` with meeting counts. |
 | `exampleData`, `loadExamples`, `removeExamples` | `server/seed/example.ts`, offered only in onboarding and Settings → Data | Rows flagged `example=true`. One-click removal. |
 | `exportBackup`, `restoreBackup` | `/settings/data`: export JSON (all tables) and CSV (people, interactions, commitments, events) via a background job and a signed download link | Restore from a JSON export is accepted as an import type (reviewed, never a blind overwrite). |
 | `cleanSources`, `modeBadge`, `sourcesHTML` | `ai/sources.ts` + `<Sources>` component | Sources come from web search/fetch result blocks, not only the model's JSON. |
@@ -440,7 +440,7 @@ Snooze and dismiss write `nudge_states` with `expires_at`: snooze → `snoozed_u
 
 ### 4.6 Dedupe and merge
 `planImport(existingIndex, rows)` → for each row: `{action: add|merge|skip|suggest_merge, matchPersonId, matchKind}`. In order: external ID → any email → any E.164 phone → **name only**, which never auto-merges and creates `suggest_merge` for review. Matching runs across **all** Spaces: if someone already exists in Work and you import them into Personal, they get a second Space instead of a duplicate. Within one file, duplicates collapse by the same keys, also never by name alone.
-Merging people (from import review or `/people/duplicates`) shows a side-by-side field picker. Lists (emails, phones, tags, interests) are unioned. Interactions, commitments, goal links, event links and dossiers are re-pointed. The loser keeps `merged_into_id` and `deleted_at`. **Undo merge** is available for 30 days, using a stored merge record in `suggestions.payload` with the original field values.
+Merging people (from import review or `/duplicates`) shows a side-by-side field picker. Lists (emails, phones, tags, interests) are unioned. Interactions, commitments, goal links, event links and dossiers are re-pointed. The loser keeps `merged_into_id` and `deleted_at`. **Undo merge** is available for 30 days, using a stored merge record in `suggestions.payload` with the original field values.
 
 ### 4.7 Spaces and guardrails (brief §4.0)
 - **Graph model.** A person is one node and can belong to several Spaces (owner decision, 2026-10-23). What's shared is only their identity: name, contact details, company, role, city, birthday, socials. Everything about *your relationship* (notes, tags, where you met, cadence, circle, touches, promises, goals, rooms, introductions) is tied to one Space.
@@ -551,8 +551,8 @@ AES-256-GCM, with a random 12-byte IV per value. The key comes from `TOKEN_ENC_K
 | `/people` | List pane (virtualised, filters as a compact toolbar) + detail pane for `/people/[id]` | List; tapping opens the full-screen detail |
 | `/people/[id]` | Detail pane: header (name, role, warmth text, cadence, circle), actions (Log touch, Draft, Research), then sections: Timeline, Promises, Goals, Research, Suggestions | Full page with the same sections; sticky action bar |
 | `/people/new`, `/people/[id]/edit` | Inline form in the detail pane | Full-screen form |
-| `/people/triage` | Keyboard-driven card queue (`k` keep, `p` priority, `a` archive, `1–4` cadence) | Swipe-free tap queue with large buttons |
-| `/people/duplicates` | Pairs list + side-by-side merge | Stacked merge with field toggles |
+| `/sort` | Keyboard-driven card queue (`k` keep, `p` priority, `a` archive, `1–4` cadence) | Swipe-free tap queue with large buttons |
+| `/duplicates` | Pairs list + side-by-side merge | Stacked merge with field toggles |
 | `/rooms` | Tabs: Upcoming, Series, Suggested rooms. List + detail pane | Same tabs; full-screen detail |
 | `/rooms/[id]` | Event detail: when, where, people, prep, attendance, Look up result | Full page |
 | `/rooms/new` | Form with recurrence builder | Full-screen form |

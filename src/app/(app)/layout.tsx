@@ -14,7 +14,7 @@ import { AppProviders } from "@/features/shell/app-providers";
  * The prototype's chrome (L358–367): a sticky brand bar with the status pill, one 960px column,
  * and five tabs (a bottom bar on phones, an 88px rail from 900px).
  */
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children, sheet }: { children: React.ReactNode; sheet: React.ReactNode }) {
   return (
     <AppProviders>
       <div className="min-h-dvh min-[900px]:pl-[var(--rail)]">
@@ -41,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
         <main className="pb-[calc(96px+env(safe-area-inset-bottom))] min-[900px]:pb-16">{children}</main>
       </div>
+      {sheet}
       <Suspense fallback={<SidebarView pathname={null} />}>
         <Sidebar />
       </Suspense>

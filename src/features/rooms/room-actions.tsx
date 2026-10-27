@@ -15,7 +15,8 @@ import { useToast } from "@/ui/toast";
 import { useShortcut } from "@/ui/use-shortcut";
 import { deleteRoomAction, linkPersonAction, restoreRoomAction, setAttendanceAction, unlinkPersonAction } from "./actions";
 
-export function RoomActions({ roomId, title, spaceId }: { roomId: string; title: string; spaceId: string }) {
+/** The event record's actions (prototype L1132): Add people, Edit, Event page ↗, and More → Delete. */
+export function RoomActions({ roomId, title, spaceId, url }: { roomId: string; title: string; spaceId: string; url?: string | null }) {
   const router = useRouter();
   const toast = useToast();
   const [, start] = useTransition();
@@ -36,20 +37,25 @@ export function RoomActions({ roomId, title, spaceId }: { roomId: string; title:
     });
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="primary" onClick={() => setAdding(true)}>
-        Add people
-      </Button>
+      <Button onClick={() => setAdding(true)}>Add people</Button>
       <Button asChild variant="ghost">
         <Link href={`/rooms/${roomId}/edit`}>Edit</Link>
       </Button>
+      {url ? (
+        <Button asChild variant="ghost">
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            Event page ↗
+          </a>
+        </Button>
+      ) : null}
       <Menu.Root>
-        <Menu.Trigger className="flex size-10 items-center justify-center rounded-md text-muted hover:bg-sunken" aria-label="More actions">
+        <Menu.Trigger className="flex size-10 items-center justify-center rounded-full text-muted hover:bg-sunken" aria-label="More actions">
           <MoreHorizontal size={18} aria-hidden />
         </Menu.Trigger>
         <Menu.Portal>
-          <Menu.Content align="end" sideOffset={4} className="z-50 min-w-[180px] rounded-lg bg-surface p-1 shadow-pop">
+          <Menu.Content align="end" sideOffset={4} className="z-[70] min-w-[180px] rounded-lg bg-surface p-1 shadow-pop">
             <Menu.Item onSelect={remove} className="flex h-9 items-center rounded-md px-2.5 text-danger outline-none data-[highlighted]:bg-sunken">
-              Delete room
+              Delete event
             </Menu.Item>
           </Menu.Content>
         </Menu.Portal>

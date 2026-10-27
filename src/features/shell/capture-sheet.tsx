@@ -63,7 +63,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
                   ))}
                   <li>
                     <Link href="/rooms/new" onClick={close} className="flex min-h-11 w-full items-center rounded-md px-3 text-left font-[550] hover:bg-sunken">
-                      Add a room
+                      Add event
                     </Link>
                   </li>
                   {(["card", "chat"] as const).map((m) => (
