@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -46,9 +47,14 @@ export function JobProgress({ jobId, onDismiss }: { jobId: string; onDismiss?: (
   useEffect(() => {
     if (finished && !refreshed.current) {
       refreshed.current = true;
-      router.refresh();
+      // Drop the job from the address so a reload doesn't bring back a finished sync.
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("job") === jobId) {
+        url.searchParams.delete("job");
+        router.replace(`${url.pathname}${url.search}${url.hash}` as Route, { scroll: false });
+      } else router.refresh();
     }
-  }, [finished, router]);
+  }, [finished, router, jobId]);
 
   const step = data?.progress?.step ?? "Starting";
   const done = data?.progress?.done;

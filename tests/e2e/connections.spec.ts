@@ -48,8 +48,15 @@ test.describe.serial("Connecting Google", () => {
     await expect(page.getByText("Sync finished")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/3 new people/)).toBeVisible();
     await expect(page.getByText("ada.google@example.test")).toBeVisible();
-
+    // A finished sync leaves the address, so a reload doesn't bring the card back.
+    await expect(page).not.toHaveURL(/[?&]job=/);
     await page.getByRole("link", { name: "Sort new people" }).click();
+    await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible();
+    await page.goBack();
+    await page.reload();
+    await expect(page.getByText("ada.google@example.test")).toBeVisible();
+    await expect(page.getByText("Sync finished")).toBeHidden();
+    await page.goForward();
     await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible();
 
     // One at a time first: Ifeoma (three meetings in the calendar) is suggested as priority.
