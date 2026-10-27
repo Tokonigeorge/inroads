@@ -482,12 +482,16 @@ export async function deleteCircle(tx: Tx, id: string) {
  * without a map). Spellings that differ only in case count together, shown as the commonest one.
  */
 export async function listCities(tx: Tx, spaceId: string | null) {
+  // One row per person (someone in two Spaces counts once), then one per city ignoring case.
   const rows = await tx.execute<{ city: string; n: number }>(sql`
-    select mode() within group (order by trim(p.city)) as city, count(distinct p.id)::int as n
-      from people p join person_spaces ps on ps.person_id = p.id
-     where p.deleted_at is null and ps.archived_at is null and coalesce(trim(p.city), '') <> ''
-       ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}
-     group by lower(trim(p.city)) order by n desc, city asc limit 40`);
+    select mode() within group (order by c.city) as city, count(*)::int as n
+      from (
+        select distinct p.id, trim(p.city) as city
+          from people p join person_spaces ps on ps.person_id = p.id
+         where p.deleted_at is null and ps.archived_at is null and coalesce(trim(p.city), '') <> ''
+           ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}
+      ) c
+     group by lower(c.city) order by n desc, city asc limit 40`);
   return [...rows];
 }
 
