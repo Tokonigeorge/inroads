@@ -119,7 +119,7 @@ test.describe.serial("Rooms", () => {
     await expect(async () => {
       if (isMobile) await page.getByRole("button", { name: "Capture" }).click();
       else {
-        await page.locator("body").click();
+        await page.getByRole("heading", { name: "Rooms that matter", level: 1 }).click();
         await page.keyboard.press("c");
       }
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 1000 });

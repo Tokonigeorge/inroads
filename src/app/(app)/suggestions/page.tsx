@@ -3,25 +3,25 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { describeSuggestion } from "@/features/ai/suggestion-view";
 import { SuggestionList } from "@/features/ai/suggestion-list";
-import { LoadingRows } from "@/features/shell/page-frame";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { listPendingAiSuggestions } from "@/server/repos/suggestions";
-import { Pane } from "@/ui/layout";
+import { PageHeader } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Suggestions" };
 
 export default function SuggestionsPage() {
   return (
-    <Pane header={<h1 className="text-title font-semibold">Suggestions</h1>}>
+    <PageFrame>
+      <PageHeader stamp="People" title="Suggestions" subtitle="What research, scoring and chat imports found. Nothing changes until you accept it." />
       <div className="max-w-[640px]">
-        <p className="pb-6 text-muted">What research, scoring and chat imports found. Nothing changes until you accept it.</p>
         <Suspense fallback={<LoadingRows rows={4} />}>
           <Suggestions />
         </Suspense>
       </div>
-    </Pane>
+    </PageFrame>
   );
 }
 

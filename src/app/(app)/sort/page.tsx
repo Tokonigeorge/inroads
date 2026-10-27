@@ -1,35 +1,26 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { formatPhone } from "@/domain/normalise";
 import { TriageQueue, type TriageCard } from "@/features/people/triage-queue";
-import { LoadingRows } from "@/features/shell/page-frame";
+import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { listTriage } from "@/server/import/triage";
-import { Pane } from "@/ui/layout";
+import { PageHeader } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Sort new people" };
 
 export default function TriagePage() {
   return (
-    <Pane
-      header={
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-title font-semibold">Sort new people</h1>
-          <Link href="/settings/connections" className="text-small text-muted hover:text-text">
-            Connections
-          </Link>
-        </div>
-      }
-    >
+    <PageFrame>
+      <PageHeader stamp="People" title="Sort new people" subtitle="People from your imports, one at a time: keep the ones that matter." />
       <div className="max-w-[640px]">
         <Suspense fallback={<LoadingRows rows={4} />}>
           <Triage />
         </Suspense>
       </div>
-    </Pane>
+    </PageFrame>
   );
 }
 

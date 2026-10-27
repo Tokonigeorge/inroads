@@ -5,7 +5,7 @@ import { Button } from "@/ui/button";
 import { Field, Input, Select } from "@/ui/field";
 import { cancelImportAction, commitImportAction } from "./import-actions";
 
-type Contacts = { found: number; add: number; fill: number; unchanged: number; nameless: number };
+type Contacts = { found: number; add: number; fill: number; unchanged: number; nameless: number; duplicates: number };
 const n = (x: number) => x.toLocaleString("en-GB");
 
 function Check({ checked, onChange, title, sub }: { checked: boolean; onChange: (v: boolean) => void; title: string; sub?: string }) {
@@ -57,6 +57,11 @@ export function ImportReviewActions({
           />
           {withContacts && contacts.nameless ? (
             <Check checked={skipNameless} onChange={setSkipNameless} title={`Skip ${n(contacts.nameless)} ${contacts.nameless === 1 ? "entry" : "entries"} with no name`} sub="Just an email address or a number, often saved automatically by Gmail." />
+          ) : null}
+          {contacts.duplicates ? (
+            <p className="hint">
+              {n(contacts.duplicates)} possible {contacts.duplicates === 1 ? "duplicate" : "duplicates"} (same name, no shared email or phone) to review afterwards. They are never merged on their own.
+            </p>
           ) : null}
           <p className="hint">Labels become tags; starred contacts become priority.</p>
         </section>

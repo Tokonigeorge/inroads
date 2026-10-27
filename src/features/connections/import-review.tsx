@@ -108,7 +108,7 @@ export async function ImportReview({ id, page }: { id: string; page: number }) {
         importId={id}
         spaces={spaces.map((s) => ({ id: s.id, name: s.name }))}
         defaultSpaceId={staged.import.spaceId}
-        contacts={planned.found ? { found: planned.found, add: planned.add, fill: planned.fill, unchanged: planned.unchanged, nameless: planned.nameless ?? 0 } : null}
+        contacts={planned.found ? { found: planned.found, add: planned.add, fill: planned.fill, unchanged: planned.unchanged, nameless: planned.nameless ?? 0, duplicates: planned.possibleDuplicates } : null}
         calendars={calendars}
         myEmails={myEmails.join(", ")}
       />
@@ -125,7 +125,7 @@ export async function ImportReview({ id, page }: { id: string; page: number }) {
         </details>
       ) : null}
       {planned.add ? (
-        <details className="sec">
+        <details className="sec" open={planned.add <= 25}>
           <summary className="cursor-pointer font-mono text-[12px] tracking-[0.08em] text-muted uppercase">
             New people{pages > 1 ? ` · page ${page + 1} of ${pages}` : ""}
           </summary>

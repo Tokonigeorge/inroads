@@ -58,7 +58,7 @@ test.describe.serial("People", () => {
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
     if (!isMobile) {
       // Keyboard: / focuses search.
-      await page.locator("body").click();
+      await page.getByRole("heading", { name: "Your network", level: 1 }).click();
       await page.keyboard.press("/");
       await expect(page.getByRole("searchbox", { name: "Search people" })).toBeFocused();
     }
@@ -68,7 +68,7 @@ test.describe.serial("People", () => {
     await page.goto("/people");
     await page.getByRole("searchbox", { name: "Search people" }).fill(name);
     await page.getByRole("link", { name: new RegExp(name) }).click();
-    await page.getByRole("article").getByRole("button", { name: "Log a touch" }).click();
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
 
     const dialog = sheet(page);
     await dialog.getByText("Call", { exact: true }).click();
@@ -149,7 +149,7 @@ test.describe.serial("People", () => {
     await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 
     await context.setOffline(true);
-    await page.getByRole("article").getByRole("button", { name: "Log a touch" }).click();
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
     await sheet(page).getByText("Message", { exact: true }).click();
     await sheet(page).getByLabel("What happened").fill("Sent a voice note from the bus");
     await sheet(page).getByRole("button", { name: "Log it" }).click();
