@@ -5,9 +5,9 @@ import { cache, type ReactNode } from "react";
 import { socialKeys, socialLabels, touchTypeLabels, type TouchType } from "@/contracts/people";
 import { roomRoleLabels } from "@/contracts/rooms";
 import { cadenceLabel } from "@/contracts/spaces";
-import { formatLongDate } from "@/domain/dates";
+import { addDays, formatLongDate } from "@/domain/dates";
 import { formatPhone } from "@/domain/normalise";
-import { dueOn, dueState, effectiveCadence, personCadence, warmth } from "@/domain/relationship";
+import { dueOn, dueState, effectiveCadence, personCadence, STRENGTH_WINDOW_DAYS, strength, warmth } from "@/domain/relationship";
 import { ChatImportButton } from "@/features/ai/chat-import";
 import { DraftButton } from "@/features/ai/draft-sheet";
 import { PersonAi } from "@/features/ai/person-ai";
@@ -79,7 +79,7 @@ export const loadPersonRecord = cache(async (id: string) => {
         : Promise.resolve([]),
       tx.select({ value: t.scores.value, why: t.scores.why }).from(t.scores).where(eq(t.scores.personId, id)).orderBy(desc(t.scores.createdAt)).limit(1),
       tx.select({ name: t.profiles.name }).from(t.profiles),
-      ...introable.map((s) => warmPaths(tx, id, s.id)),
+      ...introable.map((s) => warmPaths(tx, id, s.id, ctx.today)),
     ]);
     const introSpaces: IntroSpace[] = introable.map((s, i) => ({ id: s.id, name: s.name, goals: goals.filter((g) => g.spaceId === s.id), paths: paths[i] }));
     return { detail, today: ctx.today, rooms, goalOptions, introSpaces, intros, score: score ?? null, myName: me?.name ?? "" };
@@ -119,6 +119,8 @@ export function PersonRecord({ data }: { data: RecordData }) {
   const anchor = active.map((m) => m.cadenceAnchorOn).filter(Boolean).sort().at(-1) ?? null;
   const due = dueState(dueOn({ lastTouchedOn: p.lastTouchedOn, anchorOn: anchor, createdOn: p.createdAt.toISOString().slice(0, 10), cadenceDays: cadence }), today);
   const w = warmth(p.lastTouchedOn, today);
+  const since = addDays(today, -STRENGTH_WINDOW_DAYS);
+  const st = strength({ lastTouchedOn: p.lastTouchedOn, touches: d.touches.filter((x) => x.occurredOn >= since).length, today });
   const spaces = active.map((m) => ({ id: m.space.id, name: m.space.name }));
   const picked = { id: p.id, name: p.name, spaces };
   const multi = d.memberships.length > 1;
@@ -166,6 +168,14 @@ export function PersonRecord({ data }: { data: RecordData }) {
       {score?.why ? <p className="max-w-[62ch] text-[14px] text-muted">{score.why}</p> : null}
       <p className="-mt-2 text-[13.5px] text-muted">
         {w.key === "none" ? "No touches yet" : `Last spoke ${w.label.toLowerCase()}`}
+        {st ? (
+          <>
+            {" · "}
+            <span title={st.why}>
+              {st.label} relationship ({st.value}/100)
+            </span>
+          </>
+        ) : null}
         {" · "}
         {due ? (due.due ? <strong className="font-[550] text-accent">{due.label}</strong> : `${cadenceLabel(cadence)} · ${due.label.toLowerCase()}`) : "No reminder"}
       </p>

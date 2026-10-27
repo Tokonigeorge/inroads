@@ -171,7 +171,7 @@ export const peopleFilterLabels: Record<PeopleFilter, string> = {
   archived: "Archived",
 };
 
-export const peopleSorts = ["priority", "added", "due", "name", "recent"] as const;
+export const peopleSorts = ["priority", "added", "due", "name", "recent", "strength"] as const;
 export type PeopleSort = (typeof peopleSorts)[number];
 export const peopleSortLabels: Record<PeopleSort, string> = {
   priority: "Priority",
@@ -179,6 +179,7 @@ export const peopleSortLabels: Record<PeopleSort, string> = {
   due: "Coldest first",
   name: "A–Z",
   recent: "Last spoken to",
+  strength: "Strongest first",
 };
 
 export const peopleQuerySchema = z.object({

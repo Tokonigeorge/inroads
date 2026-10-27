@@ -21,6 +21,7 @@ import { normaliseContactLists } from "@/domain/normalise";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 import { completeIntro } from "./intros";
+import { strengthSql } from "./strength";
 import type { Result } from "./spaces";
 
 const fail = (message: string, field?: string): Result<never> => ({ ok: false, message, field });
@@ -144,6 +145,8 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     recent: { key: sql`coalesce(p.last_touched_on, '0001-01-01'::date)::text`, dir: "desc" },
     due: { key: sql`coalesce(p.r_due_on, '9999-12-31'::date)::text`, dir: "asc" },
     added: { key: sql`to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US')`, dir: "desc" },
+    // Strongest first; people you've never been in touch with last.
+    strength: { key: sql`(case when p.last_touched_on is null then '999' else to_char(100 - ${strengthSql(sql`p.last_touched_on`, sql`p.id`, today)}, 'FM000') end) || lower(p.name)`, dir: "asc" },
   } as const;
   const sort = sorts[q.sort];
   const cursor = decodeCursor(q.cursor);

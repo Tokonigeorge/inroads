@@ -16,6 +16,30 @@ export function warmth(lastTouchedOn: IsoDate | null | undefined, today: IsoDate
   return { key, days, label: sinceLabel(days) };
 }
 
+/** How far back strength counts touches. */
+export const STRENGTH_WINDOW_DAYS = 180;
+
+export type Strength = { value: number; label: "Strong" | "Good" | "Fading" | "Weak"; why: string };
+
+export const strengthLabel = (value: number): Strength["label"] => (value >= 70 ? "Strong" : value >= 40 ? "Good" : value >= 20 ? "Fading" : "Weak");
+
+/**
+ * Relationship strength, 0–100 (Affinity-style): how recently you were in touch (fades over
+ * months) and how often in the last six months (six or more touches counts as often). A number
+ * to sort and compare by; warmth stays the plain "how long since" label. Null with no touches.
+ * Mirrored in SQL by `strengthSql` (repos/people.ts) for sorting: keep them the same.
+ */
+export function strength(args: { lastTouchedOn: IsoDate | null | undefined; touches: number; today: IsoDate }): Strength | null {
+  if (!args.lastTouchedOn) return null;
+  const days = Math.max(0, diffDays(args.lastTouchedOn, args.today));
+  const recency = 100 * Math.exp(-days / 75);
+  const frequency = Math.min(1, args.touches / 6) * 100;
+  const value = Math.round(0.55 * recency + 0.45 * frequency);
+  const label = strengthLabel(value);
+  const n = args.touches;
+  return { value, label, why: `${n === 0 ? "No touches" : n === 1 ? "1 touch" : `${n} touches`} in 6 months, last ${sinceLabel(days).toLowerCase()}` };
+}
+
 /** "today", "yesterday", "5 days ago", "3 weeks ago", "4 months ago", "over a year ago". */
 export function sinceLabel(days: number): string {
   if (days <= 0) return "Today";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { strengthLabel } from "@/domain/relationship";
 import { useState, useTransition } from "react";
 import { introAsk } from "@/domain/intro";
 import { whatsappDigits } from "@/domain/normalise";
@@ -15,7 +16,7 @@ export type IntroSpace = {
   id: string;
   name: string;
   goals: { id: string; text: string }[];
-  paths: { personId: string; name: string; detail: string; reasons: string[]; phone: string | null; email: string | null }[];
+  paths: { personId: string; name: string; detail: string; reasons: string[]; phone: string | null; email: string | null; strength: number | null }[];
 };
 type Connector = { id: string; name: string; phone: string | null; email: string | null };
 
@@ -87,7 +88,9 @@ export function IntroAsk({ target, targetDetail, spaces }: { target: { id: strin
                       {p.name}
                       {p.detail ? <span className="font-normal text-muted"> · {p.detail}</span> : null}
                     </span>
-                    <span className="text-small text-muted">{p.reasons.join(" · ")}</span>
+                    <span className="text-small text-muted">
+                      {[p.strength != null ? `You and ${p.name.split(/\s+/)[0]}: ${strengthLabel(p.strength).toLowerCase()} (${p.strength}/100)` : "You haven't been in touch yet", ...p.reasons].join(" · ")}
+                    </span>
                   </span>
                 </label>
               ))

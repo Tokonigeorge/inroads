@@ -4,7 +4,7 @@ import { addDays } from "@/domain/dates";
 import type { Tx } from "@/server/db/with-user";
 import { createGoal, linkPeople } from "@/server/repos/goals";
 import { introsAbout, requestIntro, warmPaths } from "@/server/repos/intros";
-import { createPerson, setPromiseDone } from "@/server/repos/people";
+import { createPerson, logTouch, setPromiseDone } from "@/server/repos/people";
 import { createRoom, linkPerson } from "@/server/repos/rooms";
 import { listSpaces } from "@/server/repos/spaces";
 import { connect, createUser, errorCode } from "./helpers";
@@ -48,7 +48,7 @@ beforeAll(async () => {
 
 describe("intro requests", () => {
   it("finds warm paths in the Space: links, same company, same rooms", async () => {
-    const paths = await as((tx) => warmPaths(tx, tunde, work));
+    const paths = await as((tx) => warmPaths(tx, tunde, work, TODAY));
     expect(paths.map((p) => [p.name, p.reasons])).toEqual([
       ["Chidi Okeke", ["Both linked to Founders Breakfast"]],
       ["Ifeoma Nwosu", ["Also at kestrel ventures"]],
@@ -56,6 +56,15 @@ describe("intro requests", () => {
     ]);
     // Sade works there too, but she's in Personal: Spaces stay separate.
     expect(paths.map((p) => p.name)).not.toContain("Sade Lawal");
+    expect(paths.every((p) => p.strength === null)).toBe(true);
+  });
+
+  it("puts the people you're closest to first", async () => {
+    await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: ifeoma, spaceId: work, occurredOn: TODAY, type: "coffee" }));
+    const paths = await as((tx) => warmPaths(tx, tunde, work, TODAY));
+    expect(paths[0]).toMatchObject({ name: "Ifeoma Nwosu", strength: 63 });
+    await sql`delete from interactions where person_id = ${ifeoma}`;
+    await sql`update people set last_touched_on = null where id = ${ifeoma}`;
   });
 
   it("asking tracks a promise they owe, logs the ask and moves the person to Warm path found", async () => {
@@ -74,7 +83,7 @@ describe("intro requests", () => {
     await as((tx) => setPromiseDone(tx, c.id, true));
     expect(await sql`select kind, to_person_id from person_links where from_person_id = ${tunde} and kind = 'introduced_by'`).toEqual([{ kind: "introduced_by", to_person_id: kemi }]);
     expect(await sql`select stage from goal_links where person_id = ${tunde}`).toEqual([{ stage: "introduced" }]);
-    expect((await as((tx) => warmPaths(tx, tunde, work))).find((p) => p.name === "Kemi Adebayo")?.reasons).toContain("Introduced you");
+    expect((await as((tx) => warmPaths(tx, tunde, work, TODAY))).find((p) => p.name === "Kemi Adebayo")?.reasons).toContain("Introduced you");
   });
 
   it("keeps Spaces separate and refuses nonsense", async () => {
