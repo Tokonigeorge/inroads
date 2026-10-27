@@ -81,7 +81,14 @@ export function GoalActions({ goalId, text, spaceId, spaceName, stages, active, 
           </Button>
         </div>
       ) : null}
-      <AddPeopleSheet open={adding} onOpenChange={setAdding} goalId={goalId} spaceId={spaceId} spaceName={spaceName} stages={stages} />
+      <AddPeopleSheet
+        open={adding}
+        onOpenChange={(o) => {
+          setAdding(o);
+          // Closing drops ?add=1, so a reload doesn't open the picker again.
+          if (!o && addParam) router.replace(`/goals/${goalId}`, { scroll: false });
+        }}
+        goalId={goalId} spaceId={spaceId} spaceName={spaceName} stages={stages} />
     </div>
   );
 }

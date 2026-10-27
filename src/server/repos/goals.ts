@@ -1,6 +1,6 @@
 import "server-only";
 import { firstIssue } from "@/contracts/issues";
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { goalSchema, type GoalInput, type GoalType } from "@/contracts/goals";
 import { finaliseStages, stageSchema, type SpaceKind, type Stage } from "@/contracts/spaces";
@@ -93,6 +93,35 @@ async function weeklyProgress(tx: Tx, goals: { id: string; weeklyTarget: number;
     });
   }
   return out;
+}
+
+/**
+ * The last `weeks` weeks of a goal's meter (touches with pipeline people plus sessions of its
+ * rooms you went to), oldest first, ending with this week. Same counting as the weekly meter.
+ */
+export async function goalHistory(tx: Tx, goal: { id: string; spaceId: string }, today: IsoDate, weeks = 8): Promise<{ start: IsoDate; done: number }[]> {
+  const current = weekOf(today).start;
+  const first = addDays(current, -7 * (weeks - 1));
+  const end = addDays(current, 6);
+  const week = (col: SQL | AnyColumn) => sql<string>`to_char(date_trunc('week', ${col}), 'YYYY-MM-DD')`;
+  const [touches, rooms] = await Promise.all([
+    tx
+      .select({ w: week(t.interactions.occurredOn), n: sql<number>`count(*)::int` })
+      .from(t.interactions)
+      .innerJoin(t.goalLinks, and(eq(t.goalLinks.personId, t.interactions.personId), eq(t.goalLinks.goalId, goal.id)))
+      .where(and(eq(t.interactions.spaceId, goal.spaceId), gte(t.interactions.occurredOn, first), sql`${t.interactions.occurredOn} <= ${end}`))
+      .groupBy(sql`1`),
+    tx
+      .select({ w: week(t.eventAttendance.occurrenceOn), n: sql<number>`count(*)::int` })
+      .from(t.eventAttendance)
+      .innerJoin(t.events, eq(t.events.id, t.eventAttendance.eventId))
+      .where(and(eq(t.events.goalId, goal.id), isNull(t.events.deletedAt), eq(t.eventAttendance.attended, true), gte(t.eventAttendance.occurrenceOn, first), sql`${t.eventAttendance.occurrenceOn} <= ${end}`))
+      .groupBy(sql`1`),
+  ]);
+  return Array.from({ length: weeks }, (_, i) => {
+    const start = addDays(first, 7 * i);
+    return { start, done: (touches.find((x) => x.w === start)?.n ?? 0) + (rooms.find((x) => x.w === start)?.n ?? 0) };
+  });
 }
 
 export async function listGoals(tx: Tx, opts: { spaceId: string | null; today: IsoDate; tz: string; archived?: boolean }): Promise<GoalSummary[]> {

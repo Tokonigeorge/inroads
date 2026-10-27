@@ -1,6 +1,8 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
+import { whatsappDigits } from "@/domain/normalise";
+import { logSentDraftAction } from "@/features/ai/actions";
 import { useToast } from "@/ui/toast";
 import { setStarredAction } from "./actions";
 
@@ -39,5 +41,51 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
     >
       Copy
     </button>
+  );
+}
+
+/**
+ * "WhatsApp" next to a phone number: opens the chat, then offers to log it as a touch when you
+ * come back, so warmth stays right without a separate step.
+ */
+export function WhatsAppLink({ phone, personId, spaceId, name }: { phone: string; personId: string; spaceId: string | null; name: string }) {
+  const [asked, setAsked] = useState(false);
+  const [pending, start] = useTransition();
+  const toast = useToast();
+  const first = name.trim().split(/\s+/)[0] || name;
+  return (
+    <>
+      <a
+        href={`https://wa.me/${whatsappDigits(phone)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => spaceId && setAsked(true)}
+        className="ml-2 text-[13px] font-semibold text-accent hover:underline"
+      >
+        WhatsApp
+      </a>
+      {asked && spaceId ? (
+        <span role="group" aria-label="Log this as a touch?" className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="text-muted">Messaged {first}?</span>
+          <button
+            type="button"
+            disabled={pending}
+            className="font-semibold text-accent hover:underline"
+            onClick={() =>
+              start(async () => {
+                await logSentDraftAction(personId, spaceId, "Messaged on WhatsApp");
+                setAsked(false);
+                toast.show("Touch logged.");
+              })
+            }
+          >
+            Log it
+          </button>
+          <button type="button" className="text-muted hover:underline" onClick={() => setAsked(false)}>
+            No
+          </button>
+        </span>
+      ) : null}
+    </>
   );
 }

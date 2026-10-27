@@ -119,7 +119,8 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     await page.getByRole("button", { name: /^Score \d+ people/ }).first().click();
     const done = page.getByRole("status").filter({ hasText: /^Scored \d+ (person|people)\./ });
     await expect(done).toBeVisible({ timeout: 20_000 });
-    await expect(done.getByRole("link", { name: /Review \d+ strong fits? for your goals/ })).toBeVisible();
+    // Strong fits already waiting (from research earlier) aren't suggested twice.
+    await expect(done).toHaveText(/Review \d+ strong fits? for your goals|No new strong fits for your goals this time\./);
   });
 
   test("today's brief, per Space", async ({ page }) => {

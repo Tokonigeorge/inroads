@@ -3,9 +3,9 @@ import { z } from "zod";
 /* ---------------- draft ---------------- */
 
 export const DRAFT_VERSION = "draft@1";
-export const draftPurposes = ["checkin", "birthday", "followup", "thanks"] as const;
+export const draftPurposes = ["checkin", "birthday", "followup", "thanks", "congrats"] as const;
 export type DraftPurpose = (typeof draftPurposes)[number];
-const purposeText: Record<DraftPurpose, string> = { checkin: "check-in message", birthday: "birthday message", followup: "follow-up after we met", thanks: "thank-you note" };
+const purposeText: Record<DraftPurpose, string> = { checkin: "check-in message", birthday: "birthday message", followup: "follow-up after we met", thanks: "thank-you note", congrats: "congratulations on their new role (use what you know about it; if unsure, keep it general)" };
 
 export function draftPrompt(c: { purpose: DraftPurpose; name: string; today: string; person: string; angles: string[]; me: string; space: string }) {
   return `Write a short ${purposeText[c.purpose]} I can send by WhatsApp or text to ${c.name}. Today is ${c.today}.

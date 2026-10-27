@@ -41,11 +41,13 @@ export type NudgeSnapshot = {
   duplicates?: number;
   /** AI suggestions (details found, goal fits, chat touches) waiting for a decision. */
   suggestions?: number;
+  /** A new company or role research found since you saved theirs (refreshing priority people). */
+  moves?: (NudgePerson & { field: "company" | "position"; value: string; was: string; foundOn: IsoDate })[];
   /** Keys snoozed or dismissed right now. */
   hidden: Set<string>;
 };
 
-export type NudgeKind = "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "after_room" | "triage" | "duplicates" | "suggestions";
+export type NudgeKind = "moved" | "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "after_room" | "triage" | "duplicates" | "suggestions";
 export type NudgeAction =
   | { type: "promise_done"; commitmentId: string; label: string }
   | { type: "log_touch"; personId: string; label: string }
@@ -56,7 +58,7 @@ export type NudgeAction =
   | { type: "sort"; label: string }
   | { type: "review_duplicates"; label: string }
   | { type: "review_suggestions"; label: string }
-  | { type: "draft"; personId: string; purpose: "checkin" | "birthday" | "followup"; label: string }
+  | { type: "draft"; personId: string; purpose: "checkin" | "birthday" | "followup" | "congrats"; label: string }
   | { type: "research"; personId: string; spaceId: string; label: string }
   | { type: "decode_room"; eventId: string; spaceId: string; title: string; label: string }
   | { type: "snooze"; days: number; label: string }
@@ -74,6 +76,8 @@ export type Nudge = {
 };
 
 export const MAX_NUDGES = 20;
+/** Starts the why-text of a "they've moved" suggestion, so Today can pick it out. */
+export const MOVED_PREFIX = "New since you saved it:";
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
 const lowerFirst = (s: string) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
@@ -109,6 +113,27 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
   const t = s.today;
   const out: Nudge[] = [];
   const who = (p: NudgePerson) => ({ id: p.id, name: p.name });
+
+  // Mesh-style job changes: one card per person, while the news is fresh.
+  const moved = new Set<string>();
+  for (const m of s.moves ?? []) {
+    if (moved.has(m.id) || diffDays(m.foundOn, t) > 14) continue;
+    moved.add(m.id);
+    out.push({
+      key: `moved:${m.id}:${m.value}`,
+      kind: "moved",
+      priority: 2,
+      label: "New role",
+      title: m.field === "company" ? `${m.name} is now at ${m.value}` : `${m.name} is now ${m.value}`,
+      body: `Research found this (you have ${m.was}). A quick congratulations is the easiest reason to get back in touch.`,
+      person: who(m),
+      actions: [
+        { type: "draft", personId: m.id, purpose: "congrats", label: "Congratulate" },
+        { type: "open_person", personId: m.id, label: "Update details" },
+        { type: "dismiss", label: "Not now" },
+      ],
+    });
+  }
 
   for (const p of s.birthdays) {
     const b = nextBirthday(p.birthday, t);

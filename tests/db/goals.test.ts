@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addDays, todayIn } from "@/domain/dates";
 import { weekOf } from "@/domain/goal-progress";
 import type { Tx } from "@/server/db/with-user";
-import { createGoal, deleteGoal, getGoal, goalOptionsForPerson, linkPeople, listGoals, moveStage, restoreLink, setGoalState, unlinkPerson, updateGoal } from "@/server/repos/goals";
+import { createGoal, deleteGoal, getGoal, goalHistory, goalOptionsForPerson, linkPeople, listGoals, moveStage, restoreLink, setGoalState, unlinkPerson, updateGoal } from "@/server/repos/goals";
 import { createPerson, logTouch, saveMembership } from "@/server/repos/people";
 import { createRoom, setAttendance } from "@/server/repos/rooms";
 import { listSpaces, updateSpace } from "@/server/repos/spaces";
@@ -99,6 +99,16 @@ describe("goals", () => {
 
     const list = await as((tx) => listGoals(tx, { spaceId: null, today: TODAY, tz: TZ }));
     expect(list.find((x) => x.id === goalId)).toMatchObject({ people: 2, progress: { touches: 3, rooms: 1 } });
+  });
+
+  it("history: the meter, week by week, this week last", async () => {
+    const h = await as((tx) => goalHistory(tx, { id: goalId, spaceId: work }, TODAY, 3));
+    // This week: 3 touches with pipeline people + 1 session; last week: 1 touch; the week before: nothing.
+    expect(h).toEqual([
+      { start: addDays(week.start, -14), done: 0 },
+      { start: addDays(week.start, -7), done: 1 },
+      { start: week.start, done: 4 },
+    ]);
   });
 
   it("a touch in another Space doesn't count towards a goal", async () => {

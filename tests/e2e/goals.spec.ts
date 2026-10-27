@@ -62,9 +62,22 @@ test.describe.serial("Goals", () => {
     await expectAccessible(page);
 
     // The person's page shows the goal with its stage.
+    await expect(page).not.toHaveURL(/add=1/);
+    const goalUrl = page.url();
     await card.getByRole("link", { name: person }).click();
     await expect(page.getByRole("heading", { name: person, level: 1 })).toBeVisible();
     await expect(page.getByLabel(`Stage for ${person} in ${goal}`)).toHaveValue(isMobile ? "met" : "in_conversation");
+
+    // A touch counts towards the week, and the goal shows the last weeks against its target.
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
+    await page.getByRole("dialog").getByLabel("What happened").fill("Coffee about the round");
+    await page.getByRole("dialog").getByRole("button", { name: "Log it" }).click();
+    await expect(page.getByRole("status").filter({ hasText: /Logged with/ })).toBeVisible();
+    await page.goto(goalUrl);
+    const trend = page.getByRole("figure").filter({ hasText: "Last 8 weeks" });
+    await expect(trend).toBeVisible();
+    await expect(trend.getByRole("listitem", { name: "This week: 1 of 2" })).toBeAttached();
+    await expectAccessible(page);
 
     await page.goto("/goals");
     const row = page.getByRole("link", { name: new RegExp(goal) });

@@ -33,6 +33,17 @@ describe("buildNudges", () => {
     expect(n.map((x) => [x.key, x.priority, x.title])).toEqual([["bday:p-kemi:2026-10-24", 0, "Kemi Adebayo's birthday is today"]]);
   });
 
+  it("a new role or company research found: one card per person, for two weeks, offering congratulations", () => {
+    const moves = [
+      { ...kemi, field: "company" as const, value: "Airtel Africa", was: "Kestrel", foundOn: "2026-10-20" },
+      { ...kemi, field: "position" as const, value: "CFO", was: "Partner", foundOn: "2026-10-20" },
+      { ...tunde, field: "position" as const, value: "Head of Growth", was: "Analyst", foundOn: "2026-10-01" },
+    ];
+    const n = buildNudges({ ...empty(), moves });
+    expect(n.map((x) => [x.kind, x.title])).toEqual([["moved", "Kemi Adebayo is now at Airtel Africa"]]);
+    expect(n[0].actions.map((a) => a.label)).toEqual(["Congratulate", "Update details", "Not now"]);
+  });
+
   it("promises you owe: overdue first, due within 3 days or undated, later ones wait", () => {
     const owed = [
       { id: "c1", person: kemi, text: "Send the deck", dueOn: "2026-10-20" },

@@ -37,6 +37,7 @@ test.describe.serial("People", () => {
     await expect(page.getByText("#fintech", { exact: true })).toBeVisible();
     await expect(page.getByText("#partner", { exact: true })).toBeVisible();
     await expectAccessible(page);
+
   });
 
   test("bad details are explained, not saved", async ({ page }) => {
@@ -84,6 +85,13 @@ test.describe.serial("People", () => {
     await expect(owe).toBeVisible();
     await page.getByRole("checkbox", { name: 'Mark "Send the pilot deck" as done' }).check();
     await expect(page.getByText("1 done")).toBeVisible();
+
+    // Messaging from the record offers to log it, so warmth stays right.
+    const [chat] = await Promise.all([page.context().waitForEvent("page"), page.getByRole("link", { name: "WhatsApp" }).click()]);
+    await chat.close();
+    await page.getByRole("group", { name: "Log this as a touch?" }).getByRole("button", { name: "Log it" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Touch logged." })).toBeVisible();
+    await expect(page.getByText("Messaged on WhatsApp")).toBeVisible();
   });
 
   test("quick capture from anywhere", async ({ page, isMobile }) => {

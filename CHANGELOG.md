@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: where your people are
+- People has a **Place** filter (when your people are in more than one city): every city or area saved on them, with counts, most first. Pick one to see only those people. Like Mesh's map, without sending anyone's address to a map service.
+
+### Added: your last 8 weeks on each goal
+- Under a goal's "This week" meter: one bar per week against the dashed weekly target, counted the same way as the meter (touches with people on the goal, sessions of its rooms you went to). Hover or focus a bar for the count. Shown once there's anything to show.
+- Closing **Add people** opened from "Start here" no longer reopens it on reload.
+
+### Added: new roles and companies for your priority people (like Mesh's job-change alerts)
+- Priority (starred) people in Work Spaces get their research refreshed about once a month, two a day at your brief time.
+- When research finds a different company or role than the one you saved (from the web, not when it's unsure), it suggests the update, and Today shows "Kemi is now at Airtel Africa" with **Congratulate** (a new "Congrats" draft) and **Update details**.
+- **WhatsApp** next to a phone number now asks "Messaged Ada? Log it" when you come back, so warmth stays right without a separate step.
+- Suggestions are no longer repeated: one already waiting, or one you dismissed, isn't suggested again by a later run.
+
 ### Fixed: "Score people" no longer stops without a word
 - Scoring now includes people from an import you haven't sorted yet (after the ones you have). Before, a fresh Google import meant nobody to score, and the job stopped.
 - When it finishes, the button says what it did ("Scored 60 people.") and links the strong fits to review.

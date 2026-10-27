@@ -2,6 +2,15 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: after Mesh and Affinity, and what we left out
+
+166. **Scoring takes sorted people first, then ones waiting to be sorted** (reported: "Score 60 people" stopped right after a Google import, when nobody was sorted yet). New goals open with **Start here**; saving Profile & goals with a new goal opens that goal. Errors read in plain words everywhere (`contracts/issues.ts`, `app/(app)/error.tsx`), and codes and causes go to the server log only. To reverse the scoring order: put back `triage_state = 'done'` in `scorePeople`.
+167. **A plan's role with no name becomes something to do**: Check your network (prefilled Ask) or Add as a step on the goal. We don't search the web for names from a role yet: look-ups are built around one named target, not a list.
+168. **Priority people's research is refreshed about every 30 days, two a day at brief time** (Mesh's job-change alerts). Only starred people in Work Spaces with full research, already researched once. A different company or role than saved, from the web and not low confidence, becomes a suggestion and a "moved" card on Today with a Congrats draft. Every suggestion is now skipped when the same one is already waiting or was dismissed, so refreshes don't repeat or nag. To reverse: drop the `refresh-starred` step in `prepareBriefs`.
+169. **The weekly review is Today → This week**, not a new feature: it already has events, going cold with Draft, openings, goal meters, the weekly brief and steps due. Progress over time lives on each goal (last 8 weeks against the target), not on a separate dashboard.
+170. **Where your people are is a Place filter, not a map.** A map would mean sending people's addresses to a map service; city counts and a filter cover planning trips and events without that.
+171. **Left out on purpose** (owner agreed): reading email (Google's restricted scopes need a security assessment), a meeting notetaker (recording consent; Nigeria's data protection law applies) and a LinkedIn browser extension (LinkedIn's terms).
+
 ## 2026-10-27: family details from chat import
 
 165. **Chat import picks up family details again, as the prototype did** (owner's call, reversing #162). What someone tells you about their partner, children or parents in your own chat comes back as a separate "Family: …" note suggestion, so you can keep or dismiss it apart from the rest. Health, money and past relationships stay out. Brief §4.0's "never included: family members" is about what research finds on the web, not what a person tells you themselves, so it still holds for research. To reverse: drop `family` from `chatSchema` and the prompt, and the line in `importChat`.

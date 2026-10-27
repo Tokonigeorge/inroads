@@ -28,8 +28,34 @@ export const aiSuggestionKinds = Object.keys(suggestionPayloads) as SuggestionKi
 
 export type NewSuggestion = { kind: SuggestionKind; payload: Record<string, unknown>; why: string; sources?: { title: string; url: string }[]; spaceId: string; targetId: string };
 
+/** Same keys in any order give the same text, so stored jsonb compares with what we'd insert. */
+const canonical = (v: unknown): string =>
+  v && typeof v === "object" && !Array.isArray(v)
+    ? `{${Object.keys(v as object).sort().map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(",")}}`
+    : JSON.stringify(v);
+
+/**
+ * Saves suggestions, skipping any already waiting or already dismissed for the same person (re-running
+ * research shouldn't repeat itself, or bring back what you said no to).
+ */
 export async function createSuggestions(tx: Tx, userId: string, origin: string, originId: string | null, list: NewSuggestion[]) {
-  const valid = list.filter((s) => suggestionPayloads[s.kind].safeParse(s.payload).success);
+  const checked = list.filter((s) => suggestionPayloads[s.kind].safeParse(s.payload).success);
+  if (!checked.length) return 0;
+  const targets = [...new Set(checked.map((s) => s.targetId))];
+  const seen = new Set(
+    (
+      await tx
+        .select({ targetId: t.suggestions.targetId, kind: t.suggestions.kind, payload: t.suggestions.payload })
+        .from(t.suggestions)
+        .where(and(inArray(t.suggestions.targetId, targets), inArray(t.suggestions.status, ["pending", "dismissed"])))
+    ).map((x) => `${x.targetId}|${x.kind}|${canonical(x.payload)}`),
+  );
+  const valid = checked.filter((s) => {
+    const key = `${s.targetId}|${s.kind}|${canonical(s.payload)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (!valid.length) return 0;
   await tx.insert(t.suggestions).values(
     valid.map((s) => ({ userId, spaceId: s.spaceId, kind: s.kind, targetType: "person", targetId: s.targetId, payload: s.payload, why: s.why.slice(0, 500), sources: s.sources ?? [], origin, originId })),
