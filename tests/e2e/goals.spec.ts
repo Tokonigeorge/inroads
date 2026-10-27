@@ -64,7 +64,7 @@ test.describe.serial("Goals", () => {
     await page.goto("/goals");
     const row = page.getByRole("link", { name: new RegExp(goal) });
     await expect(row).toContainText("1 person");
-    await expect(row).toContainText("2 to go");
+    await expect(row).toContainText("2 touches a week");
     await expectAccessible(page);
   });
 

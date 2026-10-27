@@ -33,21 +33,21 @@ test.describe.serial("Walk in prepared, follow up in one tap (against a fake Cla
     await context.addCookies([{ ...sessionCookie(user), domain: "localhost", path: "/", httpOnly: false, secure: false, sameSite: "Lax" }]);
   });
 
-  test("no goals yet: Today asks, and set-up's goal step brings you back to Goals", async ({ page }) => {
+  test("no goals yet: Today asks, and the Profile & goals sheet sets them", async ({ page }) => {
     await page.goto("/today");
     const ask = page.getByRole("region", { name: "Set your goals" });
     await expect(ask).toBeVisible();
     await ask.getByRole("link", { name: "Set your goals" }).click();
-    await expect(page.getByRole("heading", { name: "What are you working towards?", level: 1 })).toBeVisible();
-    await expect(async () => {
-      await page.getByRole("button", { name: "Raise capital" }).click();
-      await expect(page.getByRole("button", { name: "Raise capital" })).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
-    }).toPass();
-    await page.getByLabel("Or in your own words").fill("Meet three seed investors");
-    await page.getByRole("button", { name: "Save 2 goals" }).click();
+    const sheet = page.getByRole("dialog", { name: "Profile & goals" });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole("textbox", { name: "Goal", exact: true }).fill("Raise a funding round");
+    await sheet.getByLabel("Goal type").selectOption("capital");
+    await sheet.getByRole("button", { name: "+ Add goal" }).click();
+    await sheet.getByRole("group", { name: "Goal 2" }).getByRole("textbox", { name: "Goal" }).fill("Meet three seed investors");
+    await sheet.getByRole("button", { name: "Save profile" }).click();
     await expect(page).toHaveURL(/\/goals$/);
-    await expect(page.getByRole("link", { name: "Raise a funding round" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Meet three seed investors" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Raise a funding round/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Meet three seed investors/ })).toBeVisible();
     await page.goto("/today");
     await expect(page.getByRole("region", { name: "Set your goals" })).toHaveCount(0);
   });

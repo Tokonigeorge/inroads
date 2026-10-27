@@ -21,10 +21,10 @@ test.describe.serial("signed in", () => {
   });
 
   test("loading and removing the example network", async ({ page }) => {
-    await page.goto("/settings");
-    await page.getByRole("button", { name: "Load example data" }).click();
+    await page.goto("/goals");
+    await page.getByRole("button", { name: "Load examples" }).click();
     await expect(page.getByRole("status")).toContainText("Example network loaded.");
-    await expect(page.getByRole("button", { name: "Remove example data" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove examples" })).toBeVisible();
 
     await page.goto("/people");
     await expect(page.getByText("Adaeze Okafor")).toBeVisible();
@@ -36,9 +36,9 @@ test.describe.serial("signed in", () => {
     await page.goto("/goals");
     await expect(page.getByText("Raise a $500k pre-seed round")).toBeVisible();
 
-    await page.goto("/settings");
-    await page.getByRole("button", { name: "Remove example data" }).click();
-    await expect(page.getByRole("button", { name: "Load example data" })).toBeVisible();
+    await page.goto("/goals");
+    await page.getByRole("button", { name: "Remove examples" }).click();
+    await expect(page.getByRole("button", { name: "Load examples" })).toBeVisible();
     await page.goto("/people");
     await expect(page.getByText("No one here yet.")).toBeVisible();
   });

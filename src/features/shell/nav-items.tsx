@@ -53,7 +53,7 @@ export const primaryNav: NavItem[] = [
   { href: "/people", label: "People", icon: PeopleIcon },
   { href: "/discover", label: "Discover", icon: DiscoverIcon },
   { href: "/rooms", label: "Events", icon: EventsIcon },
-  { href: "/goals", label: "Goals", icon: GoalsIcon, also: ["/settings", "/onboarding"] },
+  { href: "/goals", label: "Goals", icon: GoalsIcon, also: ["/settings"] },
 ];
 
 const under = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);

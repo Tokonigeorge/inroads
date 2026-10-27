@@ -42,12 +42,9 @@ test.describe.serial("Settings", () => {
     await expect(page.getByText("08:15")).toBeVisible();
   });
 
-  test("export your data and download it", async ({ page }) => {
-    await page.goto("/settings");
-    await page.getByRole("button", { name: "Export your data" }).click();
-    const link = page.getByRole("link", { name: /^Download inroads-export-/ });
-    await expect(link).toBeVisible({ timeout: 15_000 });
-    const [download] = await Promise.all([page.waitForEvent("download"), link.click()]);
+  test("download a backup, as in the prototype's Goals tab", async ({ page }) => {
+    await page.goto("/goals");
+    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20_000 }), page.getByRole("button", { name: "Download backup" }).click()]);
     const files = unzipSync(new Uint8Array(await readFile((await download.path())!)));
     expect(Object.keys(files)).toEqual(expect.arrayContaining(["inroads.json", "people.csv"]));
     expect(strFromU8(files["people.csv"])).toContain('Kemi Adebayo,Work,kemi@example.test');

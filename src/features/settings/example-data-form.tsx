@@ -5,7 +5,7 @@ import { Button } from "@/ui/button";
 import { useToast } from "@/ui/toast";
 import { loadExamplesAction, removeExamplesAction } from "./actions";
 
-export function ExampleDataForm({ loaded }: { loaded: boolean }) {
+export function ExampleDataForm({ loaded, loadLabel = "Load example data", removeLabel = "Remove example data" }: { loaded: boolean; loadLabel?: string; removeLabel?: string }) {
   const [pending, start] = useTransition();
   const toast = useToast();
   const run = (fn: () => Promise<void>, done: string) =>
@@ -19,11 +19,11 @@ export function ExampleDataForm({ loaded }: { loaded: boolean }) {
     });
   return loaded ? (
     <Button disabled={pending} onClick={() => run(removeExamplesAction, "Example data removed.")}>
-      {pending ? "Removing…" : "Remove example data"}
+      {pending ? "Removing…" : removeLabel}
     </Button>
   ) : (
     <Button variant="primary" disabled={pending} onClick={() => run(loadExamplesAction, "Example network loaded.")}>
-      {pending ? "Loading…" : "Load example data"}
+      {pending ? "Loading…" : loadLabel}
     </Button>
   );
 }

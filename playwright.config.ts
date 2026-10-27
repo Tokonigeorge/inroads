@@ -18,7 +18,8 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", launchOptions },
+  // The browser sits where the app's defaults do (Lagos, Nigerian numbers), so first-use locale detection keeps them.
+  use: { baseURL: `http://localhost:${PORT}`, locale: "en-NG", timezoneId: "Africa/Lagos", trace: "retain-on-failure", launchOptions },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, launchOptions } },
     { name: "mobile", use: { ...devices["Pixel 7"], launchOptions } },

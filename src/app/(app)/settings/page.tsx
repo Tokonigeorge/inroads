@@ -2,23 +2,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DeleteAccount } from "@/features/settings/delete-account";
-import { ExampleDataForm } from "@/features/settings/example-data-form";
-import { ExportPanel } from "@/features/settings/export-panel";
 import { SpacesSettings } from "@/features/spaces/spaces-settings";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
-import { latestExport } from "@/server/account/export";
-import { db } from "@/server/db/client";
 import { getAccountOverview } from "@/server/repos/account";
 import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
 
-export const metadata: Metadata = { title: "Settings" };
+export const metadata: Metadata = { title: "Account" };
 
 export default function SettingsPage() {
   return (
     <PageFrame>
-      <PageHeader title="Settings" />
+      <PageHeader
+        stamp="Account"
+        title="Account and Spaces"
+        subtitle="Your profile and goals, backup and the example network are on the Goals tab. This page has the rest."
+        actions={
+          <Button asChild size="sm">
+            <Link href="/goals">← Goals</Link>
+          </Button>
+        }
+      />
       <Suspense fallback={<LoadingRows rows={6} />}>
         <Settings />
       </Suspense>
@@ -28,8 +33,7 @@ export default function SettingsPage() {
 
 async function Settings() {
   const user = await requireUser();
-  const [{ profile, spaces, counts }, latest] = await Promise.all([getAccountOverview(user.id), db.withUser(user.id, latestExport)]);
-  const when = new Intl.DateTimeFormat("en-GB", { timeZone: profile.timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const { profile, spaces } = await getAccountOverview(user.id);
   return (
     <>
       <Section
@@ -45,24 +49,13 @@ async function Settings() {
           <dd>{profile.name || "Not set"}</dd>
           <dt className="text-muted">Email</dt>
           <dd>{user.email ?? "Not set"}</dd>
-          <dt className="text-muted">What you do</dt>
+          <dt className="text-muted">Headline</dt>
           <dd>{profile.headline || "Not set"}</dd>
           <dt className="text-muted">Time zone</dt>
           <dd>{profile.timezone.replace(/_/g, " ")}</dd>
           <dt className="text-muted">Brief time</dt>
           <dd>{profile.briefTime.slice(0, 5)}</dd>
         </dl>
-      </Section>
-
-      <Section title="Goals">
-        <div className="grid gap-3">
-          <p className="text-muted">{counts.goals === 1 ? "1 active goal." : `${counts.goals} active goals.`} Goals shape your reminders, research and suggested rooms.</p>
-          <div>
-            <Button asChild>
-              <Link href="/goals">Manage goals</Link>
-            </Button>
-          </div>
-        </div>
       </Section>
 
       <SpacesSettings spaces={spaces} />
@@ -92,29 +85,6 @@ async function Settings() {
         </div>
       </Section>
 
-      <Section title="Export">
-        <ExportPanel
-          latest={
-            latest
-              ? { id: latest.id, filename: latest.filename, size: formatSize(latest.sizeBytes), made: when.format(latest.createdAt), until: when.format(latest.expiresAt) }
-              : null
-          }
-        />
-      </Section>
-
-      <Section title="Example data">
-        <div id="data" className="grid gap-3">
-          <p className="text-muted">
-            {counts.examples
-              ? "The example network is loaded. Example records are marked and safe to remove."
-              : "Load six example people and four rooms from Lagos to see how Inroads works with data in it."}
-          </p>
-          <div>
-            <ExampleDataForm loaded={counts.examples > 0} />
-          </div>
-        </div>
-      </Section>
-
       <Section title="Account">
         <div className="grid gap-6">
           <form action="/auth/sign-out" method="post">
@@ -125,8 +95,4 @@ async function Settings() {
       </Section>
     </>
   );
-}
-
-function formatSize(bytes: number) {
-  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
