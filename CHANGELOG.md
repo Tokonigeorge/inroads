@@ -11,10 +11,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed: a new goal says what to do next
 - A goal with nothing in it yet opens with **Start here**: add people who can help, find who in your network fits, and open Radar for rooms to be in.
+- Saving Profile & goals with a new goal takes you to that goal, instead of back to the list.
+- A plan's role with no name yet ("Event planners who hire photographers") is no longer a dead end: **Check your network** asks your network for it, and **Add as a step** keeps "Find event planners who hire photographers" on the goal.
 
 ### Changed: friendly errors, details in the logs
 - A page that breaks shows a plain apology with **Try again** and **Go to Today** (and a short reference to match the server log), instead of the browser's default error.
-- Form errors read in plain words ("This can't be empty.", "Keep it under 80 characters.") instead of the validator's developer wording.
+- Form and action errors read in plain words ("This can't be empty.", "Keep it under 80 characters.") instead of the validator's developer wording, everywhere.
 - Sync failures no longer show a code on screen; the code and cause go to the server log. AI job failures are logged with their cause too.
 
 ### Fixed: Google sync for new accounts

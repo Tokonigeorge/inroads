@@ -7,6 +7,7 @@ import { Button } from "@/ui/button";
 import { Select } from "@/ui/field";
 import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
+import { addGoalStepAction } from "@/features/goals/actions";
 import { keepOpeningAction, keepStakeholderAction } from "./actions";
 
 type Goal = { id: string; text: string };
@@ -113,7 +114,7 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
                     <Check size={14} className="pop" aria-hidden /> In your people
                   </Link>
                 ) : !p.name ? (
-                  <span className="text-small text-muted">A role to look for, not a name yet</span>
+                  <RoleActions role={p.role} goal={goal} />
                 ) : (
                   <Button size="sm" disabled={pending} aria-label={goal ? `Add to "${goal.text}"` : `Save ${p.name}`} title={goal ? `Add ${p.name} to "${goal.text}"` : undefined} onClick={() => add([p], p.index)}>
                     <UserPlus size={14} aria-hidden /> {busy === p.index ? "Adding…" : goal ? `Add to "${short(goal.text)}"` : `Save ${p.name.split(/\s+/)[0]}`}
@@ -124,6 +125,48 @@ export function PlanPeople({ searchId, people, goals, kept }: { searchId: string
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * A role the plan suggests, with no name yet ("Wedding planners who hire photographers"): look
+ * for them among the people you know, or keep it as a step on the goal to work on.
+ */
+function RoleActions({ role, goal }: { role: string; goal: Goal | undefined }) {
+  const [stepped, setStepped] = useState(false);
+  const step = `Find ${role.charAt(0).toLowerCase()}${role.slice(1)}`.replace(/\.$/, "").slice(0, 300);
+  const [pending, start] = useTransition();
+  const toast = useToast();
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <Button asChild size="sm" variant="ghost">
+        <Link href={`/ask?q=${encodeURIComponent(`Who do I know who is, or knows, ${role.replace(/\.$/, "")}?`)}`}>
+          <UserSearch size={14} aria-hidden /> Check your network
+        </Link>
+      </Button>
+      {goal ? (
+        stepped ? (
+          <span className="inline-flex items-center gap-1 text-small font-[550] text-accent">
+            <Check size={14} className="pop" aria-hidden /> Added as a step
+          </span>
+        ) : (
+          <Button
+            size="sm"
+            disabled={pending}
+            aria-label={`Add "${step}" as a step on "${goal.text}"`}
+            onClick={() =>
+              start(async () => {
+                const r = await addGoalStepAction(goal.id, step, null);
+                if (r.ok) setStepped(true);
+                toast.show(r.ok ? `Added to "${short(goal.text)}" as a step.` : (r.message ?? "That didn't save."));
+              })
+            }
+          >
+            <ListPlus size={14} aria-hidden /> Add as a step
+          </Button>
+        )
+      ) : null}
     </div>
   );
 }

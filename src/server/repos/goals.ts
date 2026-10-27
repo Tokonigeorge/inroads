@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { goalSchema, type GoalInput, type GoalType } from "@/contracts/goals";
@@ -236,7 +237,7 @@ async function strandedBy(tx: Tx, goalId: string, stages: Stage[]) {
 
 export async function createGoal(tx: Tx, userId: string, raw: GoalInput): Promise<Result<{ id: string }>> {
   const parsed = goalSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path[0] ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path[0] ?? ""));
   const input = parsed.data;
   const space = await getSpace(tx, input.spaceId);
   if (!space || space.archivedAt) return fail("Choose one of your Spaces.", "spaceId");
@@ -258,7 +259,7 @@ export async function createGoal(tx: Tx, userId: string, raw: GoalInput): Promis
 
 export async function updateGoal(tx: Tx, id: string, raw: GoalInput): Promise<Result<{ stages: Stage[] | null }>> {
   const parsed = goalSchema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the details.", String(parsed.error.issues[0]?.path[0] ?? ""));
+  if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path[0] ?? ""));
   const input = parsed.data;
   const [current] = await tx.select().from(t.goals).where(eq(t.goals.id, id));
   if (!current) return fail("This goal no longer exists.");

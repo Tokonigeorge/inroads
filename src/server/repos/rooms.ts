@@ -1,4 +1,5 @@
 import "server-only";
+import { firstIssue } from "@/contracts/issues";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { roomSchema, type RoomInput, type RoomRole } from "@/contracts/rooms";
 import { addDays, type IsoDate } from "@/domain/dates";
@@ -170,7 +171,7 @@ function rowFrom(input: RoomInput): Result<Omit<typeof t.events.$inferInsert, "u
   const parsed = roomSchema.safeParse(input);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    return fail(issue?.message ?? "Check the details.", String(issue?.path[0] ?? ""));
+    return fail(firstIssue(parsed.error), String(issue?.path[0] ?? ""));
   }
   const r = parsed.data;
   const recurrence: Recurrence = {

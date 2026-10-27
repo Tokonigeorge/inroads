@@ -36,7 +36,9 @@ test.describe.serial("Connecting Google", () => {
     await sheet.getByLabel("Goal type").selectOption("capital");
     await expectAccessible(page);
     await sheet.getByRole("button", { name: "Save profile" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Profile saved." })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Saved. Here's your new goal." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Raise a pre-seed round", level: 1 })).toBeVisible();
+    await page.goto("/goals");
     await expect(page.getByRole("heading", { name: "Ada Connect", level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: /Raise a pre-seed round/ })).toBeVisible();
 

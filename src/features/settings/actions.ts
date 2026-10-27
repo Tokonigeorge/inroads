@@ -1,6 +1,7 @@
 "use server";
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { firstIssue } from "@/contracts/issues";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { goalTypes, type GoalType } from "@/contracts/goals";
@@ -71,7 +72,7 @@ export async function deleteAccountAction(_prev: FormState, formData: FormData):
 export async function saveProfileGoalsAction(input: ProfileGoalsInput): Promise<FormState> {
   const user = await requireUser();
   const parsed = profileGoalsSchema.safeParse(input);
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), message: parsed.error.issues[0]?.message };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), message: firstIssue(parsed.error) };
   const { goals, ...profile } = parsed.data;
   const spaceSel = await readSelectedSpaceId();
   const r = await db.withUser(user.id, async (tx) => {
@@ -80,6 +81,7 @@ export async function saveProfileGoalsAction(input: ProfileGoalsInput): Promise<
     const home = spaces.find((s) => s.id === spaceSel) ?? spaces.find((s) => s.kind === "work") ?? spaces[0];
     const mine = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false)));
     const kept = new Set<string>();
+    let firstNew: string | undefined;
     for (const g of goals) {
       if (!g.text) continue;
       const type = (goalTypes as readonly string[]).includes(g.type) ? (g.type as GoalType) : "other";
@@ -90,14 +92,15 @@ export async function saveProfileGoalsAction(input: ProfileGoalsInput): Promise<
         if (!home) return { ok: false as const, message: "Create a Space first." };
         const created = await createGoal(tx, user.id, { text: g.text.length < 3 ? `${g.text}…` : g.text, spaceId: home.id, type, priority: g.priority, weeklyTarget: g.weeklyTarget, stages: null });
         if (!created.ok) return created;
+        firstNew ??= created.data.id;
         if (!g.active) await tx.update(t.goals).set({ active: false }).where(eq(t.goals.id, created.data.id));
       }
     }
     const removed = mine.filter((m) => !kept.has(m.id)).map((m) => m.id);
     if (removed.length) await tx.update(t.goals).set({ archivedAt: new Date() }).where(inArray(t.goals.id, removed));
-    return { ok: true as const };
+    return { ok: true as const, firstNew };
   });
   if (!r.ok) return { message: r.message };
   refresh();
-  return { ok: true, savedAt: Date.now() };
+  return { ok: true, savedAt: Date.now(), id: r.firstNew };
 }
