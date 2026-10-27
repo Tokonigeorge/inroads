@@ -301,8 +301,8 @@ describe("look up, briefs, scores, chat, drafts", () => {
     expect(n).toBe(0);
   });
 
-  it("chat import: undated moments land on the last message's date, and the summary becomes a note", async () => {
-    const fake = fakeAnthropic(() => ({ json: { summary: "Agreed to meet in Accra.", lastDate: "2026-10-01", interactions: [{ date: "", summary: "Talked about Accra" }], commitments: [], details: { company: "", position: "", interests: [], birthday: "", other: ["Moving to Accra in January"], family: "SHOULD-NOT-APPEAR" }, sentiment: "warm", nextStep: "" } }));
+  it("chat import: undated moments land on the last message's date, the summary becomes a note, family its own", async () => {
+    const fake = fakeAnthropic(() => ({ json: { summary: "Agreed to meet in Accra.", lastDate: "2026-10-01", interactions: [{ date: "", summary: "Talked about Accra" }], commitments: [], details: { company: "", position: "", interests: [], birthday: "", other: ["Moving to Accra in January"], family: "Two daughters, Ada and Tobi" }, sentiment: "warm", nextStep: "" } }));
     await importChat({ client: fake.client, sys, db }, user.id, { spaceId: work, personId: kemi, transcript: "x", me: "Ada", today: "2026-10-26" });
     expect(fake.calls[0].output_config?.format).toBeTruthy();
     const s = await as((tx) => pendingForPerson(tx, kemi));
@@ -310,7 +310,8 @@ describe("look up, briefs, scores, chat, drafts", () => {
     expect((touch?.payload as { occurredOn: string }).occurredOn).toBe("2026-10-01");
     const note = s.find((x) => x.kind === "note" && (x.payload as { text: string }).text.startsWith("From chat"));
     expect((note?.payload as { text: string }).text).toBe("From chat (26 Oct 2026): Agreed to meet in Accra.\nMoving to Accra in January");
-    expect(JSON.stringify(s)).not.toContain("SHOULD-NOT-APPEAR");
+    const family = s.find((x) => x.kind === "note" && (x.payload as { text: string }).text.startsWith("Family:"));
+    expect((family?.payload as { text: string }).text).toBe("Family: Two daughters, Ada and Tobi");
   });
 
   it("drafts use the fast model", async () => {

@@ -627,9 +627,12 @@ export async function importChat(deps: FeatureDeps, userId: string, input: { spa
   if (bday && !person.identity.birthday) list.push({ kind: "person_field", ...p, targetId: input.personId, why: "Mentioned in the chat", payload: { personId: input.personId, field: "birthday", value: bday } });
   const interests = take(o.details.interests, 8).filter((x) => !person.relationship.interests.includes(x));
   if (interests.length) list.push({ kind: "interests", ...p, targetId: input.personId, why: "Mentioned in the chat", payload: { ...p, values: interests } });
-  // The prototype's "From chat" note (L1932): the summary and the other useful details. No family line (see chatSchema).
+  // The prototype's "From chat" note (L1932): the summary and the other useful details.
   const fromChat = [o.summary.trim() && `From chat (${shortDate(input.today)}): ${o.summary.trim()}`, ...take(o.details.other, 5)].filter(Boolean).join("\n");
   if (fromChat) list.push({ kind: "note", ...p, targetId: input.personId, why: "Summary of the chat", payload: { ...p, text: fromChat.slice(0, 2000) } });
+  // The prototype's "Family: …" line, as its own suggestion so it can be kept or dismissed on its own.
+  const family = o.details.family.trim();
+  if (family) list.push({ kind: "note", ...p, targetId: input.personId, why: "Mentioned in the chat", payload: { ...p, text: `Family: ${family}`.slice(0, 1000) } });
   if (o.nextStep.trim()) list.push({ kind: "note", ...p, targetId: input.personId, why: "Suggested next step", payload: { ...p, text: `Next step: ${o.nextStep.trim()}` } });
   const n = await data.withUser(userId, (tx) => createSuggestions(tx, userId, "chat", null, list));
   return { summary: o.summary, sentiment: o.sentiment, suggestions: n };

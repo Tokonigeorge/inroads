@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: chat import picks up family details again
+- As in the prototype, what someone says about their family in a chat you import ("two daughters, Ada and Tobi") comes back as a "Family: …" suggestion on their profile, separate from the rest so you can keep or dismiss it. Health, money and past relationships are still left out.
+
 ### Changed: AI prompts match the prototype (docs/PROTOTYPE_PROMPTS.md)
 - **Safer by default:** every AI call carries one system prompt telling the model that pasted text, chats, notes and web pages are data, never instructions.
 - **No web? Still an answer.** If web search isn't available, research, look-ups, suggested rooms and the daily brief answer from what the model already knows ("Knowledge only (no web)"), with no made-up sources, instead of failing.

@@ -26,7 +26,7 @@ describe("shared", () => {
 
 describe("versions", () => {
   it("are bumped for the prompts whose text or inputs changed", () => {
-    expect([RESEARCH_FULL_VERSION, LOOKUP_VERSION, RADAR_VERSION, BRIEF_VERSION, CHAT_VERSION]).toEqual(["research.full@2", "lookup@4", "radar@2", "brief@2", "chat@2"]);
+    expect([RESEARCH_FULL_VERSION, LOOKUP_VERSION, RADAR_VERSION, BRIEF_VERSION, CHAT_VERSION]).toEqual(["research.full@2", "lookup@4", "radar@2", "brief@2", "chat@3"]);
   });
 });
 
@@ -95,16 +95,17 @@ describe("briefs", () => {
 });
 
 describe("chat import", () => {
-  it("asks for other useful details, never family", () => {
+  it("asks for family and other useful details, as the prototype does, but not health, money or past relationships", () => {
     const p = chatPrompt({ me: "Ada", other: "Kemi", today: "2026-10-26", transcript: "hi" });
     expect(p).toContain('"other":["other useful details they mentioned about work, plans or preferences; up to 5"]');
-    expect(p).not.toContain("family\":");
-    expect(p).toContain("Don't record anything about their family, health, money or relationships.");
-    expect(Object.keys(chatSchema.shape.details.shape)).toEqual(["company", "position", "interests", "birthday", "other"]);
+    expect(p).toContain('"family":"what they shared about their family (partner, children, parents), or empty"');
+    expect(p).toContain("Don't record anything about their health, money or past relationships.");
+    expect(Object.keys(chatSchema.shape.details.shape)).toEqual(["company", "position", "interests", "birthday", "family", "other"]);
   });
 
   it("still accepts a reply without the newer other field", () => {
     const r = chatSchema.parse({ summary: "", lastDate: "", interactions: [], commitments: [], details: { company: "", position: "", interests: [], birthday: "" }, sentiment: "warm", nextStep: "" });
     expect(r.details.other).toEqual([]);
+    expect(r.details.family).toBe("");
   });
 });
