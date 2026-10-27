@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const LOOKUP_VERSION = "lookup@3";
+export const LOOKUP_VERSION = "lookup@4";
 export const lookupTypes = ["person", "company", "place", "event"] as const;
 export type LookupType = (typeof lookupTypes)[number];
 
@@ -22,11 +22,16 @@ export const lookupSchema = z.object({
 });
 export type Lookup = z.infer<typeof lookupSchema>;
 
+/**
+ * What to search for, by type. A place is a company, venue, hub or city (the prototype's place):
+ * its text covers both companies and venues. "company" stays valid for older callers, as an alias.
+ */
+const placeWhat = "the official site, the leadership team or who runs it, what they do or what happens there, recent news, who runs partnerships, and who goes";
 const what: Record<LookupType, string> = {
   event: "the official event page, organisers, speakers, dates, venue and sponsors",
   person: "their saved social profiles and handles, their current role and organisation, LinkedIn, recent news, talks and posts",
-  company: "the official site, leadership team, what they do, recent news, and who runs partnerships",
-  place: "the official site, who runs it, what happens there, and who goes",
+  company: placeWhat,
+  place: placeWhat,
 };
 export const lookupWhat = (t: LookupType) => what[t];
 

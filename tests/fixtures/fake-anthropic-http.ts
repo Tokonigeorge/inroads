@@ -70,7 +70,8 @@ export function e2eReply(req: FakeRequest): FakeReply {
   if (p.includes("Write a short")) return { text: "Hi! It was great to catch up at the breakfast. Shall we pick up the pricing chat next week?" };
   if (p.includes("morning networking brief")) return { text: "## Today's rooms\n- Pricing review: remember the deck you owe.\n## One move for my goals\n- Follow up with **Adaeze**." };
   if (p.includes("weekly networking digest")) return { text: "## This week's three moves\n- Book coffee with Kwame." };
-  if (p.includes("Find real networking events")) {
+  // Radar: "Find real networking events" with the web, "Recommend networking rooms" without it.
+  if (p.includes("Find real networking events") || p.includes("Recommend networking rooms")) {
     return {
       json: {
         items: [{ title: "Fintech Founders Mixer", kind: "mixer", date: "", time: "18:00", timing: "First Thursday monthly", where: "Victoria Island", why: "Investors attend", who: "Seed investors", url: "https://events.example/mixer", howToFind: "Check the listing", confidence: "recurring" }],
@@ -88,7 +89,7 @@ export function e2eReply(req: FakeRequest): FakeReply {
     return { json: { scores: uuids(p.split("CONTACTS")[1] ?? "").map((id) => ({ id, score: 72, why: "Relevant to the round", goalId: goal })) } };
   }
   if (p.includes("Extract relationship intelligence")) {
-    return { json: { summary: "Friendly; agreed to meet.", lastDate: "", interactions: [{ date: "", summary: "Agreed to meet for coffee" }], commitments: [{ text: "Send the pitch deck", owner: "me", due: "" }], details: { company: "", position: "", interests: ["Afrobeats"], birthday: "" }, sentiment: "warm", nextStep: "" } };
+    return { json: { summary: "Friendly; agreed to meet.", lastDate: "", interactions: [{ date: "", summary: "Agreed to meet for coffee" }], commitments: [{ text: "Send the pitch deck", owner: "me", due: "" }], details: { company: "", position: "", interests: ["Afrobeats"], birthday: "", other: ["Moving to Accra in the new year"] }, sentiment: "warm", nextStep: "" } };
   }
   if (p.includes("business card")) return { json: { name: "Ngozi Eze", position: "Head of Growth", company: "Flutterwave", email: "ngozi@flutterwave.example", phone: "0803 555 0101", website: "", linkedin: "", x: "", instagram: "", notes: "" } };
   return { text: "OK" };

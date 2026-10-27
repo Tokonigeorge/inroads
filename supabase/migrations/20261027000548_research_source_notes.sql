@@ -1,0 +1,1 @@
+ALTER TABLE "person_spaces" ADD COLUMN "source_notes" text;

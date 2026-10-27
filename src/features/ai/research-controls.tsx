@@ -18,6 +18,7 @@ export function ResearchControls({
   label,
   aiEnabled,
   canLookUp,
+  savedPasted = "",
 }: {
   personId: string;
   spaceId: string;
@@ -25,9 +26,11 @@ export function ResearchControls({
   label: string;
   aiEnabled: boolean;
   canLookUp: boolean;
+  /** What you pasted last time; research reuses it when you don't paste anything new. */
+  savedPasted?: string;
 }) {
   const router = useRouter();
-  const [pasted, setPasted] = useState("");
+  const [pasted, setPasted] = useState(savedPasted);
   const [jobId, setJobId] = useState<string | null>(null);
   const [lookupId, setLookupId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export function ResearchControls({
 
   return (
     <div className="grid gap-3">
-      <details className="text-small">
+      <details className="text-small" open={Boolean(savedPasted)}>
         <summary className="cursor-pointer text-muted hover:text-text">Give Inroads more to work with</summary>
         <div className="grid gap-1 pt-2">
           <Textarea
@@ -54,7 +57,7 @@ export function ResearchControls({
             maxLength={12000}
             placeholder={`Paste ${first}'s LinkedIn About, a bio or a speaker page. It helps find the right person.`}
           />
-          <span className="text-muted">Used for this research only. Not saved.</span>
+          <span className="text-muted">Optional. Kept on their profile and used again next time, so research finds the right person when the name is common.</span>
         </div>
       </details>
       <div className="flex flex-wrap gap-2">

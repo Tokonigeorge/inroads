@@ -23,6 +23,7 @@ describe("runAI", () => {
     expect(fake.calls[0].model).toBe("claude-haiku-5-5");
     expect(fake.calls[0].output_config?.format).toBeTruthy();
     expect(fake.calls[0].fallbacks).toBeUndefined();
+    expect(fake.calls[0].system).toMatch(/^You are the assistant inside Inroads/);
     const [u] = await sql`select feature, model, input_tokens, cost_micro_usd from ai_usage where user_id = ${user.id}`;
     expect(u).toMatchObject({ feature: "draft", model: "claude-haiku-5-5", input_tokens: 1200 });
     expect(u.cost_micro_usd).toBeGreaterThan(0);

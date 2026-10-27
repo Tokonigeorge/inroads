@@ -22,7 +22,7 @@ ${c.me}`;
 
 /* ---------------- briefs ---------------- */
 
-export const BRIEF_VERSION = "brief@1";
+export const BRIEF_VERSION = "brief@2";
 
 export function dailyBriefPrompt(c: { date: string; me: string; agenda: unknown; nudges: unknown; news: string[] }) {
   const news = c.news.length
@@ -42,7 +42,7 @@ REMINDERS (JSON):
 ${JSON.stringify(c.nudges).slice(0, 12000)}`;
 }
 
-export function weeklyBriefPrompt(c: { from: string; to: string; me: string; rooms: unknown; due: unknown; goals: unknown; openings: unknown; nudges: unknown }) {
+export function weeklyBriefPrompt(c: { from: string; to: string; me: string; rooms: unknown; cold: unknown; goals: unknown; openings: unknown; nudges: unknown }) {
   return `Write my weekly networking digest for the week of ${c.from} to ${c.to}. Strategic and short: markdown headings (##) and bullets, no greeting, under 300 words.
 Sections: "## Rooms to be in", "## Relationships going cold" (who first and the angle for each), "## New openings", "## Goal progress" (honest read of where I'm behind), "## This week's three moves".
 Use only the data below and never invent facts.
@@ -51,7 +51,7 @@ ABOUT ME:
 ${c.me}
 
 ROOMS THIS WEEK (JSON): ${JSON.stringify(c.rooms).slice(0, 15000)}
-DUE FOR A TOUCH (JSON): ${JSON.stringify(c.due).slice(0, 15000)}
+GOING COLD (JSON): ${JSON.stringify(c.cold).slice(0, 15000)}
 GOAL PROGRESS THIS WEEK (JSON): ${JSON.stringify(c.goals)}
 NEW OPENINGS FROM RESEARCH (JSON): ${JSON.stringify(c.openings).slice(0, 8000)}
 REMINDERS (JSON): ${JSON.stringify(c.nudges).slice(0, 8000)}`;
@@ -76,13 +76,14 @@ Reply with JSON: {"scores":[{"id":"","score":0,"why":"15 words max","goalId":"id
 
 /* ---------------- chat import ---------------- */
 
-export const CHAT_VERSION = "chat@1";
+export const CHAT_VERSION = "chat@2";
 export const chatSchema = z.object({
   summary: z.string(),
   lastDate: z.string(),
   interactions: z.array(z.object({ date: z.string(), summary: z.string() })),
   commitments: z.array(z.object({ text: z.string(), owner: z.enum(["me", "them"]), due: z.string() })),
-  details: z.object({ company: z.string(), position: z.string(), interests: z.array(z.string()), birthday: z.string() }),
+  // No "family" field, unlike the prototype: the app records nothing about family, health, money or relationships.
+  details: z.object({ company: z.string(), position: z.string(), interests: z.array(z.string()), birthday: z.string(), other: z.array(z.string()).default([]) }),
   sentiment: z.enum(["neutral", "warm", "cooling"]),
   nextStep: z.string(),
 });
@@ -97,7 +98,7 @@ CONVERSATION (oldest to newest; may be trimmed to the most recent part):
 ${c.transcript}
 """
 
-Reply with JSON: {"summary":"2-3 sentences on the relationship and where things stand","lastDate":"YYYY-MM-DD of the last message","interactions":[{"date":"YYYY-MM-DD","summary":"one line"}],"commitments":[{"text":"what was promised","owner":"me|them","due":"YYYY-MM-DD or empty"}],"details":{"company":"","position":"","interests":[],"birthday":"MM-DD or empty"},"sentiment":"warm|neutral|cooling","nextStep":"one suggested follow-up"}`;
+Reply with JSON: {"summary":"2-3 sentences on the relationship and where things stand","lastDate":"YYYY-MM-DD of the last message","interactions":[{"date":"YYYY-MM-DD","summary":"one line"}],"commitments":[{"text":"what was promised","owner":"me|them","due":"YYYY-MM-DD or empty"}],"details":{"company":"","position":"","interests":[],"birthday":"MM-DD or empty","other":["other useful details they mentioned about work, plans or preferences; up to 5"]},"sentiment":"warm|neutral|cooling","nextStep":"one suggested follow-up"}`;
 }
 
 /* ---------------- business card ---------------- */

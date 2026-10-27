@@ -228,6 +228,8 @@ export const personSpaces = pgTable(
     interests: textArray("interests"),
     notes: text("notes"),
     opportunities: text("opportunities"),
+    /** Material pasted to sharpen research (a bio, a LinkedIn About), kept for the next run. */
+    sourceNotes: text("source_notes"),
     tags: textArray("tags"),
     circleId: uuid("circle_id").references(() => circles.id, { onDelete: "set null" }),
     cadenceDays: integer("cadence_days"),
