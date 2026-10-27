@@ -6,6 +6,7 @@ import { loadSpaceView } from "@/features/spaces/space-view";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
+import { BackLink } from "@/ui/back-link";
 import { PageHeader } from "@/ui/layout";
 
 export const metadata: Metadata = { title: "Ask your network" };
@@ -13,6 +14,7 @@ export const metadata: Metadata = { title: "Ask your network" };
 export default function AskPage({ searchParams }: PageProps<"/ask">) {
   return (
     <PageFrame>
+      <BackLink fallback="/people" />
       <PageHeader
         stamp="People"
         title="Ask your network"
