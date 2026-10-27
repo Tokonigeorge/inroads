@@ -21,6 +21,7 @@ import type { AnthropicLike } from "./client";
 import { briefPerson, cell, eventBlock, identityRules, loadMe, meBlock, personBlock, profileUsed, webRules } from "./context/blocks";
 import { localPaths, matchCompany, matchEvents, matchPeople } from "./context/known";
 import { loadNetworkDigest, loadPersonContext, loadSpaceContext, type PersonContext } from "./context/space-context";
+import { findPrompt, findSchema, FIND_VERSION } from "./prompts/find";
 import { lookupPrompt, lookupSchema, LOOKUP_VERSION, lookupWhat, type Lookup, type LookupType } from "./prompts/lookup";
 import { homeCity, radarPrompt, radarSchema, RADAR_VERSION } from "./prompts/radar";
 import { getToKnowPrompt, getToKnowSchema, GET_TO_KNOW_VERSION, researchFullPrompt, researchFullSchema, RESEARCH_FULL_VERSION, verifyPrompt, verifySchema, VERIFY_VERSION } from "./prompts/research";
@@ -337,6 +338,74 @@ export async function lookUp(deps: FeatureDeps, userId: string, input: { spaceId
       .values({ userId, spaceId: input.spaceId, type: input.type, query: input.q.slice(0, 200), result, sources: r.mode === "web" ? mergeSources(o.sources, r.seen) : [], model: r.model, promptVersion: LOOKUP_VERSION, eventId: input.eventId ?? null })
       .returning({ id: t.searches.id });
     return { searchId: row.id };
+  });
+}
+
+/**
+ * A research step ("Find event planners who hire photographers"): searches the web for named
+ * people or firms near you who fit, and keeps them on the step so you can add them to the goal.
+ * Saved in the look-up shape (type "role"), so a plan's "Add to goal" works on it unchanged.
+ */
+export async function findForStep(deps: FeatureDeps, userId: string, input: { stepId: string }, progress: Progress = noop) {
+  const data = deps.db ?? appDb;
+  const [step] = await data.withUser(userId, (tx) =>
+    tx
+      .select({ id: t.goalSteps.id, text: t.goalSteps.text, goal: t.goals.text, spaceId: t.goals.spaceId })
+      .from(t.goalSteps)
+      .innerJoin(t.goals, eq(t.goals.id, t.goalSteps.goalId))
+      .where(eq(t.goalSteps.id, input.stepId)),
+  );
+  if (!step) throw new AiError("failed", "That step isn't there any more.");
+  const b = await base(deps, userId, step.spaceId);
+  const network = await data.withUser(userId, (tx) => loadNetworkDigest(tx, step.spaceId));
+  const r = await runWithWebFallback(
+    {
+      userId,
+      feature: "lookup",
+      tier: "strong",
+      onProgress: progress,
+      prompt: (m) =>
+        findPrompt({
+          step: step.text,
+          goal: step.goal,
+          today: b.ctx.today,
+          web: webRules(m, "people and firms in my city who fit the step, their roles, and their profile or company pages"),
+          me: b.meText,
+          network: network.map((n) => n.name).slice(0, 200).join("; "),
+        }),
+      schema: findSchema,
+      web: { search: { maxUses: 5 }, fetch: { maxUses: 3 } },
+    },
+    deps,
+  );
+  const o = r.output;
+  const known = new Set(network.map((n) => n.name.trim().toLowerCase()));
+  const people = o.people
+    .filter((p) => p.name.trim() && !known.has(p.name.trim().toLowerCase()))
+    .slice(0, 8)
+    .map((p) => ({ name: p.name.trim().slice(0, 120), role: [p.role.trim(), p.organisation.trim()].filter(Boolean).join(" at ").slice(0, 160), why: p.why.trim().slice(0, 300), url: isHttp(p.url) ? p.url : "" }));
+  const result = {
+    title: step.text,
+    kind: "role",
+    overview: "",
+    facts: [],
+    website: "",
+    stakeholders: people,
+    warmPaths: [],
+    opportunities: [],
+    playbook: [],
+    when: null,
+    confidence: r.mode === "web" ? "medium" : "low",
+    verify: o.caveats,
+    answeredFrom: r.mode,
+  };
+  return data.withUser(userId, async (tx) => {
+    const [row] = await tx
+      .insert(t.searches)
+      .values({ userId, spaceId: step.spaceId, type: "role", query: step.text.slice(0, 200), result, sources: r.mode === "web" ? mergeSources(o.sources, r.seen) : [], model: r.model, promptVersion: FIND_VERSION })
+      .returning({ id: t.searches.id });
+    await tx.update(t.goalSteps).set({ searchId: row.id, updatedAt: new Date() }).where(eq(t.goalSteps.id, step.id));
+    return { searchId: row.id, stepId: step.id, found: people.length };
   });
 }
 

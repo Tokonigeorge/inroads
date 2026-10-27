@@ -3,7 +3,7 @@ import { z } from "zod";
 import { lookupTypes } from "@/server/ai/prompts/lookup";
 import { AiError } from "@/server/ai/run";
 import { AiLimitError } from "@/server/ai/limits";
-import { lookUp, researchPerson, scorePeople, suggestRooms, writeBrief, type FeatureDeps } from "@/server/ai/features";
+import { findForStep, lookUp, researchPerson, scorePeople, suggestRooms, writeBrief, type FeatureDeps } from "@/server/ai/features";
 import { jobsStore } from "@/server/system/jobs";
 
 const uuid = z.string().uuid();
@@ -13,20 +13,23 @@ export const aiJobSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("radar"), spaceId: uuid }),
   z.object({ kind: z.literal("brief"), spaceId: uuid, briefKind: z.enum(["daily", "weekly"]) }),
   z.object({ kind: z.literal("score"), spaceId: uuid }),
+  z.object({ kind: z.literal("find"), stepId: uuid }),
 ]);
 export type AiJob = z.infer<typeof aiJobSchema>;
 
 export const researchJobKind = (personId: string) => `ai:research:${personId}`;
 export const prepJobKind = (eventId: string) => `ai:prep:${eventId}`;
+export const findJobKind = (stepId: string) => `ai:find:${stepId}`;
 
 /** The `jobs.kind` for a job: research and room prep name what they're about, so its page can show them running. */
 export function jobKindFor(job: AiJob) {
   if (job.kind === "research") return researchJobKind(job.personId);
   if (job.kind === "lookup" && job.eventId) return prepJobKind(job.eventId);
+  if (job.kind === "find") return findJobKind(job.stepId);
   return `ai:${job.kind}`;
 }
 
-export const aiJobFeature = { research: "research", lookup: "lookup", radar: "radar", brief: "brief", score: "score" } as const;
+export const aiJobFeature = { research: "research", lookup: "lookup", radar: "radar", brief: "brief", score: "score", find: "lookup" } as const;
 
 const startStep: Record<AiJob["kind"], string> = {
   research: "Starting research",
@@ -34,6 +37,7 @@ const startStep: Record<AiJob["kind"], string> = {
   radar: "Looking for rooms",
   brief: "Writing your brief",
   score: "Scoring people against your goals",
+  find: "Searching the web for people who fit",
 };
 
 /** Runs one AI job and records progress and the outcome on its `jobs` row. */
@@ -51,7 +55,9 @@ export async function runAiJob(userId: string, jobId: string, job: AiJob, deps: 
             ? await suggestRooms(deps, userId, job, progress)
             : job.kind === "brief"
               ? await writeBrief(deps, userId, { spaceId: job.spaceId, kind: job.briefKind }, progress)
-              : await scorePeople(deps, userId, job, progress);
+              : job.kind === "find"
+                ? await findForStep(deps, userId, job, progress)
+                : await scorePeople(deps, userId, job, progress);
     await jobs.done(jobId, { step: "Done" }, { kind: job.kind, ...result });
     return result;
   } catch (e) {

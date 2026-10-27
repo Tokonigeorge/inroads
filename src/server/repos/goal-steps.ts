@@ -20,7 +20,19 @@ export const goalStepSchema = z.object({
 });
 export type GoalStepInput = z.input<typeof goalStepSchema>;
 
-export type GoalStep = { id: string; text: string; dueOn: string | null; doneAt: Date | null; fromPrep: boolean };
+export type GoalStep = {
+  id: string;
+  text: string;
+  dueOn: string | null;
+  doneAt: Date | null;
+  /** It came from a room's or a look-up's plan. */
+  fromPrep: boolean;
+  /** A research step's results (a "role" search), when it has run. */
+  researchId: string | null;
+};
+
+/** "Find event planners…": steps that are about finding people can be researched. */
+export const isResearchStep = (text: string) => /^find\b/i.test(text.trim());
 
 export async function addGoalStep(tx: Tx, userId: string, raw: GoalStepInput, searchId: string | null = null): Promise<Result<{ id: string }>> {
   const input = goalStepSchema.safeParse(raw);
@@ -47,19 +59,21 @@ export async function deleteGoalStep(tx: Tx, id: string) {
 
 /** Open steps first (soonest due first, undated last), then the five most recently done. */
 export async function listGoalSteps(tx: Tx, goalId: string): Promise<GoalStep[]> {
-  const cols = { id: t.goalSteps.id, text: t.goalSteps.text, dueOn: t.goalSteps.dueOn, doneAt: t.goalSteps.doneAt, searchId: t.goalSteps.searchId };
+  const cols = { id: t.goalSteps.id, text: t.goalSteps.text, dueOn: t.goalSteps.dueOn, doneAt: t.goalSteps.doneAt, searchId: t.goalSteps.searchId, searchType: t.searches.type };
   const open = await tx
     .select(cols)
     .from(t.goalSteps)
+    .leftJoin(t.searches, eq(t.searches.id, t.goalSteps.searchId))
     .where(and(eq(t.goalSteps.goalId, goalId), isNull(t.goalSteps.doneAt)))
     .orderBy(sql`${t.goalSteps.dueOn} asc nulls last`, asc(t.goalSteps.createdAt));
   const done = await tx
     .select(cols)
     .from(t.goalSteps)
+    .leftJoin(t.searches, eq(t.searches.id, t.goalSteps.searchId))
     .where(and(eq(t.goalSteps.goalId, goalId), isNotNull(t.goalSteps.doneAt)))
     .orderBy(sql`${t.goalSteps.doneAt} desc`)
     .limit(5);
-  return [...open, ...done].map(({ searchId, ...s }) => ({ ...s, fromPrep: Boolean(searchId) }));
+  return [...open, ...done].map(({ searchId, searchType, ...s }) => ({ ...s, fromPrep: Boolean(searchId) && searchType !== "role", researchId: searchType === "role" ? searchId : null }));
 }
 
 /** Steps due by `upTo` on active goals, for Today. Optionally one Space. */

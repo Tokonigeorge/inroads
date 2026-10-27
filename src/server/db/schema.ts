@@ -586,7 +586,7 @@ export const searches = pgTable(
   (t) => [
     index("searches_user_idx").on(t.userId, t.spaceId, t.createdAt),
     index("searches_event_idx").on(t.eventId).where(sql`${t.eventId} is not null`),
-    check("searches_type_check", sql`${t.type} in ('person', 'company', 'place', 'event', 'radar')`),
+    check("searches_type_check", sql`${t.type} in ('person', 'company', 'place', 'event', 'radar', 'role')`),
     ...ownerPolicies("searches"),
   ],
 );

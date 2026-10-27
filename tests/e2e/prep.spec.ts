@@ -48,11 +48,13 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await expect(page.getByRole("heading", { name: "Moonshot by TechCabal", level: 1 })).toBeVisible();
     const plan = page.getByRole("region", { name: "Your plan" });
     await expect(plan.getByText("Tunde Bakare")).toBeVisible();
-    // A role with no name yet: look among your people, or keep it as a step on the goal.
+    // A role with no name yet: look among your people, or make it a research step on the goal,
+    // which searches the web for people who fit straight away.
     const role = plan.getByRole("listitem").filter({ hasText: "Investor relations lead" });
     await expect(role.getByRole("link", { name: "Check your network" })).toHaveAttribute("href", /\/ask\?q=/);
-    await role.getByRole("button", { name: "Add as a step: Find investor relations lead" }).click();
-    await expect(role.getByText("Added as a step")).toBeVisible();
+    await role.getByRole("button", { name: 'Research this: Find investor relations lead, for "Raise a pre-seed round"' }).click();
+    await expect(role.getByText(/Research step on .Raise a pre-seed round/)).toBeVisible();
+    await expect(role.getByRole("link", { name: "See who it found" })).toBeVisible({ timeout: 20_000 });
     await expectAccessible(page);
 
     // One tap: Tunde is saved, put on the goal, linked to the room as a speaker.
@@ -66,6 +68,16 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     await expect(page.getByText("Book an office-hours slot with Kestrel")).toBeVisible();
     await expect(page.getByText(/from a room's plan/)).toBeVisible();
     await expect(page.getByRole("link", { name: /Tunde Bakare/ })).toBeVisible();
+
+    // The research step lists who it found; adding one puts them on the goal.
+    const steps = page.getByRole("region", { name: "Next steps" });
+    await expect(steps.getByText("Find investor relations lead")).toBeVisible();
+    await expect(steps.getByText(/research step/)).toBeVisible();
+    const amaka = steps.getByRole("listitem").filter({ hasText: "Amaka Obi" }).last();
+    await expect(amaka.getByText("Runs the investor lounge list for Lagos fintech events")).toBeVisible();
+    await amaka.getByRole("button", { name: 'Add to "Raise a pre-seed round"' }).click();
+    await expect(amaka.getByRole("link", { name: "In your people" })).toBeVisible();
+    await expectAccessible(page);
   });
 
   test("a goal can be made from the room form", async ({ page }) => {

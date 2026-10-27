@@ -1,0 +1,2 @@
+ALTER TABLE "searches" DROP CONSTRAINT "searches_type_check";--> statement-breakpoint
+ALTER TABLE "searches" ADD CONSTRAINT "searches_type_check" CHECK ("searches"."type" in ('person', 'company', 'place', 'event', 'radar', 'role'));

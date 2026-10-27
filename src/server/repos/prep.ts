@@ -156,7 +156,7 @@ export async function keepStakeholder(
       {
         id: randomUUID(),
         identity: { name: name.slice(0, 120), position: who.role.trim().slice(0, 120) || null, socials: socialsFor(who.url.trim()) },
-        membership: { spaceId: s.spaceId, notes: [`From your plan for ${title}.`, who.why.trim()].filter(Boolean).join(" ").slice(0, 2000) },
+        membership: { spaceId: s.spaceId, notes: [s.type === "role" ? `Found by your research step "${title}".` : `From your plan for ${title}.`, who.why.trim()].filter(Boolean).join(" ").slice(0, 2000) },
       },
       today,
     );
