@@ -3,7 +3,7 @@ import type { IncomingContact } from "@/domain/dedupe";
 import { normaliseEmail, normalisePhone } from "@/domain/normalise";
 import { instantInZone, isValidTimeZone } from "@/domain/zoned";
 import type { IcsAttendee, IcsEvent } from "@/importers/ics";
-import { getJson, postForm, providerUrl, ReauthRequired, SyncTokenExpired, type Fetch } from "./http";
+import { getJson, postForm, ProviderError, providerUrl, ReauthRequired, SyncTokenExpired, type Fetch } from "./http";
 
 /**
  * Google Contacts (People API) and Calendar, read-only. Sign-in with Google only asks for
@@ -16,6 +16,19 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.readonly",
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
 ];
+
+/**
+ * What the person actually shared. Google's consent screen has a checkbox per scope, and people
+ * often leave Contacts or Calendar unticked; reading what wasn't granted fails with a 403.
+ */
+export function googleGrants(scopes: string | string[]) {
+  const s = new Set(Array.isArray(scopes) ? scopes : scopes.split(/\s+/).filter(Boolean));
+  const calendarAll = s.has("https://www.googleapis.com/auth/calendar.readonly") || s.has("https://www.googleapis.com/auth/calendar");
+  return {
+    contacts: s.has("https://www.googleapis.com/auth/contacts.readonly") || s.has("https://www.googleapis.com/auth/contacts"),
+    calendar: calendarAll || (s.has("https://www.googleapis.com/auth/calendar.events.readonly") && s.has("https://www.googleapis.com/auth/calendar.calendarlist.readonly")),
+  };
+}
 
 const url = {
   auth: () => providerUrl("google", "https://accounts.google.com/o/oauth2/v2/auth"),
@@ -253,6 +266,11 @@ export async function fetchGoogleEvents(
           token = undefined; // Google wants a full read for this calendar.
           pageToken = undefined;
           continue;
+        }
+        // One calendar we can't read (shared as free/busy only, or removed) shouldn't stop the rest.
+        if (e instanceof ProviderError && (e.status === 403 || e.status === 404) && !cal.primary) {
+          console.warn(`google sync: skipped calendar (${e.status})`);
+          break;
         }
         throw e;
       }

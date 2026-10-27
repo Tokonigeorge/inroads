@@ -28,7 +28,7 @@ beforeAll(async () => {
     userId: ada.id,
     provider: "google",
     accountEmail: "ada@gmail.example",
-    scopes: ["contacts.readonly"],
+    scopes: ["https://www.googleapis.com/auth/contacts.readonly", "https://www.googleapis.com/auth/calendar.events.readonly", "https://www.googleapis.com/auth/calendar.calendarlist.readonly"],
     spaceId: work,
     tokens: { access_token: "secret-access", refresh_token: "secret-refresh", expires_at: 0, scope: "" },
   });

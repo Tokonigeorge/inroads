@@ -86,7 +86,7 @@ export function handleFakeGoogle(method: string, host: string, path: string, bod
   }
   if (host === "oauth2.googleapis.com" && u.pathname === "/token") {
     if (body.get("grant_type") === "refresh_token" && body.get("refresh_token") === "revoked") return { status: 400, json: { error: "invalid_grant" } };
-    return { status: 200, json: { access_token: "fake-access", refresh_token: "fake-refresh", expires_in: 3600, scope: "contacts.readonly calendar.events.readonly" } };
+    return { status: 200, json: { access_token: "fake-access", refresh_token: "fake-refresh", expires_in: 3600, scope: "openid email https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendarlist.readonly" } };
   }
   if (host === "oauth2.googleapis.com" && u.pathname === "/revoke") return { status: 200, json: {} };
   if (host === "openidconnect.googleapis.com") return { status: 200, json: { email: FAKE_GOOGLE_EMAIL } };

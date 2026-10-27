@@ -10,8 +10,8 @@ import { applyCalendar, type CalendarSummary } from "@/server/import/calendar";
 import { applyContacts, type ContactsSummary } from "@/server/import/contacts";
 import { finishImport, startImport } from "@/server/import/imports";
 import { computeTriageSuggestions } from "@/server/import/triage";
-import { fetchGoogleContacts, fetchGoogleEvents, googleAccessToken } from "@/server/integrations/google";
-import { ReauthRequired, SyncTokenExpired, type Fetch } from "@/server/integrations/http";
+import { fetchGoogleContacts, fetchGoogleEvents, googleAccessToken, googleGrants } from "@/server/integrations/google";
+import { ProviderError, ReauthRequired, SyncTokenExpired, type Fetch } from "@/server/integrations/http";
 import { fetchIcsUrl, IcsUrlError } from "@/server/integrations/ics-url";
 import { fetchMicrosoftContacts, fetchMicrosoftEvents, microsoftAccessToken } from "@/server/integrations/microsoft";
 import { connectionsStore, type SyncState } from "@/server/system/connections";
@@ -29,6 +29,21 @@ export type SyncDeps = {
   /** Don't start plans for event rooms after the sync (tests). */
   skipPrep?: boolean;
 };
+
+/** Neither contacts nor calendar was shared on the provider's consent screen. */
+class MissingAccess extends Error {
+  constructor(name: string) {
+    super(`${name} didn't share contacts or calendar.`);
+  }
+}
+
+/** A short, safe reason to show with a failed sync, so it can be traced in the logs. Never data. */
+function failureCode(e: unknown) {
+  if (e instanceof ProviderError) return `provider ${e.status}`;
+  const pg = (e as { code?: unknown; cause?: { code?: unknown } })?.code ?? (e as { cause?: { code?: unknown } })?.cause?.code;
+  if (typeof pg === "string" && /^[0-9A-Z]{5}$/.test(pg)) return `db ${pg}`;
+  return e instanceof Error ? e.name : "unknown";
+}
 
 export type SyncSummary = { contacts: ContactsSummary | null; calendar: CalendarSummary | null; importId: string };
 
@@ -75,10 +90,12 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
       if (access.refreshed) await store.saveTokens(connectionId, access.tokens);
       const token = access.tokens.access_token;
 
-      await jobs.progress(jobId, { step: `Reading your ${name} contacts` });
       if (conn.provider === "google") {
+        const grants = googleGrants(conn.scopes ?? []);
+        if (!grants.contacts && !grants.calendar) throw new MissingAccess(name);
         const firstRun = !state.contacts?.syncToken;
-        const r = await fetchGoogleContacts(f, token, {
+        if (grants.contacts) await jobs.progress(jobId, { step: `Reading your ${name} contacts` });
+        const r = !grants.contacts ? { contacts: [], nextSyncToken: null } : await fetchGoogleContacts(f, token, {
           syncToken: state.contacts?.syncToken,
           region: ctx.region,
           onPage: (n) => void jobs.progress(jobId, { step: `Reading your ${name} contacts`, done: n }),
@@ -89,16 +106,19 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
         });
         contacts = r.contacts;
         next.contacts = { syncToken: r.nextSyncToken };
-        await jobs.progress(jobId, { step: `Reading your ${name} calendar`, summary: { contactsFound: contacts.length } });
-        const ev = await fetchGoogleEvents(f, token, {
-          timeMin: `${addDays(ctx.today, -183)}T00:00:00Z`,
-          timeMax: `${addDays(ctx.today, 92)}T00:00:00Z`,
-          syncTokens: state.calendars ?? {},
-          defaultTz: ctx.timezone,
-        });
-        events = ev.events;
-        next.calendars = ev.nextTokens;
+        if (grants.calendar) {
+          await jobs.progress(jobId, { step: `Reading your ${name} calendar`, summary: { contactsFound: contacts.length } });
+          const ev = await fetchGoogleEvents(f, token, {
+            timeMin: `${addDays(ctx.today, -183)}T00:00:00Z`,
+            timeMax: `${addDays(ctx.today, 92)}T00:00:00Z`,
+            syncTokens: state.calendars ?? {},
+            defaultTz: ctx.timezone,
+          });
+          events = ev.events;
+          next.calendars = ev.nextTokens;
+        }
       } else {
+        await jobs.progress(jobId, { step: `Reading your ${name} contacts` });
         const r = await fetchMicrosoftContacts(f, token, { deltaLink: state.contacts?.deltaLink, region: ctx.region });
         contacts = r.contacts;
         next.contacts = { deltaLink: r.deltaLink };
@@ -143,16 +163,21 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
     if (!deps.skipPrep) await prepareSyncedRooms(userId, spaceId, result.eventRooms, ctx.today).catch((e) => console.error("room prep after sync failed", e));
     return { contacts: result.contacts, calendar: result.calendar, importId: result.importId };
   } catch (e) {
+    // A 403 from Google means the person didn't tick Contacts or Calendar on its consent screen.
+    const noAccess = e instanceof MissingAccess || (e instanceof ProviderError && e.status === 403);
+    if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError)) console.error(`sync ${conn.provider} failed`, e instanceof ProviderError ? `status ${e.status}` : "", e);
     const message =
       e instanceof ReauthRequired
         ? `${name} needs you to reconnect. Google asks for this every 7 days while the app is in testing.`
-        : e instanceof IcsUrlError
-          ? e.message
-          : `Syncing ${name} didn't finish. It will try again shortly.`;
-    if (e instanceof ReauthRequired) await store.setStatus(connectionId, "error", "reconnect");
+        : noAccess
+          ? `${name} didn't share your contacts or calendar with Inroads. Reconnect and tick both boxes on ${name}'s screen.`
+          : e instanceof IcsUrlError
+            ? e.message
+            : `Syncing ${name} didn't finish. It will try again shortly. (${failureCode(e)})`;
+    if (e instanceof ReauthRequired || noAccess) await store.setStatus(connectionId, "error", "reconnect");
     else if (e instanceof IcsUrlError) await store.setStatus(connectionId, "error", e.message);
     await jobs.fail(jobId, message);
-    if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError)) throw e;
+    if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError) && !noAccess) throw e;
     return { contacts: null, calendar: null, importId: "" };
   }
 }
