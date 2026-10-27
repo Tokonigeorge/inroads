@@ -76,14 +76,14 @@ Reply with JSON: {"scores":[{"id":"","score":0,"why":"15 words max","goalId":"id
 
 /* ---------------- chat import ---------------- */
 
-export const CHAT_VERSION = "chat@2";
+export const CHAT_VERSION = "chat@3";
 export const chatSchema = z.object({
   summary: z.string(),
   lastDate: z.string(),
   interactions: z.array(z.object({ date: z.string(), summary: z.string() })),
   commitments: z.array(z.object({ text: z.string(), owner: z.enum(["me", "them"]), due: z.string() })),
-  // No "family" field, unlike the prototype: the app records nothing about family, health, money or relationships.
-  details: z.object({ company: z.string(), position: z.string(), interests: z.array(z.string()), birthday: z.string(), other: z.array(z.string()).default([]) }),
+  // "family" as in the prototype (owner's call, decision #165); it comes back as a suggestion to accept.
+  details: z.object({ company: z.string(), position: z.string(), interests: z.array(z.string()), birthday: z.string(), family: z.string().default(""), other: z.array(z.string()).default([]) }),
   sentiment: z.enum(["neutral", "warm", "cooling"]),
   nextStep: z.string(),
 });
@@ -91,14 +91,14 @@ export type ChatExtract = z.infer<typeof chatSchema>;
 
 export function chatPrompt(c: { me: string; other: string; today: string; transcript: string }) {
   return `Extract relationship intelligence from this conversation between me${c.me ? ` (shown as "${c.me}")` : ""} and ${c.other}. Today is ${c.today}.
-Rules: at most 8 interactions, the most meaningful moments rather than every message; only commitments that are still open or recent; leave fields empty when the chat doesn't say; never guess. Don't record anything about their family, health, money or relationships.
+Rules: at most 8 interactions, the most meaningful moments rather than every message; only commitments that are still open or recent; leave fields empty when the chat doesn't say; never guess. Don't record anything about their health, money or past relationships.
 
 CONVERSATION (oldest to newest; may be trimmed to the most recent part):
 """
 ${c.transcript}
 """
 
-Reply with JSON: {"summary":"2-3 sentences on the relationship and where things stand","lastDate":"YYYY-MM-DD of the last message","interactions":[{"date":"YYYY-MM-DD","summary":"one line"}],"commitments":[{"text":"what was promised","owner":"me|them","due":"YYYY-MM-DD or empty"}],"details":{"company":"","position":"","interests":[],"birthday":"MM-DD or empty","other":["other useful details they mentioned about work, plans or preferences; up to 5"]},"sentiment":"warm|neutral|cooling","nextStep":"one suggested follow-up"}`;
+Reply with JSON: {"summary":"2-3 sentences on the relationship and where things stand","lastDate":"YYYY-MM-DD of the last message","interactions":[{"date":"YYYY-MM-DD","summary":"one line"}],"commitments":[{"text":"what was promised","owner":"me|them","due":"YYYY-MM-DD or empty"}],"details":{"company":"","position":"","interests":[],"birthday":"MM-DD or empty","family":"what they shared about their family (partner, children, parents), or empty","other":["other useful details they mentioned about work, plans or preferences; up to 5"]},"sentiment":"warm|neutral|cooling","nextStep":"one suggested follow-up"}`;
 }
 
 /* ---------------- business card ---------------- */

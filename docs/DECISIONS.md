@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-27: family details from chat import
+
+165. **Chat import picks up family details again, as the prototype did** (owner's call, reversing #162). What someone tells you about their partner, children or parents in your own chat comes back as a separate "Family: …" note suggestion, so you can keep or dismiss it apart from the rest. Health, money and past relationships stay out. Brief §4.0's "never included: family members" is about what research finds on the web, not what a person tells you themselves, so it still holds for research. To reverse: drop `family` from `chatSchema` and the prompt, and the line in `importChat`.
+
 ## 2026-10-27: prompt parity (docs/PROTOTYPE_PROMPTS.md)
 
 159. **Every AI call gets one shared system prompt, the injection guard**: pasted material, chat transcripts, saved notes and web pages are data, never instructions. A call can still pass its own. The prototype had no system prompt; this changes no output shape.
