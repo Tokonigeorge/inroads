@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { todayIn } from "@/domain/dates";
+import { MOVED_PREFIX } from "@/domain/nudges";
+import { starredDueForRefresh } from "@/server/ai/auto-research";
 import { draftMessage, importChat, lookUp, researchPerson, scorePeople, writeBrief } from "@/server/ai/features";
 import type { Tx } from "@/server/db/with-user";
 import { runAiJob } from "@/server/jobs/ai-jobs";
 import { createGoal } from "@/server/repos/goals";
+import { listNudges } from "@/server/repos/nudges";
 import { createPerson, logTouch, saveMembership } from "@/server/repos/people";
 import { createRoom, linkPerson } from "@/server/repos/rooms";
 import { acceptSuggestion, discardSuggestion, pendingForPerson } from "@/server/repos/suggestions";
@@ -176,6 +179,41 @@ describe("suggestions", () => {
   });
 });
 
+describe("refreshing priority people", () => {
+  it("a new company is suggested once, Today offers a congratulations, and only stale starred people are due", async () => {
+    // Saved: Kestrel Ventures (accepted above). Research now finds Airtel Africa.
+    const moved = fakeAnthropic(() => ({ json: { ...research, found: { ...research.found, company: "Airtel Africa" }, goalId } }));
+    await researchPerson({ client: moved.client, sys, db }, user.id, { personId: kemi, spaceId: work, mode: "research" });
+    await researchPerson({ client: moved.client, sys, db }, user.id, { personId: kemi, spaceId: work, mode: "research" });
+    const s = (await as((tx) => pendingForPerson(tx, kemi))).filter((x) => x.why?.startsWith(MOVED_PREFIX));
+    expect(s).toHaveLength(1);
+    expect(s[0].payload).toMatchObject({ field: "company", value: "Airtel Africa", was: "Kestrel Ventures" });
+
+    // A reworded company isn't a move.
+    const same = fakeAnthropic(() => ({ json: { ...research, found: { ...research.found, company: "Kestrel Ventures Ltd" }, goalId } }));
+    await researchPerson({ client: same.client, sys, db }, user.id, { personId: kemi, spaceId: work, mode: "research" });
+    expect((await as((tx) => pendingForPerson(tx, kemi))).filter((x) => x.why?.startsWith(MOVED_PREFIX))).toHaveLength(1);
+
+    const nudges = await as((tx) => listNudges(tx, { spaceId: null, today: TODAY, tz: "Africa/Lagos" }));
+    const card = nudges.find((n) => n.kind === "moved");
+    expect(card?.title).toBe("Kemi Adebayo is now at Airtel Africa");
+    expect(card?.actions[0]).toMatchObject({ type: "draft", purpose: "congrats" });
+
+    // Dismissed changes don't come back on the next refresh.
+    await as((tx) => discardSuggestion(tx, s[0].id));
+    await researchPerson({ client: moved.client, sys, db }, user.id, { personId: kemi, spaceId: work, mode: "research" });
+    expect((await as((tx) => pendingForPerson(tx, kemi))).filter((x) => x.why?.startsWith(MOVED_PREFIX))).toHaveLength(0);
+
+    const cutoff = new Date(Date.now() - 30 * 86_400_000);
+    await sql`update person_spaces set starred = true where person_id = ${kemi} and space_id = ${work}`;
+    expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([]);
+    await sql`update dossiers set created_at = now() - interval '40 days' where person_id = ${kemi}`;
+    expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([{ personId: kemi, spaceId: work }]);
+    await sql`update person_spaces set starred = false where person_id = ${kemi} and space_id = ${work}`;
+    expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([]);
+  });
+});
+
 describe("look up, briefs, scores, chat, drafts", () => {
   it("look up keeps only warm paths to people in this Space", async () => {
     const fake = fakeAnthropic((req: FakeRequest) => {
@@ -307,7 +345,9 @@ describe("look up, briefs, scores, chat, drafts", () => {
   it("chat import suggests touches and promises, and stores no transcript", async () => {
     const fake = fakeAnthropic(() => ({ json: { summary: "Warm", lastDate: TODAY, interactions: [{ date: TODAY, summary: "Agreed to meet" }], commitments: [{ text: "Send the deck", owner: "me", due: "" }], details: { company: "", position: "Partner", interests: ["fintech"], birthday: "" }, sentiment: "warm", nextStep: "Book a coffee" } }));
     const r = await importChat({ client: fake.client, sys, db }, user.id, { spaceId: work, personId: kemi, transcript: "SECRET-CHAT-TEXT", me: "Ada", today: TODAY });
-    expect(r.suggestions).toBe(6); // touch, promise, position (still empty), interests, the "From chat" note, next step
+    // Touch, promise, interests, the "From chat" note, next step. Position "Partner" is already
+    // waiting from research, so it isn't suggested twice.
+    expect(r.suggestions).toBe(5);
     const [{ n }] = await sql`select count(*)::int as n from suggestions where payload::text like '%SECRET-CHAT-TEXT%'`;
     expect(n).toBe(0);
   });

@@ -25,6 +25,7 @@ const kindColour: Record<Nudge["kind"], string> = {
   triage: "var(--faint)",
   duplicates: "var(--faint)",
   suggestions: "var(--accent)",
+  moved: "var(--hot)",
 };
 
 type Props = { nudges: Nudge[]; spaces: Record<string, { id: string; name: string }[]>; aiEnabled?: boolean };

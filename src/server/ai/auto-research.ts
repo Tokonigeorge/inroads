@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { spaceDefaultsSchema } from "@/contracts/spaces";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
@@ -8,6 +8,7 @@ import { aiJobFeature, jobKindFor, runAiJob, type AiJob } from "@/server/jobs/ai
 import { enqueueAiJob } from "@/server/jobs/enqueue";
 import { AI_EVENT, inngest, type AiEventData } from "@/server/jobs/inngest";
 import { upcomingAttendees } from "@/server/repos/nudges";
+import type { Tx } from "@/server/db/with-user";
 import { jobsStore } from "@/server/system/jobs";
 import { userContext } from "@/server/user-context";
 import { isAiConfigured } from "./config";
@@ -120,4 +121,43 @@ export async function researchUpcomingAttendees(userId: string) {
     started++;
   }
   return started;
+}
+
+/** How often a priority person's research is refreshed, and how many a day at most. */
+export const REFRESH_DAYS = 30;
+const REFRESH_PER_DAY = 2;
+
+/**
+ * Priority (starred) people in Work Spaces with full research get it refreshed about once a
+ * month, a couple a day at your brief time, so new roles and news reach you (Mesh-style job
+ * changes). Changes arrive as suggestions; Today offers a congratulations.
+ */
+export async function refreshStarredResearch(userId: string) {
+  if (!isAiConfigured()) return 0;
+  const cutoff = new Date(Date.now() - REFRESH_DAYS * 86_400_000);
+  const todo = await db.withUser(userId, (tx) => starredDueForRefresh(tx, cutoff, REFRESH_PER_DAY));
+  let started = 0;
+  for (const p of todo) {
+    const jobId = await startInBackground(userId, { kind: "research", personId: p.personId, spaceId: p.spaceId, mode: "research" });
+    if (!jobId) break;
+    started++;
+  }
+  return started;
+}
+
+/** Starred people in Work Spaces with full research, researched in full before `cutoff`, oldest first. */
+export async function starredDueForRefresh(tx: Tx, cutoff: Date, limit: number) {
+  const spaces = await tx.select({ id: t.spaces.id, kind: t.spaces.kind, defaults: t.spaces.defaults }).from(t.spaces).where(isNull(t.spaces.archivedAt));
+  const work = spaces.filter((sp) => sp.kind === "work" && spaceDefaultsSchema.safeParse(sp.defaults).data?.researchMode === "full").map((sp) => sp.id);
+  if (!work.length) return [];
+  return tx
+    .select({ personId: t.personSpaces.personId, spaceId: t.personSpaces.spaceId })
+    .from(t.personSpaces)
+    .innerJoin(t.people, eq(t.people.id, t.personSpaces.personId))
+    .innerJoin(t.dossiers, and(eq(t.dossiers.personId, t.personSpaces.personId), eq(t.dossiers.spaceId, t.personSpaces.spaceId), eq(t.dossiers.mode, "full")))
+    .where(and(eq(t.personSpaces.starred, true), isNull(t.personSpaces.archivedAt), isNull(t.people.deletedAt), inArray(t.personSpaces.spaceId, work)))
+    .groupBy(t.personSpaces.personId, t.personSpaces.spaceId)
+    .having(sql`max(${t.dossiers.createdAt}) < ${cutoff.toISOString()}::timestamptz`)
+    .orderBy(sql`max(${t.dossiers.createdAt}) asc`)
+    .limit(limit);
 }

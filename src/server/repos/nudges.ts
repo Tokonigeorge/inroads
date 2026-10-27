@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import { addDays, type IsoDate } from "@/domain/dates";
-import { buildNudges, nudgeStateFor, type NudgePerson, type NudgeSnapshot } from "@/domain/nudges";
+import { buildNudges, MOVED_PREFIX, nudgeStateFor, type NudgePerson, type NudgeSnapshot } from "@/domain/nudges";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 import { pendingTriageCount } from "./connections";
@@ -176,6 +176,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     countPendingAiSuggestions(tx, ctx.spaceId),
     roomsToDebrief(tx, ctx.spaceId, ctx.today, ctx.tz),
   ]);
+  const moves = await recentMoves(tx, ctx.spaceId);
 
   const soon = upcoming.filter((s) => s.date <= addDays(ctx.today, 3));
   const prep = await sessionPeople(tx, soon);
@@ -206,8 +207,35 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     triagePending,
     duplicates,
     suggestions,
+    moves,
     hidden,
   };
+}
+
+/** New companies or roles research found in the last two weeks, still waiting for you. */
+async function recentMoves(tx: Tx, spaceId: string | null) {
+  const rows = await tx
+    .select({ id: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position, payload: t.suggestions.payload, createdAt: t.suggestions.createdAt })
+    .from(t.suggestions)
+    .innerJoin(t.people, eq(t.people.id, t.suggestions.targetId))
+    .where(
+      and(
+        eq(t.suggestions.status, "pending"),
+        eq(t.suggestions.kind, "person_field"),
+        sql`${t.suggestions.why} like ${`${MOVED_PREFIX}%`}`,
+        sql`${t.suggestions.createdAt} >= now() - interval '15 days'`,
+        isNull(t.people.deletedAt),
+        spaceId ? eq(t.suggestions.spaceId, spaceId) : undefined,
+      ),
+    )
+    .orderBy(desc(t.suggestions.createdAt))
+    .limit(10);
+  return rows.flatMap((r) => {
+    const p = r.payload as { field?: string; value?: string; was?: string };
+    if ((p.field !== "company" && p.field !== "position") || !p.value) return [];
+    const field: "company" | "position" = p.field;
+    return [{ id: r.id, name: r.name, detail: detailOf(r.position, r.company), field, value: p.value, was: p.was ?? (field === "company" ? r.company : r.position) ?? "something else", foundOn: r.createdAt.toISOString().slice(0, 10) }];
+  });
 }
 
 export async function listNudges(tx: Tx, ctx: Ctx) {

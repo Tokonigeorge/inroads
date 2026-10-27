@@ -1,4 +1,5 @@
 import "server-only";
+import { MOVED_PREFIX } from "@/domain/nudges";
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { goalPriorityLabels } from "@/contracts/goals";
 import { addDays, formatLongDate, type IsoDate } from "@/domain/dates";
@@ -58,6 +59,14 @@ async function base(deps: FeatureDeps, userId: string, spaceId: string) {
 }
 
 /* ======================================================================= research */
+
+const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+/** Different, not just reworded ("Kestrel Ventures" vs "Kestrel Ventures Ltd" is the same). */
+const changed = (saved: string, found: string) => {
+  const a = norm(saved);
+  const b = norm(found);
+  return Boolean(a && b) && !a.includes(b) && !b.includes(a);
+};
 
 /**
  * Research one person in one Space. Work Spaces get a full dossier; Personal, Dating and other
@@ -160,6 +169,15 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
     const id = person.identity;
     for (const field of ["position", "company", "city", "birthday"] as const) {
       if (found[field] && !id[field]) suggestions.push({ kind: "person_field", spaceId: input.spaceId, targetId: input.personId, why: `Found by research (${o.confidence} confidence)`, sources: sources.slice(0, 3), payload: { personId: input.personId, field, value: found[field] } });
+    }
+    // A new role or company since you saved theirs (Mesh's job-change alert): suggest the update,
+    // and Today offers a congratulations. Only from the web, and not when research is unsure.
+    if (r.mode === "web" && o.confidence !== "low") {
+      for (const field of ["company", "position"] as const) {
+        if (found[field] && id[field] && changed(id[field], found[field])) {
+          suggestions.push({ kind: "person_field", spaceId: input.spaceId, targetId: input.personId, why: `${MOVED_PREFIX} ${found[field]} (you have ${id[field]})`, sources: sources.slice(0, 3), payload: { personId: input.personId, field, value: found[field], was: id[field] } });
+        }
+      }
     }
     for (const [key, value] of Object.entries(profiles)) {
       if (!(id.socials ?? {})[key]) suggestions.push({ kind: "social", spaceId: input.spaceId, targetId: input.personId, why: "Profile found by research", sources: [{ title: key, url: value }], payload: { personId: input.personId, key, value } });

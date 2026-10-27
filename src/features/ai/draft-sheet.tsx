@@ -14,6 +14,7 @@ const purposes = [
   { value: "followup", label: "Follow up" },
   { value: "thanks", label: "Thank you" },
   { value: "birthday", label: "Birthday" },
+  { value: "congrats", label: "Congrats" },
 ] as const;
 
 /** Draft a message, edit it, open it in WhatsApp or email, then log it as a touch. */

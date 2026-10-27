@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: new roles and companies for your priority people (like Mesh's job-change alerts)
+- Priority (starred) people in Work Spaces get their research refreshed about once a month, two a day at your brief time.
+- When research finds a different company or role than the one you saved (from the web, not when it's unsure), it suggests the update, and Today shows "Kemi is now at Airtel Africa" with **Congratulate** (a new "Congrats" draft) and **Update details**.
+- Suggestions are no longer repeated: one already waiting, or one you dismissed, isn't suggested again by a later run.
+
 ### Fixed: "Score people" no longer stops without a word
 - Scoring now includes people from an import you haven't sorted yet (after the ones you have). Before, a fresh Google import meant nobody to score, and the job stopped.
 - When it finishes, the button says what it did ("Scored 60 people.") and links the strong fits to review.
