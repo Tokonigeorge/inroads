@@ -26,7 +26,7 @@ describe("shared", () => {
 
 describe("versions", () => {
   it("are bumped for the prompts whose text or inputs changed", () => {
-    expect([RESEARCH_FULL_VERSION, LOOKUP_VERSION, RADAR_VERSION, BRIEF_VERSION, CHAT_VERSION]).toEqual(["research.full@2", "lookup@4", "radar@2", "brief@2", "chat@3"]);
+    expect([RESEARCH_FULL_VERSION, LOOKUP_VERSION, RADAR_VERSION, BRIEF_VERSION, CHAT_VERSION]).toEqual(["research.full@2", "lookup@4", "radar@3", "brief@2", "chat@3"]);
   });
 });
 
@@ -69,6 +69,15 @@ describe("radar", () => {
     expect(p).toContain('Never invent exact dates: describe the usual timing and leave "date" empty.');
     expect(p).not.toContain("LIVE WEB");
     expect(p).toContain("My city: Lagos");
+  });
+
+  it("offers hosting only now and then, smallest version first, and links only an event's own page", () => {
+    const p = radarPrompt({ ...base, mode: "web" });
+    expect(p).toContain("At most one host-your-own idea, and only if one of my goals clearly gains");
+    expect(p).toContain("never a search or category page");
+    expect(radarPrompt({ ...base, mode: "knowledge" })).not.toContain("1-2 small gatherings I could host");
+    expect(radarPrompt({ ...base, mode: "web", hostedLastTime: true })).toContain("Don't suggest hosting anything this time.");
+    expect(radarPrompt({ ...base, mode: "web", hostedLastTime: true })).not.toContain("At most one host-your-own");
   });
 
   it("never treats the time zone as home: it infers from where the network gathers, or asks", () => {

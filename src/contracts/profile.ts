@@ -15,6 +15,7 @@ export const profileSchema = z.object({
   location: optionalText(80),
   background: optionalText(2000),
   offerings: optionalText(1000),
+  aiNotes: optionalText(1500).optional(),
   industries: z
     .string()
     .max(400)
@@ -41,6 +42,7 @@ export const profileGoalsSchema = z.object({
   headline: optionalText(120),
   background: optionalText(2000),
   offerings: optionalText(1000),
+  aiNotes: optionalText(1500).optional(),
   industries: z
     .string()
     .max(400)

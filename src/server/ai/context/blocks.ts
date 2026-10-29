@@ -17,11 +17,11 @@ import type { PersonContext, SpaceContext } from "./space-context";
  * They only ever format what the Space-scoped loaders return.
  */
 
-export type Me = { name: string; headline: string | null; location: string | null; background: string | null; offerings: string | null; industries: string[]; timezone: string };
+export type Me = { name: string; headline: string | null; location: string | null; background: string | null; offerings: string | null; industries: string[]; aiNotes: string | null; timezone: string };
 
 export async function loadMe(tx: Tx, userId: string): Promise<Me> {
   const [p] = await tx.select().from(t.profiles).where(eq(t.profiles.userId, userId));
-  return { name: p?.name ?? "", headline: p?.headline ?? null, location: p?.location ?? null, background: p?.background ?? null, offerings: p?.offerings ?? null, industries: p?.industries ?? [], timezone: p?.timezone ?? "Africa/Lagos" };
+  return { name: p?.name ?? "", headline: p?.headline ?? null, location: p?.location ?? null, background: p?.background ?? null, offerings: p?.offerings ?? null, industries: p?.industries ?? [], aiNotes: p?.aiNotes ?? null, timezone: p?.timezone ?? "Africa/Lagos" };
 }
 
 export function meBlock(me: Me, space: SpaceContext) {
@@ -35,6 +35,8 @@ export function meBlock(me: Me, space: SpaceContext) {
     me.background && `Background: ${me.background}`,
     me.offerings && `What I offer: ${me.offerings}`,
     me.industries.length && `Target industries: ${me.industries.join(", ")}`,
+    me.aiNotes &&
+      `My notes for you (preferences, not rules: follow them most of the time, but keep some variety, and when you suggest something outside them say it's a stretch and why): ${me.aiNotes}`,
     `This is my "${space.space.name}" Space.`,
     `Goals in this Space:\n${goals}`,
   ]

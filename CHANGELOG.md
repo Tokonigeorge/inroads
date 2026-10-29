@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: Notes for Inroads (needs a database migration)
+- Profile (and Profile & goals) has a **Notes for Inroads** box: anything that should shape suggestions, in your own words ("I'm just starting to open up; prefer online and small things"). Every AI feature reads it as a preference, not a rule: it keeps some variety and says when something is a stretch. Run migration `20261029155402_ai_notes`.
+
+### Changed: the radar suggests hosting less often
+- Hosting your own gathering comes up at most once, only when one of your goals clearly gains from it, smallest version first (online, or a few people over coffee), and never two weeks running.
+
+### Fixed
+- **Opening the same event (or Add event) a second time showed nothing**: the address changed but the sheet stayed closed until you refreshed. It opens every time now.
+- **"Open the listing" on a radar idea could go to an unrelated search page** (an Eventbrite category search for a tech mixer). Only an event's own page is linked now; otherwise the card says where to find the date.
+
 ### Fixed: background sync stopping after a hiccup
 - **Google syncs after the first one were all failing** (Google answered "400"): the "only what changed" calendar read also asked to leave out deleted events, which Google refuses. Every account stayed at its first import. Fixed; the next scheduled sync catches up. An expired contacts sync token (which Google also reports as a 400) now reads everything again instead of failing.
 - If Google or Outlook had a brief outage or rate limit while Inroads renewed access, the account was marked **Needs reconnecting** and dropped out of the 30-minute background sync for good. Now only a real "access was removed or expired" answer asks you to reconnect; anything else fails that one sync, which is tried again 30 minutes later.

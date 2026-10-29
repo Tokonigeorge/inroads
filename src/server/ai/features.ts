@@ -40,7 +40,7 @@ import {
 } from "./prompts/writing";
 import { shortDate } from "./prompts/shared";
 import { AiError, runAI, runWithWebFallback } from "./run";
-import { mergeSources, type Source } from "./sources";
+import { isSearchPage, mergeSources, type Source } from "./sources";
 
 export type FeatureDeps = { db?: Pick<typeof appDb, "withUser">; sys?: Database; client?: AnthropicLike };
 type Progress = (step: string) => void;
@@ -455,7 +455,7 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
   const data = deps.db ?? appDb;
   const b = await base(deps, userId, input.spaceId);
   const horizon = addDays(b.ctx.today, 21);
-  const { gathers, top, mine } = await data.withUser(userId, async (tx) => {
+  const { gathers, top, mine, hostedLastTime } = await data.withUser(userId, async (tx) => {
     const gathers = await tx
       .select({ label: t.personSpaces.whereMet, n: sql<number>`count(*)::int` })
       .from(t.personSpaces)
@@ -468,7 +468,14 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
       .from(t.events)
       .where(and(eq(t.events.spaceId, input.spaceId), isNull(t.events.deletedAt)))
       .limit(30);
+    const [last] = await tx
+      .select({ result: t.searches.result })
+      .from(t.searches)
+      .where(and(eq(t.searches.spaceId, input.spaceId), eq(t.searches.type, "radar")))
+      .orderBy(desc(t.searches.createdAt))
+      .limit(1);
     return {
+      hostedLastTime: ((last?.result as { items?: { kind?: string }[] } | undefined)?.items ?? []).some((i) => i.kind === "host-your-own"),
       gathers: gathers.map((g) => `${g.label} (${g.n})`).join(", "),
       top: gathers[0]?.label ?? null,
       mine: mine.map((m) => `${m.title} (${recurrenceLabel(recurrenceOf(m))})`).join("; "),
@@ -480,7 +487,7 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
       feature: "radar",
       tier: "strong",
       onProgress: progress,
-      prompt: (m) => radarPrompt({ mode: m, today: b.ctx.today, horizon, me: b.meText, city: homeCity(b.me.location, top), gathers, mine }),
+      prompt: (m) => radarPrompt({ mode: m, today: b.ctx.today, horizon, me: b.meText, city: homeCity(b.me.location, top), gathers, mine, hostedLastTime }),
       schema: radarSchema,
       // The time zone is only a location hint for the search tool, never "my city".
       web: { search: { maxUses: 5, userLocation: b.me.location ? { city: b.me.location } : { timezone: b.ctx.timezone } }, fetch: { maxUses: 3 } },
@@ -490,7 +497,7 @@ export async function suggestRooms(deps: FeatureDeps, userId: string, input: { s
   const items = r.output.items
     .filter((x) => x.title.trim())
     .slice(0, 8)
-    .map((x) => ({ ...x, date: isIso(x.date) ? x.date : "", time: /^\d{2}:\d{2}$/.test(x.time) ? x.time : "", url: isHttp(x.url) ? x.url : "", id: crypto.randomUUID() }))
+    .map((x) => ({ ...x, date: isIso(x.date) ? x.date : "", time: /^\d{2}:\d{2}$/.test(x.time) ? x.time : "", url: isHttp(x.url) && !isSearchPage(x.url) ? x.url : "", id: crypto.randomUUID() }))
     .sort((a, c) => (a.date || "9999").localeCompare(c.date || "9999"));
   if (!items.length) throw new AiError("invalid_output", "No rooms came back this time. Try again later.");
   return data.withUser(userId, async (tx) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
 import { Sheet } from "@/ui/sheet";
 
 const InSheet = createContext(false);
@@ -33,6 +33,9 @@ export function useFinishForm() {
 export function RouteSheet({ title, children }: { title: ReactNode; children: ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
+  // Next keeps recent routes alive (hidden) and restores their state. Without this, a sheet you
+  // closed comes back closed the next time you open the same address: the URL changes, nothing shows.
+  useLayoutEffect(() => () => setOpen(true), []);
   return (
     <InSheet value>
       <Sheet

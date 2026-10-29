@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { briefPerson, eventBlock, identityRules, personBlock, profileUsed, relationshipLine, talkingPointsFrom, webRules } from "./blocks";
+import { briefPerson, eventBlock, identityRules, meBlock, personBlock, profileUsed, relationshipLine, talkingPointsFrom, webRules } from "./blocks";
 import type { PersonContext } from "./space-context";
 
 const TODAY = "2026-10-26";
@@ -155,5 +155,17 @@ describe("web and identity rules", () => {
     expect(identityRules("web")).toContain("Open every saved profile link first with web_fetch");
     expect(identityRules("knowledge")).not.toContain("web_fetch");
     expect(identityRules("knowledge")).toContain("USE EVERYTHING I'VE SAVED");
+  });
+});
+
+describe("meBlock", () => {
+  const space = { space: { id: "s1", name: "Work", kind: "work" as const }, researchMode: "auto" as never, goals: [] };
+  const me = { name: "Bukola", headline: null, location: "Lagos", background: null, offerings: null, industries: [], aiNotes: null, timezone: "Africa/Lagos" };
+
+  it("passes Notes for Inroads as a preference, not a rule", () => {
+    const text = meBlock({ ...me, aiNotes: "Prefer online and small things." }, space);
+    expect(text).toContain("My notes for you (preferences, not rules: follow them most of the time, but keep some variety");
+    expect(text).toContain("Prefer online and small things.");
+    expect(meBlock(me, space)).not.toContain("My notes for you");
   });
 });

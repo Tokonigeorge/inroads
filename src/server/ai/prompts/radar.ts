@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { shortDate, type WebMode } from "./shared";
 
-export const RADAR_VERSION = "radar@2";
+export const RADAR_VERSION = "radar@3";
 
 export const radarSchema = z.object({
   items: z.array(
@@ -34,14 +34,24 @@ export function homeCity(location: string | null | undefined, topGather: string 
     : "(not set; ask me to add it in my profile and suggest only online or widely known events)";
 }
 
-export function radarPrompt(c: { mode?: WebMode; today: string; horizon: string; me: string; city: string; gathers: string; mine: string }) {
+/**
+ * Hosting your own gathering is a big ask, so it's offered only now and then (the prototype asked
+ * for one every run): never two weeks running, only when a goal clearly gains, and online is fine.
+ */
+function hostLine(hostedLastTime: boolean) {
+  return hostedLastTime
+    ? "Don't suggest hosting anything this time."
+    : 'At most one host-your-own idea, and only if one of my goals clearly gains from me hosting and my notes don\'t rule it out. Prefer the smallest version: online (a short video call, an X/Twitter Space, a WhatsApp group) or a few people over coffee. Put it last, with kind "host-your-own" and confidence "idea".';
+}
+
+export function radarPrompt(c: { mode?: WebMode; today: string; horizon: string; me: string; city: string; gathers: string; mine: string; hostedLastTime?: boolean }) {
   const head =
     c.mode === "knowledge"
       ? `Recommend networking rooms for me for the next three weeks (${shortDate(c.today)} to ${shortDate(c.horizon)}).
-NO WEB ACCESS in this run: suggest recurring event series, communities, venues and formats you reliably know exist in or near my city, plus 1-2 small gatherings I could host myself. Never invent exact dates: describe the usual timing and leave "date" empty. Mark confidence "recurring" (you're confident it exists and recurs) or "idea".`
+NO WEB ACCESS in this run: suggest recurring event series, communities, venues and formats you reliably know exist in or near my city, or online. ${hostLine(Boolean(c.hostedLastTime))} Never invent exact dates: describe the usual timing and leave "date" empty. Mark confidence "recurring" (you're confident it exists and recurs) or "idea".`
       : `Find real networking events for me between ${c.today} and ${c.horizon}: conferences, meetups, mixers, dinners and community events in or near my city, or online, that serve my goals.
 LIVE WEB: use web_search and web_fetch. Search event listings (Luma, Eventbrite, Meetup, organisers' sites, LinkedIn events, tech and business news event roundups) and open the listing pages to confirm dates.
-Only mark an event "confirmed" when you saw its date on a page, and give that page's URL. Add at most one host-your-own idea at the end with confidence "idea".`;
+Only mark an event "confirmed" when you saw its date on a page, and give that page's URL. "url" must be that event's own page, never a search or category page; if you only saw it in search results, leave "url" empty and say where to look in "howToFind". ${hostLine(Boolean(c.hostedLastTime))}`;
   return `${head}
 
 ABOUT ME:

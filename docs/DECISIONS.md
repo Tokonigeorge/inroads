@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-29: notes for Inroads, hosting less often, sheets that reopen
+
+177. **Your own notes shape suggestions, as preferences** (owner's call, for an MVP: one free-text box, not learning from every dismissal yet). "Notes for Inroads" in Profile (`profiles.ai_notes`, migration `20261029155402_ai_notes`) goes into ABOUT ME in every prompt built on `meBlock`, worded so the model follows it most of the time but keeps some variety and says when something is a stretch. Hosting your own gathering is suggested at most once, only when a goal clearly gains, smallest version first, and never two radars running (the prototype asked for one every run). "Open the listing" links only an event's own page. To reverse: drop the line in `meBlock` and `hostLine()` in `prompts/radar.ts`. Later, if people want it: a "why not?" box on Hide/Dismiss feeding the same notes.
+178. **A sheet resets to open when its route is hidden.** With Cache Components, Next keeps the last few routes alive and restores their state, so a sheet you closed came back closed the next time you opened the same address (URL changed, nothing showed). `RouteSheet` resets in a layout-effect cleanup, as Next's "Preserving UI state" guide recommends.
+
 ## 2026-10-27: research steps
 
 176. **A step that starts with "Find" is a research step** (owner's call: "it should just be a research step"). Inroads searches the web for named people or firms near you who fit, saved as a `searches` row of the new type `role` (migration `20261027145012_research_steps`) in the look-up shape, so a plan's "Add to goal" works on it unchanged. Names only from pages found; people already in your network are left out. The step isn't ticked for you: you decide when you've found enough. Plain to-do steps stay plain. To reverse: drop the "find" job and the panel in `goal-steps.tsx`; the migration only widens a check.

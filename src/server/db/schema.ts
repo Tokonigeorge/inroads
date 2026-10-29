@@ -95,6 +95,8 @@ export const profiles = pgTable(
     background: text("background"),
     offerings: text("offerings"),
     industries: textArray("industries"),
+    /** "Notes for Inroads": free text every AI feature reads as a preference, not a rule. */
+    aiNotes: text("ai_notes"),
     emails: citextArray("emails").notNull().default(sql`'{}'::citext[]`),
     timezone: text("timezone").notNull().default("Africa/Lagos"),
     defaultRegion: text("default_region").notNull().default("NG"),

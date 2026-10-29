@@ -35,6 +35,7 @@ async function Profile() {
         location: p.location,
         background: p.background,
         offerings: p.offerings,
+        aiNotes: p.aiNotes,
         industries: p.industries,
         timezone: p.timezone,
         region: p.defaultRegion,

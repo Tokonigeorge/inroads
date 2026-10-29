@@ -73,6 +73,7 @@ async function fillProfile(tx: Tx, userId: string, p: Row | undefined) {
   if (!mine.location && str(p.location, 80)) set.location = str(p.location, 80);
   if (!mine.background && str(p.background)) set.background = str(p.background);
   if (!mine.offerings && str(p.offerings, 1000)) set.offerings = str(p.offerings, 1000);
+  if (!mine.aiNotes && str(p.aiNotes, 1500)) set.aiNotes = str(p.aiNotes, 1500);
   if (!(mine.industries ?? []).length && strs(p.industries).length) set.industries = strs(p.industries).slice(0, 10);
   if (Object.keys(set).length) await tx.update(t.profiles).set(set).where(eq(t.profiles.userId, userId));
 }

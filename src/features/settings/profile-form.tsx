@@ -13,6 +13,7 @@ export type ProfileValues = {
   location: string | null;
   background: string | null;
   offerings: string | null;
+  aiNotes: string | null;
   industries: string[];
   timezone: string;
   region: string;
@@ -49,6 +50,15 @@ export function ProfileForm({ profile, timezones, countries }: Props) {
       <Field label="What you can offer" hint="Intros, advice, hiring, capital: what you're glad to help others with." error={errors.offerings}>
         {({ id, describedBy, invalid }) => (
           <Textarea id={id} name="offerings" rows={3} defaultValue={profile.offerings ?? ""} maxLength={1000} aria-describedby={describedBy} aria-invalid={invalid} />
+        )}
+      </Field>
+      <Field
+        label="Notes for Inroads"
+        hint="Anything that should shape suggestions, in your own words: “I'm just starting to open up; prefer online and small things.” Treated as a preference, not a rule."
+        error={errors.aiNotes}
+      >
+        {({ id, describedBy, invalid }) => (
+          <Textarea id={id} name="aiNotes" rows={3} defaultValue={profile.aiNotes ?? ""} maxLength={1500} aria-describedby={describedBy} aria-invalid={invalid} />
         )}
       </Field>
       <Field label="Industries" hint="Separate with commas." error={errors.industries}>

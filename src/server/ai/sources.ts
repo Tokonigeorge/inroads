@@ -24,3 +24,23 @@ export function cleanSources(list: unknown, cap = 12): Source[] {
 export function mergeSources(cited: unknown, seen: Source[], cap = 12) {
   return cleanSources([...(Array.isArray(cited) ? cited : []), ...seen], cap);
 }
+
+/**
+ * A search, browse or category page rather than one event's own page (Eventbrite's /d/…/music-networking,
+ * Meetup's /find, anything with ?q=). Linking those as "the listing" sends people somewhere unrelated.
+ */
+export function isSearchPage(url: string) {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return true;
+  }
+  const host = u.hostname.replace(/^www\./, "").toLowerCase();
+  const path = u.pathname.toLowerCase();
+  if (/(^|\.)eventbrite\.[a-z.]+$/.test(host) && /^\/(d|b|cc)\//.test(path)) return true;
+  if (/(^|\.)meetup\.com$/.test(host) && /^\/find\b/.test(path)) return true;
+  if (/(^|\/)(search|find|discover|explore)(\/|$)/.test(path)) return true;
+  if (["q", "query", "keywords", "search", "k"].some((k) => u.searchParams.has(k))) return true;
+  return /search/i.test(u.hash);
+}

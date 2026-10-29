@@ -85,6 +85,13 @@
       "when": 1793112612293,
       "tag": "20261027145012_research_steps",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793289242741,
+      "tag": "20261029155402_ai_notes",
+      "breakpoints": true
     }
   ]
 }
