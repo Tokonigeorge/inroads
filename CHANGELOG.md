@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: network map and a celebration when a goal's week is done
+- **Network map** (People → See your network map, or ⌘K "Network map"): you in the middle and your people around you. Closer means a stronger relationship (the same 0–100 strength as a person's page), colour is the goal they're on, a glow means starred, and people with no touches yet sit at the edge. Dots fly out from you when it opens and drift gently; tap one to open the person, or filter by goal. Up to 150 people (starred and strongest first). No addresses or map service involved.
+- **Week done**: when a goal meets its weekly target, Today and the goal's page celebrate once, with a short confetti burst and a card ("2 of 2 this week for …"). Remembered per goal per week on this device. Reduced motion keeps the card and drops the confetti.
+
 ### Added: Notes for Inroads (needs a database migration)
 - Profile (and Profile & goals) has a **Notes for Inroads** box: anything that should shape suggestions, in your own words ("I'm just starting to open up; prefer online and small things"). Every AI feature reads it as a preference, not a rule: it keeps some variety and says when something is a stretch. Run migration `20261029155402_ai_notes`.
 

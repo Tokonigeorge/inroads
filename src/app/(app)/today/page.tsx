@@ -11,6 +11,7 @@ import { loadSpaceView } from "@/features/spaces/space-view";
 import { BriefBlock, loadBriefs } from "@/features/ai/briefs";
 import { AiJobButton } from "@/features/ai/ai-job-button";
 import type { RoomIdea } from "@/features/ai/room-ideas";
+import { WeekCelebration } from "@/features/goals/week-celebration";
 import { ForYourGoals, type GoalRooms } from "@/features/today/for-your-goals";
 import { NudgeFeed } from "@/features/today/nudge-feed";
 import { requireUser } from "@/server/auth";
@@ -79,7 +80,10 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
       const reconnect = (await listConnections(tx)).filter((a) => a.status === "error" && a.lastError === "reconnect").map((a) => a.accountEmail ?? a.provider);
       const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false), eq(t.goals.active, true))).limit(1);
       const week = weekly ? await loadWeek(tx, view, c) : null;
+      // A goal's week done is celebrated on either view.
+      const weekGoals = week ? week.goals : anyGoal ? (await listGoals(tx, c)).filter((g) => g.active && !g.archived) : [];
       return {
+        celebrate: weekGoals.map((g) => { const m = progressMeter(g.progress); return { id: g.id, text: g.text, done: m.done, target: m.target }; }),
         hasGoals: Boolean(anyGoal),
         agenda,
         nudges,
@@ -111,6 +115,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
 
   return (
     <>
+      <WeekCelebration goals={data.celebrate} week={weekOf(data.today).start} />
       <PageHeader
         stamp={`${stampDate(data.today)} · ${weekly ? "Weekly" : "Daily"} brief`}
         title={`${greet}${first ? `, ${first}` : ""}`}

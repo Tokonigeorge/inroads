@@ -79,6 +79,20 @@ test.describe.serial("Goals", () => {
     await expect(trend.getByRole("listitem", { name: "This week: 1 of 2" })).toBeAttached();
     await expectAccessible(page);
 
+    // The second touch meets the week's target: a celebration, once.
+    await page.getByRole("article", { name: new RegExp(`^${person}, `) }).getByRole("link", { name: person }).click();
+    await page.getByRole("article").getByRole("button", { name: "Log a touch", exact: true }).click();
+    await page.getByRole("dialog").getByLabel("What happened").fill("Follow-up call");
+    await page.getByRole("dialog").getByRole("button", { name: "Log it" }).click();
+    await expect(page.getByRole("status").filter({ hasText: /Logged with/ })).toBeVisible();
+    await page.goto(goalUrl);
+    const party = page.getByRole("status").filter({ hasText: "Week done!" });
+    await expect(party).toContainText(`2 of 2 this week for “${goal}”`);
+    await party.getByRole("button", { name: "Nice" }).click();
+    await expect(party).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("status").filter({ hasText: "Week done!" })).toHaveCount(0);
+
     await page.goto("/goals");
     const row = page.getByRole("link", { name: new RegExp(goal) });
     await expect(row).toContainText("1 person");

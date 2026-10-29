@@ -5,6 +5,8 @@ import { pendingTriageCount } from "@/server/repos/connections";
 import { countDuplicates } from "@/server/repos/merge";
 import { listCircles, listCities, listTags, peopleCounts } from "@/server/repos/people";
 import { userContext } from "@/server/user-context";
+import Link from "next/link";
+import { Button } from "@/ui/button";
 import { PageHeader } from "@/ui/layout";
 import { PeopleList } from "./people-list";
 
@@ -27,7 +29,13 @@ export async function PeopleListPane() {
   });
   return (
     <>
-      <PageHeader stamp={`${counts.total.toLocaleString("en-GB")} people · ${counts.cooling.toLocaleString("en-GB")} cooling`} title="Your network" />
+      <PageHeader stamp={`${counts.total.toLocaleString("en-GB")} people · ${counts.cooling.toLocaleString("en-GB")} cooling`} title="Your network"
+        actions={
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/map">See your network map</Link>
+          </Button>
+        }
+      />
       <PeopleList
         key={view.selected?.id ?? "all"}
         today={today}

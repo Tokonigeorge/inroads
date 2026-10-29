@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-10-29: network map, week-done celebration
+
+179. **The network map draws relationships, not places** (owner: "a map of things, something visual"). Radius is strength (same formula as everywhere), slices of the circle are goals (highest-priority active goal per person, sized by headcount with a floor), colour is goal, glow is starred. Layout is pure and deterministic (`domain/network-map.ts`), so a person stays put between visits and only moves when their strength changes. Capped at 150 people, starred and strongest first: past that it's noise. Its own page at `/map` (nothing may sit at `/people/[id]` depth). SVG and CSS only, no chart library. To reverse: delete `/map` and the People header link.
+180. **A goal's week done is celebrated once per goal per week, per device** (localStorage), on Today and the goal's page, not on every save. It's a nudge to keep the habit, so it says what was met, then gets out of the way (9 seconds, or "Nice"). Server-side "seen" state wasn't worth a table for a cosmetic moment.
+
 ## 2026-10-29: notes for Inroads, hosting less often, sheets that reopen
 
 177. **Your own notes shape suggestions, as preferences** (owner's call, for an MVP: one free-text box, not learning from every dismissal yet). "Notes for Inroads" in Profile (`profiles.ai_notes`, migration `20261029155402_ai_notes`) goes into ABOUT ME in every prompt built on `meBlock`, worded so the model follows it most of the time but keeps some variety and says when something is a stretch. Hosting your own gathering is suggested at most once, only when a goal clearly gains, smallest version first, and never two radars running (the prototype asked for one every run). "Open the listing" links only an event's own page. To reverse: drop the line in `meBlock` and `hostLine()` in `prompts/radar.ts`. Later, if people want it: a "why not?" box on Hide/Dismiss feeding the same notes.
