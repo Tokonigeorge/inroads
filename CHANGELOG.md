@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: background sync stopping after a hiccup
+- If Google or Outlook had a brief outage or rate limit while Inroads renewed access, the account was marked **Needs reconnecting** and dropped out of the 30-minute background sync for good. Now only a real "access was removed or expired" answer asks you to reconnect; anything else fails that one sync, which is tried again 30 minutes later.
+
 ### Added: research steps (needs a database migration)
 - A "Find …" step on a goal is a **research step**. Inroads searches the web for real, named people or firms near you who fit it ("Find wedding planners who hire photographers"), leaves out people you already know, and lists them under the step with why each fits and a link. **Add to goal** saves them, puts them on the goal and researches them.
 - From a plan in Discover, a role with no name now has **Research this**: it adds the step (due in a week) and starts the search straight away, with live progress and a link to see who it found.

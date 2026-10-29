@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { todayIn } from "@/domain/dates";
 import { createPerson } from "@/server/repos/people";
 import { listSpaces } from "@/server/repos/spaces";
@@ -171,5 +171,24 @@ describe("Google sync for a new account (what Google actually granted)", () => {
   it("nothing shared: asks to reconnect and tick the boxes, instead of failing quietly", async () => {
     const { job } = await fresh(["openid", "email"]);
     expect(job).toEqual({ status: "failed", error: expect.stringContaining("tick both boxes") });
+  });
+
+  it("a Google outage while renewing access keeps the account syncing, instead of asking to reconnect", async () => {
+    const id = await connectionsStore(sys).upsert({
+      userId: user.id,
+      provider: "google",
+      accountEmail: "outage@example.test",
+      scopes: [],
+      spaceId: work,
+      tokens: { access_token: "x", refresh_token: "outage", expires_at: 0, scope: "" },
+    });
+    const jobId = await jobsStore(sys).create(user.id, "sync:google");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(runConnectionSync(id, jobId, deps)).rejects.toThrow();
+    const [job] = await sql`select status, error from jobs where id = ${jobId}`;
+    expect(job).toEqual({ status: "failed", error: expect.stringContaining("try again shortly") });
+    const [conn] = await sql`select status from connections where id = ${id}`;
+    expect(conn.status).toBe("active");
+    expect((await connectionsStore(sys).due(["google"], 25)).map((c) => c.id)).toContain(id);
   });
 });
