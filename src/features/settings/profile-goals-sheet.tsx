@@ -26,6 +26,7 @@ export type ProfileGoalsValues = {
   headline: string;
   background: string;
   offerings: string;
+  aiNotes: string;
   industries: string;
   emails: string;
   goals: { id: string | null; text: string; type: string; priority: number; weeklyTarget: number; active: boolean }[];
@@ -105,6 +106,11 @@ function ProfileGoalsSheet({ values, open, onOpenChange }: { values: ProfileGoal
           </Field>
           <Field label="What you offer" error={errors.offerings} className="sm:col-span-2">
             {({ id, describedBy }) => <Textarea id={id} value={v.offerings} onChange={set("offerings")} rows={2} maxLength={1000} placeholder="Products, services, skills, capital, access" aria-describedby={describedBy} />}
+          </Field>
+          <Field label="Notes for Inroads" hint="Anything that should shape suggestions. A preference, not a rule." error={errors.aiNotes} className="sm:col-span-2">
+            {({ id, describedBy }) => (
+              <Textarea id={id} value={v.aiNotes} onChange={set("aiNotes")} rows={2} maxLength={1500} placeholder="I'm just starting to open up; prefer online and small things" aria-describedby={describedBy} />
+            )}
           </Field>
           <Field label="Target industries" error={errors.industries} className="sm:col-span-2">
             {({ id, describedBy }) => <Input id={id} value={v.industries} onChange={set("industries")} maxLength={400} placeholder="Fintech, energy, real estate…" aria-describedby={describedBy} />}

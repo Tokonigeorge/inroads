@@ -103,6 +103,24 @@ test.describe.serial("Rooms", () => {
     await expect(page.getByRole("link", { name: title })).toBeVisible();
   });
 
+  test("a sheet you closed opens again on the next click", async ({ page }, info) => {
+    const title = `Fintech mixer ${tag(info.project.name)}`;
+    await page.goto("/rooms");
+    for (let i = 0; i < 2; i++) {
+      await page.getByRole("link", { name: new RegExp(title) }).click();
+      await expect(page.getByRole("dialog").getByRole("heading", { name: title, level: 1 })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/rooms$/);
+    }
+    for (let i = 0; i < 2; i++) {
+      await page.getByRole("link", { name: "+ Add event" }).click();
+      await expect(page.getByRole("dialog", { name: "Add event" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+  });
+
   test("deleting a room can be undone, and capture links to it", async ({ page, isMobile }, info) => {
     const title = `Fintech mixer ${tag(info.project.name)}`;
     await page.goto("/rooms");

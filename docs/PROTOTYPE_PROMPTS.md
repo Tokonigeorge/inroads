@@ -137,6 +137,12 @@ There is one wording difference. The prototype header is `Active networking goal
 - Add the knowledge-mode head as a second branch in `radarPrompt`.
 - Append `(${recurrence label})` to each title in `mine`. Rename the label back to `EVENTS ALREADY ON MY LIST`, or keep "ROOMS" if the UI says Rooms. Either is fine, as long as it matches the tab label (PROTOTYPE_GAP says "Events").
 
+**Departures from the prototype** (`radar@3`, owner's call, DECISIONS #177)
+
+- Hosting: the prototype asked for "1-2 small gatherings I could host" (no web) or "at most one host-your-own idea" (web) every run, so hosting showed up every week. Now: at most one, only when a goal clearly gains, smallest version first (online or a few people), and none if the previous radar had one.
+- `url` must be the event's own page, never a search or category page; the app also drops search pages (`isSearchPage`) so "Open the listing" never goes somewhere unrelated.
+- ABOUT ME carries the profile's **Notes for Inroads** as preferences, not rules (every prompt built on `meBlock`).
+
 ---
 
 ## 4. Daily brief

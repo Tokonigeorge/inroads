@@ -35,7 +35,7 @@ export async function removeExamplesAction() {
 
 export async function saveProfileAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
-  const parsed = profileSchema.safeParse(Object.fromEntries(["name", "headline", "location", "background", "offerings", "industries", "timezone", "region", "briefTime"].map((k) => [k, formData.get(k) ?? ""])));
+  const parsed = profileSchema.safeParse(Object.fromEntries(["name", "headline", "location", "background", "offerings", "aiNotes", "industries", "timezone", "region", "briefTime"].map((k) => [k, formData.get(k) ?? ""])));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
   const { region, ...rest } = parsed.data;
   await db.withUser(user.id, (tx) => tx.update(t.profiles).set({ ...rest, defaultRegion: region }).where(eq(t.profiles.userId, user.id)));

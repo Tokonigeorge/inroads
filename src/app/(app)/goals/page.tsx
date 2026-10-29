@@ -87,6 +87,7 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
     headline: profile.headline ?? "",
     background: profile.background ?? "",
     offerings: profile.offerings ?? "",
+    aiNotes: profile.aiNotes ?? "",
     industries: (profile.industries ?? []).join(", "),
     emails: (profile.emails ?? []).join(", "),
     goals: data.goals.filter((g) => !g.archived).map((g) => ({ id: g.id, text: g.text, type: g.type, priority: g.priority, weeklyTarget: g.weeklyTarget, active: g.active })),
@@ -99,7 +100,7 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
         <dd className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">{v}</dd>
       </>
     ) : null;
-  const about = profile.location || profile.background || profile.offerings || (profile.industries ?? []).length || (profile.emails ?? []).length;
+  const about = profile.location || profile.background || profile.offerings || profile.aiNotes || (profile.industries ?? []).length || (profile.emails ?? []).length;
   const next = Math.min(60, counts.people);
   const ai = isAiConfigured();
 
@@ -182,6 +183,7 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
             {kv("Based in", profile.location)}
             {kv("Background", profile.background)}
             {kv("What you offer", profile.offerings)}
+            {kv("Notes for Inroads", profile.aiNotes)}
             {kv("Target industries", (profile.industries ?? []).join(", "))}
             {kv("Your emails", (profile.emails ?? []).join(", "))}
           </dl>
