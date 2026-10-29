@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed: background sync stopping after a hiccup
 - If Google or Outlook had a brief outage or rate limit while Inroads renewed access, the account was marked **Needs reconnecting** and dropped out of the 30-minute background sync for good. Now only a real "access was removed or expired" answer asks you to reconnect; anything else fails that one sync, which is tried again 30 minutes later.
+- A sync that keeps failing is no longer silent: Settings → Connections shows "latest try didn't finish (code), retrying every 30 minutes" next to the account, with the same short code the server logs.
 
 ### Added: research steps (needs a database migration)
 - A "Find …" step on a goal is a **research step**. Inroads searches the web for real, named people or firms near you who fit it ("Find wedding planners who hire photographers"), leaves out people you already know, and lists them under the step with why each fits and a link. **Add to goal** saves them, puts them on the goal and researches them.

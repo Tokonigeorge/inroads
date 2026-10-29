@@ -187,8 +187,8 @@ describe("Google sync for a new account (what Google actually granted)", () => {
     await expect(runConnectionSync(id, jobId, deps)).rejects.toThrow();
     const [job] = await sql`select status, error from jobs where id = ${jobId}`;
     expect(job).toEqual({ status: "failed", error: expect.stringContaining("try again shortly") });
-    const [conn] = await sql`select status from connections where id = ${id}`;
-    expect(conn.status).toBe("active");
+    const [conn] = await sql`select status, last_error from connections where id = ${id}`;
+    expect(conn).toEqual({ status: "active", last_error: "provider 503" });
     expect((await connectionsStore(sys).due(["google"], 25)).map((c) => c.id)).toContain(id);
   });
 });

@@ -111,12 +111,14 @@ function AccountRow({ account, onJob }: { account: ConnectionRow; onJob: (id: st
   const [confirming, setConfirming] = useState(false);
   const toast = useToast();
   const needsReconnect = account.status === "error" && account.lastError === "reconnect";
+  const retrying = account.status === "active" && Boolean(account.lastError);
   return (
     <div className="grid gap-2 border-t border-border pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="min-w-0 truncate font-[550]">{account.label}</span>
-        <span className={`text-small ${account.status === "error" ? "text-danger" : "text-muted"}`}>
+        <span className={`text-small ${account.status === "error" || retrying ? "text-danger" : "text-muted"}`}>
           {needsReconnect ? "Needs reconnecting" : account.status === "error" ? (account.lastError ?? "Last sync failed") : account.lastSynced ? `Synced ${account.lastSynced}` : "Not synced yet"}
+          {retrying ? ` · latest try didn't finish (${account.lastError}), retrying every 30 minutes` : ""}
           {account.spaceName ? ` · into ${account.spaceName}` : ""}
         </span>
       </div>
