@@ -252,8 +252,8 @@ export async function fetchGoogleEvents(
           const q = new URLSearchParams({
             maxResults: "2500",
             singleEvents: "false",
-            showDeleted: "false",
-            ...(token ? { syncToken: token } : { timeMin: opts.timeMin, timeMax: opts.timeMax }),
+            // With a sync token Google always includes deletions and rejects showDeleted=false (400).
+            ...(token ? { syncToken: token } : { timeMin: opts.timeMin, timeMax: opts.timeMax, showDeleted: "false" }),
             ...(pageToken ? { pageToken } : {}),
           });
           const page = await getJson<{ items?: GEvent[]; nextPageToken?: string; nextSyncToken?: string }>(f, url.calendar(`calendars/${encodeURIComponent(cal.id)}/events?${q}`), accessToken);

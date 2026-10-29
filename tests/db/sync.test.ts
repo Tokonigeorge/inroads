@@ -90,6 +90,17 @@ describe("Google sync", () => {
     expect(n).toBe(4);
   });
 
+  it("an expired contacts sync token reads everything again, without doubling anyone", async () => {
+    await sql`update connections set sync_state = sync_state || '{"contacts":{"syncToken":"expired"}}'::jsonb where id = ${connectionId}`;
+    const jobId = await jobsStore(sys).create(user.id, "sync:google");
+    const r = await runConnectionSync(connectionId, jobId, deps);
+    expect(r.contacts).not.toBeNull();
+    const [job] = await sql`select status from jobs where id = ${jobId}`;
+    expect(job.status).toBe("done");
+    const [{ n }] = await sql`select count(*)::int as n from people where user_id = ${user.id}`;
+    expect(n).toBe(4);
+  });
+
   it("asks the user to reconnect when Google refuses the refresh token", async () => {
     const id = await connectionsStore(sys).upsert({
       userId: user.id,
