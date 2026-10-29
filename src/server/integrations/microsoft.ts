@@ -4,7 +4,7 @@ import { normaliseEmail, normalisePhone } from "@/domain/normalise";
 import { isValidTimeZone } from "@/domain/zoned";
 import type { IcsAttendee, IcsEvent } from "@/importers/ics";
 import { urlsToSocials } from "./google";
-import { getJson, postForm, providerUrl, ReauthRequired, type Fetch } from "./http";
+import { getJson, postForm, ProviderError, providerUrl, ReauthRequired, type Fetch } from "./http";
 
 /** Outlook / Microsoft 365, read-only, via Microsoft Graph. */
 export const MICROSOFT_SCOPES = ["openid", "email", "offline_access", "User.Read", "Contacts.Read", "Calendars.Read"];
@@ -45,7 +45,7 @@ export async function exchangeMicrosoftCode(f: Fetch, opts: { clientId: string; 
   return { access_token: body.access_token, refresh_token: body.refresh_token, expires_at: Date.now() + (body.expires_in ?? 3600) * 1000, scope: body.scope ?? "" };
 }
 
-/** Microsoft rotates refresh tokens: the new one must be saved. */
+/** Microsoft rotates refresh tokens: the new one must be saved. An outage is a ProviderError (retried), not a reconnect. */
 export async function microsoftAccessToken(f: Fetch, tokens: MicrosoftTokens, opts: { clientId: string; clientSecret: string }) {
   if (tokens.expires_at > Date.now() + 60_000) return { tokens, refreshed: false };
   if (!tokens.refresh_token) throw new ReauthRequired("Microsoft");
@@ -56,7 +56,8 @@ export async function microsoftAccessToken(f: Fetch, tokens: MicrosoftTokens, op
     refresh_token: tokens.refresh_token,
     scope: MICROSOFT_SCOPES.join(" "),
   });
-  if (status !== 200 || !body.access_token) throw new ReauthRequired("Microsoft");
+  if (status === 400 || status === 401) throw new ReauthRequired("Microsoft");
+  if (status !== 200 || !body.access_token) throw new ProviderError(`Token refresh failed (${body.error ?? status})`, status);
   return {
     tokens: { access_token: body.access_token, refresh_token: body.refresh_token ?? tokens.refresh_token, expires_at: Date.now() + (body.expires_in ?? 3600) * 1000, scope: body.scope ?? tokens.scope },
     refreshed: true,

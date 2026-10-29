@@ -70,7 +70,10 @@ export async function exchangeGoogleCode(f: Fetch, opts: { clientId: string; cli
   return { access_token: body.access_token, refresh_token: body.refresh_token, expires_at: Date.now() + (body.expires_in ?? 3600) * 1000, scope: body.scope ?? "" };
 }
 
-/** A usable access token, refreshing if it's about to expire. Throws ReauthRequired if Google says no. */
+/**
+ * A usable access token, refreshing if it's about to expire. Throws ReauthRequired only when Google
+ * says the grant is gone; an outage or rate limit is a ProviderError, so the next scheduled sync retries.
+ */
 export async function googleAccessToken(f: Fetch, tokens: GoogleTokens, opts: { clientId: string; clientSecret: string }): Promise<{ tokens: GoogleTokens; refreshed: boolean }> {
   if (tokens.expires_at > Date.now() + 60_000) return { tokens, refreshed: false };
   if (!tokens.refresh_token) throw new ReauthRequired("Google");
@@ -80,7 +83,8 @@ export async function googleAccessToken(f: Fetch, tokens: GoogleTokens, opts: { 
     client_id: opts.clientId,
     client_secret: opts.clientSecret,
   });
-  if (status === 400 || status === 401 || !body.access_token) throw new ReauthRequired("Google");
+  if (status === 401 || (status === 400 && body.error === "invalid_grant")) throw new ReauthRequired("Google");
+  if (status !== 200 || !body.access_token) throw new ProviderError(`Token refresh failed (${body.error ?? status})`, status);
   return { tokens: { ...tokens, access_token: body.access_token, expires_at: Date.now() + (body.expires_in ?? 3600) * 1000 }, refreshed: true };
 }
 
@@ -248,8 +252,8 @@ export async function fetchGoogleEvents(
           const q = new URLSearchParams({
             maxResults: "2500",
             singleEvents: "false",
-            showDeleted: "false",
-            ...(token ? { syncToken: token } : { timeMin: opts.timeMin, timeMax: opts.timeMax }),
+            // With a sync token Google always includes deletions and rejects showDeleted=false (400).
+            ...(token ? { syncToken: token } : { timeMin: opts.timeMin, timeMax: opts.timeMax, showDeleted: "false" }),
             ...(pageToken ? { pageToken } : {}),
           });
           const page = await getJson<{ items?: GEvent[]; nextPageToken?: string; nextSyncToken?: string }>(f, url.calendar(`calendars/${encodeURIComponent(cal.id)}/events?${q}`), accessToken);

@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { todayIn } from "@/domain/dates";
 import { createPerson } from "@/server/repos/people";
 import { listSpaces } from "@/server/repos/spaces";
@@ -90,6 +90,17 @@ describe("Google sync", () => {
     expect(n).toBe(4);
   });
 
+  it("an expired contacts sync token reads everything again, without doubling anyone", async () => {
+    await sql`update connections set sync_state = sync_state || '{"contacts":{"syncToken":"expired"}}'::jsonb where id = ${connectionId}`;
+    const jobId = await jobsStore(sys).create(user.id, "sync:google");
+    const r = await runConnectionSync(connectionId, jobId, deps);
+    expect(r.contacts).not.toBeNull();
+    const [job] = await sql`select status from jobs where id = ${jobId}`;
+    expect(job.status).toBe("done");
+    const [{ n }] = await sql`select count(*)::int as n from people where user_id = ${user.id}`;
+    expect(n).toBe(4);
+  });
+
   it("asks the user to reconnect when Google refuses the refresh token", async () => {
     const id = await connectionsStore(sys).upsert({
       userId: user.id,
@@ -171,5 +182,24 @@ describe("Google sync for a new account (what Google actually granted)", () => {
   it("nothing shared: asks to reconnect and tick the boxes, instead of failing quietly", async () => {
     const { job } = await fresh(["openid", "email"]);
     expect(job).toEqual({ status: "failed", error: expect.stringContaining("tick both boxes") });
+  });
+
+  it("a Google outage while renewing access keeps the account syncing, instead of asking to reconnect", async () => {
+    const id = await connectionsStore(sys).upsert({
+      userId: user.id,
+      provider: "google",
+      accountEmail: "outage@example.test",
+      scopes: [],
+      spaceId: work,
+      tokens: { access_token: "x", refresh_token: "outage", expires_at: 0, scope: "" },
+    });
+    const jobId = await jobsStore(sys).create(user.id, "sync:google");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(runConnectionSync(id, jobId, deps)).rejects.toThrow();
+    const [job] = await sql`select status, error from jobs where id = ${jobId}`;
+    expect(job).toEqual({ status: "failed", error: expect.stringContaining("try again shortly") });
+    const [conn] = await sql`select status, last_error from connections where id = ${id}`;
+    expect(conn).toEqual({ status: "active", last_error: "provider 503" });
+    expect((await connectionsStore(sys).due(["google"], 25)).map((c) => c.id)).toContain(id);
   });
 });

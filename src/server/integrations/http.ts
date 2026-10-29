@@ -33,7 +33,14 @@ export async function getJson<T>(fetchImpl: Fetch, url: string, accessToken: str
   const res = await fetchImpl(url, { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json", ...headers } });
   if (res.status === 401) throw new ReauthRequired("provider");
   if (res.status === 410) throw new SyncTokenExpired();
-  if (!res.ok) throw new ProviderError(`Request failed (${res.status})`, res.status);
+  if (!res.ok) {
+    // Google's reason ("Sync token is expired", "invalid argument") makes a failed sync traceable in the logs.
+    const body = (await res.json().catch(() => null)) as { error?: { message?: string; status?: string; details?: { reason?: string }[] } } | null;
+    const reason = body?.error?.details?.find((d) => d.reason)?.reason;
+    if (res.status === 400 && reason === "EXPIRED_SYNC_TOKEN") throw new SyncTokenExpired();
+    const detail = [body?.error?.status, body?.error?.message?.slice(0, 200)].filter(Boolean).join(": ");
+    throw new ProviderError(`Request failed (${res.status})${detail ? ` ${detail}` : ""}`, res.status);
+  }
   return (await res.json()) as T;
 }
 

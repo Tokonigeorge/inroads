@@ -176,6 +176,8 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
             : `Syncing ${name} didn't finish. It will try again shortly.`;
     if (e instanceof ReauthRequired || noAccess) await store.setStatus(connectionId, "error", "reconnect");
     else if (e instanceof IcsUrlError) await store.setStatus(connectionId, "error", e.message);
+    // Still scheduled; the short code shows in Settings so a sync that keeps failing isn't silent.
+    else await store.setStatus(connectionId, "active", failureCode(e));
     await jobs.fail(jobId, message);
     if (!(e instanceof ReauthRequired) && !(e instanceof IcsUrlError) && !noAccess) throw e;
     return { contacts: null, calendar: null, importId: "" };

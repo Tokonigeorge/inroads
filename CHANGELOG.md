@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: background sync stopping after a hiccup
+- **Google syncs after the first one were all failing** (Google answered "400"): the "only what changed" calendar read also asked to leave out deleted events, which Google refuses. Every account stayed at its first import. Fixed; the next scheduled sync catches up. An expired contacts sync token (which Google also reports as a 400) now reads everything again instead of failing.
+- If Google or Outlook had a brief outage or rate limit while Inroads renewed access, the account was marked **Needs reconnecting** and dropped out of the 30-minute background sync for good. Now only a real "access was removed or expired" answer asks you to reconnect; anything else fails that one sync, which is tried again 30 minutes later.
+- A sync that keeps failing is no longer silent: Settings → Connections shows "latest try didn't finish (code), retrying every 30 minutes" next to the account, with the same short code the server logs.
+
 ### Added: research steps (needs a database migration)
 - A "Find …" step on a goal is a **research step**. Inroads searches the web for real, named people or firms near you who fit it ("Find wedding planners who hire photographers"), leaves out people you already know, and lists them under the step with why each fits and a link. **Add to goal** saves them, puts them on the goal and researches them.
 - From a plan in Discover, a role with no name now has **Research this**: it adds the step (due in a week) and starts the search straight away, with live progress and a link to see who it found.

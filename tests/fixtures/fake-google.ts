@@ -86,19 +86,25 @@ export function handleFakeGoogle(method: string, host: string, path: string, bod
   }
   if (host === "oauth2.googleapis.com" && u.pathname === "/token") {
     if (body.get("grant_type") === "refresh_token" && body.get("refresh_token") === "revoked") return { status: 400, json: { error: "invalid_grant" } };
+    if (body.get("grant_type") === "refresh_token" && body.get("refresh_token") === "outage") return { status: 503, json: {} };
     return { status: 200, json: { access_token: "fake-access", refresh_token: "fake-refresh", expires_in: 3600, scope: "openid email https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendarlist.readonly" } };
   }
   if (host === "oauth2.googleapis.com" && u.pathname === "/revoke") return { status: 200, json: {} };
   if (host === "openidconnect.googleapis.com") return { status: 200, json: { email: FAKE_GOOGLE_EMAIL } };
   if (host === "people.googleapis.com" && u.pathname === "/v1/contactGroups") return { status: 200, json: { contactGroups: data.groups } };
   if (host === "people.googleapis.com" && u.pathname === "/v1/people/me/connections") {
-    if (u.searchParams.get("syncToken") === "expired") return { status: 410, json: {} };
+    // The People API reports an expired sync token as a 400 with this reason.
+    if (u.searchParams.get("syncToken") === "expired")
+      return { status: 400, json: { error: { code: 400, status: "FAILED_PRECONDITION", message: "Sync token is expired.", details: [{ reason: "EXPIRED_SYNC_TOKEN" }] } } };
     // A second sync with a token returns no changes.
     const items = u.searchParams.get("syncToken") ? [] : data.connections;
     return { status: 200, json: { connections: items, nextSyncToken: "people-sync-1" } };
   }
   if (host === "www.googleapis.com" && u.pathname === "/calendar/v3/users/me/calendarList") return { status: 200, json: { items: data.calendars } };
   if (host === "www.googleapis.com" && u.pathname.startsWith("/calendar/v3/calendars/")) {
+    // Like Google: a sync token can't be combined with showDeleted=false or a time window.
+    if (u.searchParams.get("syncToken") && (u.searchParams.get("showDeleted") === "false" || u.searchParams.has("timeMin")))
+      return { status: 400, json: { error: { code: 400, message: "Invalid request." } } };
     const items = u.searchParams.get("syncToken") ? [] : data.events;
     return { status: 200, json: { items, nextSyncToken: "cal-sync-1" } };
   }
