@@ -298,6 +298,59 @@ input[type="checkbox"]:checked {
     opacity: 0;
   }
 }
+
+/* Network map: dots drift a little, starred ones glow, the "you" halo breathes. */
+@keyframes map-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes map-glow {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes map-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+.map-drift {
+  animation: map-drift 7s ease-in-out infinite;
+}
+.map-glow {
+  animation: map-glow 2.8s ease-in-out infinite;
+}
+.map-breathe {
+  animation: map-breathe 6s ease-in-out infinite;
+}
+
+/* A goal's week done: confetti bursts out from the card once, then falls away. */
+@keyframes confetti {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--x), var(--y)) rotate(var(--r));
+    opacity: 0;
+  }
+}
+.confetti {
+  animation: confetti 1300ms cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
 .sheet-fade {
   animation: sheet-fade 0.2s ease;
 }

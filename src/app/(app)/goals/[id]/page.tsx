@@ -5,10 +5,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { goalPriorityLabels, goalTypeLabels } from "@/contracts/goals";
 import { formatLongDate } from "@/domain/dates";
-import { progressMeter, progressSummary } from "@/domain/goal-progress";
+import { progressMeter, progressSummary, weekOf } from "@/domain/goal-progress";
 import { instantInZone } from "@/domain/zoned";
 import { AiJobButton } from "@/features/ai/ai-job-button";
 import { GoalActions } from "@/features/goals/goal-actions";
+import { WeekCelebration } from "@/features/goals/week-celebration";
 import { GoalSteps, type StepResearch } from "@/features/goals/goal-steps";
 import { Pipeline } from "@/features/goals/pipeline";
 import { LoadingRows } from "@/features/shell/page-frame";
@@ -145,6 +146,7 @@ function GoalView({
     .join(" · ");
   return (
     <>
+      {g.active && !g.archived ? <WeekCelebration goals={[{ id: g.id, text: g.text, done: m.done, target: m.target }]} week={weekOf(today).start} /> : null}
       <PageHeader
         title={g.text}
         subtitle={subtitle}

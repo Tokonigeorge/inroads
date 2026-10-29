@@ -148,6 +148,7 @@ function Palette({ close, showHelp }: { close: () => void; showHelp: () => void 
       { id: "add-goal", group: "Actions", label: "Add a goal", run: go("/goals/new") },
       { id: "sort", group: "Actions", label: "Sort new people", run: go("/sort"), keywords: "triage import" },
       { id: "ask", group: "Actions", label: "Ask your network", run: go("/ask"), keywords: "who do i know search question find" },
+      { id: "map", group: "Actions", label: "Network map", run: go("/map"), keywords: "graph visual relationships strength circle" },
       { id: "connections", group: "Actions", label: "Connect Google, Outlook or a calendar", run: go("/settings/connections"), keywords: "import sync" },
       { id: "help", group: "Actions", label: "Show keyboard shortcuts", run: later(showHelp), hint: "?" },
       { id: "go-today", group: "Go to", label: "Today", run: go("/today"), hint: "g t" },
