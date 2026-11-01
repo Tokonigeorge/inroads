@@ -63,12 +63,15 @@ export function PersonActions({
   defaultSpaceId,
   draft,
   decodeHref,
+  research,
 }: {
   person: PickedPerson;
   archived: boolean;
   defaultSpaceId?: string;
   draft?: ReactNode;
   decodeHref?: string;
+  /** Research (or Get to know) for their Space, so it sits with the other key actions. */
+  research?: ReactNode;
 }) {
   const capture = useCapture();
   const router = useRouter();
@@ -118,6 +121,7 @@ export function PersonActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <LogTouchButton person={person} defaultSpaceId={defaultSpaceId} variant="primary" />
+      {research}
       {draft}
       {decodeHref ? (
         <Button asChild>

@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-01: map placement, research up top
+
+182. **The network map places only people you've been in touch with (or starred).** A fresh import is mostly people with no touches; drawn on the edge they made an unreadable ring. They're counted under the map instead. Names show for the closest 14 (and starred), and nothing moves after the dots arrive. To reverse: drop the `onMap` filter in `app/(app)/map/page.tsx`.
+183. **Research is a key action on a person, next to Decode; "Look up their world" is gone** (owner: "no need for the duplicate"). The look-up still exists as Decode in Discover.
+
 ## 2026-11-01: people set aside stay findable
 
 181. **"Set aside" (Not now, or archived) hides someone from lists and reminders, not from search or their own page.** The sort suggests Not now for most bare phone contacts, so whole chunks of an import were unfindable and their pages were dead ends (disabled Log it, no Research). Search now includes them with a "Set aside" mark; their page works in full and offers Bring back; logging a touch unarchives the membership it's logged in. To reverse: put back `ps.archived_at is null` for searches in `listPeople`.

@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: a calmer, readable network map; Research up top; new contacts show up
+- **Network map:** only people you've logged a touch with (or starred) are placed; the rest are counted underneath with a way to start. The closest have their names on, dots no longer drift or pulse (they flickered under the cursor), and the rings are easier to see.
+- **A person's page:** **Research** (or Get to know) sits in the top row with Log a touch, Draft and Decode their world. The duplicate "Look up their world" button is gone (Decode does that); "Give Inroads more to work with" below now runs research with what you paste.
+- **New contacts from Google appear without a reload:** after a background sync (when you open the app or come back to it) and after Sync now, the People list refreshes. Before, it kept showing its old copy, so new contacts only appeared after an import or a reload.
+- **Long text wraps inside cards** instead of running past their edge.
+
 ### Fixed: people set aside were half-hidden
 - Sorting an import suggests **Not now** for contacts with no meetings or details, which sets them aside (archived). They then vanished from search, and their page had a greyed-out **Log it**, no Research and no Draft message, with nothing saying why. Now a search finds them (marked "Set aside"), their page says why they're missing from lists with a **Bring back** button, and everything on the page works. Logging a touch brings them back on its own.
 - The touch and promise forms never sit disabled without a reason: if someone isn't in any Space, the form says so.

@@ -36,10 +36,11 @@ test.describe("Network map", () => {
     await page.goto("/people");
     await page.getByRole("link", { name: "See your network map" }).click();
     await expect(page.getByRole("heading", { name: "Network map", level: 1 })).toBeVisible();
-    const map = page.getByRole("group", { name: "Network map, 3 people" });
+    // Only people you've been in touch with are placed; the rest are counted underneath.
+    const map = page.getByRole("group", { name: "Network map, 2 people" });
     await expect(map.getByRole("link", { name: /^Kemi Adebayo: good \(\d+\/100\)$/ })).toBeAttached();
     await expect(map.getByRole("link", { name: /^Kofi Mensah: weak \(\d+\/100\)$/ })).toBeAttached();
-    await expect(map.getByRole("link", { name: "Tola Ade: no touches yet" })).toBeAttached();
+    await expect(page.getByText("1 more person isn't on the map: no touches logged yet.")).toBeVisible();
     await expectAccessible(page);
 
     await map.getByRole("link", { name: /^Kemi Adebayo/ }).click();

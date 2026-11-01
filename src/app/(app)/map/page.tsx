@@ -31,23 +31,36 @@ async function MapSection() {
     const [view, ctx] = await Promise.all([loadSpaceView(tx), userContext(tx)]);
     return { map: await loadNetworkMap(tx, view.selected?.id ?? null, ctx.today), spaceName: view.selected?.name ?? "All spaces" };
   });
-  const placed = layoutNetwork(map.people, map.goals);
-  const strong = map.people.filter((p) => (p.strength ?? 0) >= 70).length;
-  const fading = map.people.filter((p) => p.strength != null && p.strength < 40).length;
+  // Only people you've been in touch with (or starred) have a place on the map; the rest are counted.
+  const onMap = map.people.filter((p) => p.strength != null || p.starred);
+  const untouched = map.total - onMap.length;
+  // Only when the cap actually cut off people you've been in touch with.
+  const capped = map.total > MAP_LIMIT && onMap.length === map.people.length;
+  const placed = layoutNetwork(onMap, map.goals);
+  const strong = onMap.filter((p) => (p.strength ?? 0) >= 70).length;
+  const fading = onMap.filter((p) => p.strength != null && p.strength < 40).length;
   return (
     <>
       <PageHeader
         stamp={`${spaceName} · ${map.total.toLocaleString("en-GB")} ${map.total === 1 ? "person" : "people"}`}
         title="Network map"
         subtitle={
-          map.people.length
-            ? `${strong} strong, ${fading} fading or weak.${map.total > MAP_LIMIT ? ` Showing your ${MAP_LIMIT} closest and starred.` : ""} Log a touch and they move closer.`
+          onMap.length
+            ? `${strong} strong, ${fading} fading or weak.${capped ? ` Showing your ${MAP_LIMIT} closest and starred.` : ""} Log a touch and they move closer.`
             : undefined
         }
       />
-      {placed.length ? (
-        <NetworkMap people={placed} goals={map.goals} />
-      ) : (
+      {placed.length ? <NetworkMap people={placed} goals={map.goals} /> : null}
+      {untouched > 0 ? (
+        <p className="mt-4 text-center text-small text-muted">
+          {untouched.toLocaleString("en-GB")} more {untouched === 1 ? "person isn't" : "people aren't"} on the map: {capped ? `no touches logged yet, or past your closest ${MAP_LIMIT}` : "no touches logged yet"}.{" "}
+          <Link href="/people" className="font-semibold text-accent hover:underline">
+            Log a touch
+          </Link>{" "}
+          with someone and they appear here.
+        </p>
+      ) : null}
+      {placed.length || untouched > 0 ? null : (
         <p className="text-muted">
           No one here yet.{" "}
           <Link href="/people/new" className="font-semibold text-accent hover:underline">

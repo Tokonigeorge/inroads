@@ -158,6 +158,8 @@
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
     -webkit-font-smoothing: antialiased;
+    /* A long URL or name breaks rather than pushing the page sideways. */
+    overflow-wrap: break-word;
     text-rendering: optimizeLegibility;
   }
   h1,
@@ -299,44 +301,6 @@ input[type="checkbox"]:checked {
   }
 }
 
-/* Network map: dots drift a little, starred ones glow, the "you" halo breathes. */
-@keyframes map-drift {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(var(--dx), var(--dy));
-  }
-}
-@keyframes map-glow {
-  0%,
-  100% {
-    opacity: 0.12;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-@keyframes map-breathe {
-  0%,
-  100% {
-    transform: scale(0.9);
-  }
-  50% {
-    transform: scale(1.08);
-  }
-}
-.map-drift {
-  animation: map-drift 7s ease-in-out infinite;
-}
-.map-glow {
-  animation: map-glow 2.8s ease-in-out infinite;
-}
-.map-breathe {
-  animation: map-breathe 6s ease-in-out infinite;
-}
-
 /* A goal's week done: confetti bursts out from the card once, then falls away. */
 @keyframes confetti {
   0% {
@@ -439,6 +403,9 @@ input[type="checkbox"]:checked {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  /* Long titles, links and names wrap inside the card instead of running out of it. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 /* Record sheets and lists (prototype L116–267): tags, chips, sections, key/value, timeline, rows. */
@@ -646,6 +613,7 @@ input[type="checkbox"]:checked {
     gap: 6px;
     align-content: start;
     min-width: 0;
+    overflow-wrap: anywhere;
   }
   .hint {
     font-size: 13px;
