@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { radiusFor, unit, type MapGoal, type PlacedPerson } from "@/domain/network-map";
+import { radiusFor, type MapGoal, type PlacedPerson } from "@/domain/network-map";
 import { strengthLabel } from "@/domain/relationship";
 
 /** One colour per goal, in goal order; people on no goal are grey. */
@@ -17,8 +17,8 @@ const RINGS = [
 
 /**
  * The network map: you in the middle, your people around you. Closer is a stronger relationship,
- * colour is the goal they're on, a glow means starred. Dots fly out from you when the map opens
- * and drift gently; tap one to open the person. Filter by goal to see who matters for it.
+ * colour is the goal they're on, a glow means starred. Dots fly out from you when the map opens,
+ * then stay still; the closest have their names on. Tap one to open the person. Filter by goal to see who matters for it.
  */
 export function NetworkMap({ people, goals }: { people: PlacedPerson[]; goals: MapGoal[] }) {
   const router = useRouter();
@@ -35,7 +35,13 @@ export function NetworkMap({ people, goals }: { people: PlacedPerson[]; goals: M
   const colourOf = (p: PlacedPerson) => (p.goalId && colour.has(p.goalId) ? colour.get(p.goalId)! : NO_GOAL);
   const inFilter = (p: PlacedPerson) => filter == null || (filter === "none" ? !p.goalId || !colour.has(p.goalId) : p.goalId === filter);
   const hasNoGoal = people.some((p) => !p.goalId || !colour.has(p.goalId));
-  const focus = people.find((p) => p.id === active);
+  // Names for the closest few (and starred), so the map reads without hovering; others on hover or focus.
+  const labelled = new Set(
+    [...people]
+      .sort((a, b) => Number(b.starred) - Number(a.starred) || (b.strength ?? -1) - (a.strength ?? -1))
+      .slice(0, 14)
+      .map((p) => p.id),
+  );
 
   return (
     <div className="grid gap-4">
@@ -67,13 +73,13 @@ export function NetworkMap({ people, goals }: { people: PlacedPerson[]; goals: M
           </defs>
           {RINGS.map((ring) => (
             <g key={ring.at} aria-hidden>
-              <circle r={radiusFor(ring.at)} fill="none" stroke="var(--line)" strokeWidth={0.004} strokeDasharray="0.012 0.012" />
-              <text y={-radiusFor(ring.at) - 0.015} textAnchor="middle" fontSize={0.035} fill="var(--faint)" className="font-mono uppercase">
+              <circle r={radiusFor(ring.at)} fill="none" stroke="var(--faint)" strokeOpacity={0.55} strokeWidth={0.004} strokeDasharray="0.014 0.012" />
+              <text y={-radiusFor(ring.at) - 0.015} textAnchor="middle" fontSize={0.035} fill="var(--muted)" className="font-mono uppercase">
                 {ring.label}
               </text>
             </g>
           ))}
-          <circle r={0.3} fill="url(#map-you)" aria-hidden className="map-breathe" />
+          <circle r={0.3} fill="url(#map-you)" aria-hidden />
           <circle r={0.07} fill="var(--accent)" aria-hidden />
           <text y={0.016} textAnchor="middle" fontSize={0.045} fontWeight={700} fill="var(--accent-ink)" aria-hidden>
             You
@@ -105,40 +111,35 @@ export function NetworkMap({ people, goals }: { people: PlacedPerson[]; goals: M
                   opacity: dim ? 0.12 : faded ? 0.6 : 1,
                 }}
               >
-                <g
-                  className="map-drift"
-                  style={{
-                    ["--dx" as string]: `${(unit(p.id) - 0.5) * 0.03}px`,
-                    ["--dy" as string]: `${(unit(p.id + "y") - 0.5) * 0.03}px`,
-                    animationDuration: `${5 + unit(p.id + "t") * 5}s`,
-                    animationDelay: `${-unit(p.id + "d") * 5}s`,
-                  }}
-                >
-                  {p.starred ? <circle r={size * 2} fill={c} opacity={0.25} className="map-glow" /> : null}
+                <g>
+                  {p.starred ? <circle r={size * 1.9} fill={c} opacity={0.22} /> : null}
                   <circle r={0.045} fill="transparent" />
-                  <circle r={active === p.id ? size * 1.5 : size} fill={c} stroke="var(--surface)" strokeWidth={0.006} style={{ transition: "r 150ms" }} />
+                  <circle r={active === p.id ? size * 1.5 : size} fill={c} stroke="var(--surface)" strokeWidth={0.006} />
                 </g>
               </a>
             );
           })}
 
-          {focus ? (
-            <g aria-hidden style={{ pointerEvents: "none" }}>
+          {people
+            .filter((p) => labelled.has(p.id) || p.id === active)
+            .map((p) => (
               <text
-                x={focus.x}
-                y={focus.y - 0.06}
+                key={`label-${p.id}`}
+                aria-hidden
+                x={p.x}
+                y={p.y - (p.starred ? 0.055 : 0.045)}
                 textAnchor="middle"
-                fontSize={0.05}
-                fontWeight={650}
+                fontSize={p.id === active ? 0.05 : 0.038}
+                fontWeight={p.id === active ? 700 : 550}
                 fill="var(--ink)"
                 stroke="var(--bg)"
-                strokeWidth={0.014}
+                strokeWidth={0.012}
                 paintOrder="stroke"
+                style={{ pointerEvents: "none", opacity: shown && inFilter(p) ? 1 : 0, transition: "opacity 400ms 900ms" }}
               >
-                {focus.name}
+                {p.name.split(/\s+/)[0]}
               </text>
-            </g>
-          ) : null}
+            ))}
         </svg>
       </div>
 

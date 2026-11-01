@@ -9,6 +9,7 @@ import { addDays, formatLongDate } from "@/domain/dates";
 import { formatPhone } from "@/domain/normalise";
 import { dueOn, dueState, effectiveCadence, personCadence, STRENGTH_WINDOW_DAYS, strength, warmth } from "@/domain/relationship";
 import { ChatImportButton } from "@/features/ai/chat-import";
+import { AiJobButton } from "@/features/ai/ai-job-button";
 import { DraftButton } from "@/features/ai/draft-sheet";
 import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
@@ -131,6 +132,9 @@ export function PersonRecord({ data }: { data: RecordData }) {
   const open = d.promises.filter((x) => !x.doneAt);
   const done = d.promises.filter((x) => x.doneAt);
   const aiEnabled = isAiConfigured();
+  // The Space research runs in from the top row: the one you're looking at, else their first that allows it.
+  const researchable = active.filter((m) => m.spaceDefaults.researchMode !== "off");
+  const researchSpace = researchable.find((m) => m.space.id === selectedSpaceId) ?? researchable[0];
   const socials = socialKeys.flatMap((k) => {
     const v = (p.socials as Record<string, string>)[k];
     const href = v ? socialHref(k, v) : null;
@@ -188,6 +192,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
         archived={archived}
         defaultSpaceId={selectedSpaceId ?? undefined}
         draft={<DraftButton personId={p.id} name={p.name} spaces={spaces} aiEnabled={aiEnabled} />}
+        research={researchSpace ? <AiJobButton aiEnabled={aiEnabled} size="md" job={{ kind: "research", personId: p.id, spaceId: researchSpace.space.id, mode: "research" }} label={researchSpace.spaceDefaults.researchMode === "full" ? `Research ${p.name.split(/\s+/)[0]}` : "Get to know"} /> : null}
         decodeHref={`/discover?${new URLSearchParams({ q: p.name, type: "person" })}`}
       />
 

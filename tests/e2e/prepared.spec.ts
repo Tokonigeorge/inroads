@@ -75,11 +75,16 @@ test.describe.serial("Walk in prepared, follow up in one tap (against a fake Cla
     await expect(sheet.getByRole("link", { name: "Open in WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\/2348031234567\?text=/);
   });
 
-  test("a person's page: paste a bio for research, or look up their world", async ({ page }) => {
+  test("a person's page: Research and Decode up top, pasting a bio for research below", async ({ page }) => {
     await page.goto(`/people/${ids.tunde}`);
+    // The key actions: research sits with Log a touch and Decode, not further down the page.
+    await expect(page.getByRole("button", { name: "Research Tunde", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Look up their world" })).toHaveCount(0);
     await page.getByText("Give Inroads more to work with").click();
-    await expect(page.getByLabel("More about Tunde")).toBeVisible();
-    await page.getByRole("button", { name: "Look up their world" }).click();
-    await expect(page.getByRole("heading", { name: "Kestrel Ventures", level: 1 })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: /^Research (Tunde|again) with this$/ })).toBeDisabled();
+    await page.getByLabel("More about Tunde").fill("Partner at Kestrel Ventures, backs fintech in Lagos.");
+    await expect(page.getByRole("button", { name: /^Research (Tunde|again) with this$/ })).toBeEnabled();
+    await page.getByRole("link", { name: "Decode their world" }).click();
+    await expect(page.getByLabel("What to decode")).toHaveValue(/Tunde/);
   });
 });

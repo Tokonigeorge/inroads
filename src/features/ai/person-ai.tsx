@@ -185,7 +185,6 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
                 spaceId={s.id}
                 name={name}
                 aiEnabled={aiEnabled}
-                canLookUp={s.kind === "work"}
                 savedPasted={notes.find((n) => n.spaceId === s.id)?.sourceNotes ?? ""}
                 label={s.researchMode === "full" ? (latest ? "Research again" : `Research ${first}`) : latest ? "Look again" : "Get to know"}
               />
