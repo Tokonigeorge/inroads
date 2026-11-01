@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: people set aside were half-hidden
+- Sorting an import suggests **Not now** for contacts with no meetings or details, which sets them aside (archived). They then vanished from search, and their page had a greyed-out **Log it**, no Research and no Draft message, with nothing saying why. Now a search finds them (marked "Set aside"), their page says why they're missing from lists with a **Bring back** button, and everything on the page works. Logging a touch brings them back on its own.
+- The touch and promise forms never sit disabled without a reason: if someone isn't in any Space, the form says so.
+- **Deleting, archiving or removing someone from a Space updates the People list straight away**, without a reload.
+
 ### Added: network map and a celebration when a goal's week is done
 - **Network map** (People → See your network map, or ⌘K "Network map"): you in the middle and your people around you. Closer means a stronger relationship (the same 0–100 strength as a person's page), colour is the goal they're on, a glow means starred, and people with no touches yet sit at the edge. Dots fly out from you when it opens and drift gently; tap one to open the person, or filter by goal. Up to 150 people (starred and strongest first). No addresses or map service involved.
 - **Week done**: when a goal meets its weekly target, Today and the goal's page celebrate once, with a short confetti burst and a card ("2 of 2 this week for …"). Remembered per goal per week on this device. Reduced motion keeps the card and drops the confetti.

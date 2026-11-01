@@ -130,7 +130,7 @@ test.describe.serial("People", () => {
     await expect(page.getByText("Goes to the same church")).toHaveCount(0);
   });
 
-  test("archive and delete can both be undone", async ({ page }) => {
+  test("archive and delete can both be undone, and the list keeps up", async ({ page }) => {
     await page.goto("/people");
     await page.getByRole("searchbox", { name: "Search people" }).fill(name);
     await page.getByRole("link", { name: new RegExp(name) }).click();
@@ -138,13 +138,29 @@ test.describe.serial("People", () => {
 
     await page.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("menuitem", { name: "Archive" }).click();
-    await expect(page.getByRole("article").getByText("Archived", { exact: true })).toBeVisible();
+    await expect(page.getByRole("article").getByText("Set aside", { exact: true })).toBeVisible();
+    // Set aside, they still have a working page: a note says why they're missing, and a touch can be logged.
+    await expect(page.getByRole("note").filter({ hasText: "is set aside" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a touch", exact: true }).first()).toBeEnabled();
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(page.getByRole("article").getByText("Archived", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("article").getByText("Set aside", { exact: true })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Archive" }).click();
+    await expect(page.getByRole("note").filter({ hasText: "is set aside" })).toBeVisible();
+    await page.goto("/people");
+    await page.getByRole("searchbox", { name: "Search people" }).fill(name);
+    await expect(page.getByRole("link", { name: new RegExp(name) })).toContainText("Set aside");
+    await page.getByRole("link", { name: new RegExp(name) }).click();
+    await page.getByRole("button", { name: "Bring back" }).click();
+    await expect(page.getByRole("note").filter({ hasText: "is set aside" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(page).toHaveURL(/\/people$/);
+    // Gone from the list straight away, without a reload.
+    await page.getByRole("searchbox", { name: "Search people" }).fill(name);
+    await expect(page.getByRole("link", { name: new RegExp(name) })).toHaveCount(0);
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(page).toHaveURL(url);
     await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();

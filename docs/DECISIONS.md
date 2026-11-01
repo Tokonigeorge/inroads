@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-01: people set aside stay findable
+
+181. **"Set aside" (Not now, or archived) hides someone from lists and reminders, not from search or their own page.** The sort suggests Not now for most bare phone contacts, so whole chunks of an import were unfindable and their pages were dead ends (disabled Log it, no Research). Search now includes them with a "Set aside" mark; their page works in full and offers Bring back; logging a touch unarchives the membership it's logged in. To reverse: put back `ps.archived_at is null` for searches in `listPeople`.
+
 ## 2026-10-29: network map, week-done celebration
 
 179. **The network map draws relationships, not places** (owner: "a map of things, something visual"). Radius is strength (same formula as everywhere), slices of the circle are goals (highest-priority active goal per person, sized by headcount with a floor), colour is goal, glow is starred. Layout is pure and deterministic (`domain/network-map.ts`), so a person stays put between visits and only moves when their strength changes. Capped at 150 people, starred and strongest first: past that it's noise. Its own page at `/map` (nothing may sit at `/people/[id]` depth). SVG and CSS only, no chart library. To reverse: delete `/map` and the People header link.

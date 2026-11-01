@@ -55,6 +55,7 @@ function Row({ p, today, showSpaces }: { p: PersonListItem; today: string; showS
         </span>
         <span className="row-sub">{role}</span>
         {p.whereMet ? <span className="row-sub">Met: {p.whereMet}</span> : null}
+        {p.archived ? <span className="row-sub">Set aside · open them to bring them back</span> : null}
       </span>
       <span className="grid justify-items-end gap-1">
         {p.score != null ? (

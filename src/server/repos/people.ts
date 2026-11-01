@@ -43,6 +43,8 @@ export type PersonListItem = {
   cadenceDays: number | null;
   dueOn: IsoDate | null;
   unsorted: boolean;
+  /** Set aside in every Space they're in (only shows up in searches and the Archived filter). */
+  archived: boolean;
   spaces: { id: string; name: string }[];
   /** Where you met them (their first Space that has it). */
   whereMet: string | null;
@@ -77,6 +79,7 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
              min(nullif(coalesce(ps.cadence_days, c.default_cadence_days, (s.defaults ->> 'cadenceDays')::int), 0)) as cadence,
              max(ps.cadence_anchor_on) as anchor,
              bool_or(ps.triage_state = 'pending') as unsorted,
+             bool_and(ps.archived_at is not null) as archived,
              bool_and(ps.where_met is null and cardinality(ps.interests) = 0) as needs_context,
              (array_agg(ps.where_met order by s.position) filter (where ps.where_met is not null))[1] as where_met,
              array_agg(s.name order by s.position) as spaces,
@@ -89,7 +92,7 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
       having ${sql.join(having, sql` and `)}
     ),
     base as (
-      select p.*, m.starred, m.cadence, m.unsorted, m.spaces, m.space_ids, m.needs_context, m.where_met,
+      select p.*, m.starred, m.cadence, m.unsorted, m.archived, m.spaces, m.space_ids, m.needs_context, m.where_met,
              case when m.cadence is null then null
                   else coalesce(p.last_touched_on, m.anchor, (p.created_at at time zone 'UTC')::date) + m.cadence end as r_due_on
         from people p join m on m.person_id = p.id
@@ -107,7 +110,8 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
 
   const membershipWhere: SQL[] = [sql`true`];
   if (q.spaceId) membershipWhere.push(sql`ps.space_id = ${q.spaceId}`);
-  if (!archivedView) membershipWhere.push(sql`ps.archived_at is null`);
+  // A search also finds people set aside ("Not now" when sorting, or archived): the row says so.
+  if (!archivedView && !q.q) membershipWhere.push(sql`ps.archived_at is null`);
 
   const having: SQL[] = [sql`true`];
   if (archivedView) having.push(sql`bool_and(ps.archived_at is not null)`);
@@ -167,6 +171,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     cadence: number | null;
     due_on: string | null;
     unsorted: boolean;
+    archived: boolean;
     spaces: string[];
     space_ids: string[];
     sort_key: string;
@@ -175,7 +180,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
   }>(sql`
     ${personRollup(membershipWhere, having)}
     select p.id, p.name, p.company, p.position, p.last_touched_on::text as last_touched_on, p.starred, p.cadence,
-           p.r_due_on::text as due_on, p.unsorted, p.spaces, p.space_ids, p.sort_key, p.where_met, p.score
+           p.r_due_on::text as due_on, p.unsorted, p.archived, p.spaces, p.space_ids, p.sort_key, p.where_met, p.score
       from (
         select p.*, ${sort.key} as sort_key
           from (
@@ -203,6 +208,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     cadenceDays: r.cadence,
     dueOn: r.due_on,
     unsorted: r.unsorted,
+    archived: r.archived,
     spaces: r.spaces.map((name, i) => ({ id: r.space_ids[i], name })),
     whereMet: r.where_met,
     score: r.score,
@@ -420,11 +426,11 @@ export async function logTouch(tx: Tx, userId: string, raw: TouchInput): Promise
       .values({ id: d.promise.id, userId, personId: d.personId, spaceId: d.spaceId, text: d.promise.text, owner: d.promise.owner, dueOn: d.promise.dueOn, interactionId: d.id })
       .onConflictDoNothing({ target: t.commitments.id });
   }
-  // Logging a touch counts as sorting them: they're clearly someone you keep up with.
+  // Logging a touch counts as sorting them, and brings back someone set aside: you're clearly in touch.
   await tx
     .update(t.personSpaces)
-    .set({ triageState: "done" })
-    .where(and(eq(t.personSpaces.personId, d.personId), eq(t.personSpaces.spaceId, d.spaceId), ne(t.personSpaces.triageState, "done")));
+    .set({ triageState: "done", archivedAt: null })
+    .where(and(eq(t.personSpaces.personId, d.personId), eq(t.personSpaces.spaceId, d.spaceId), sql`(${t.personSpaces.triageState} <> 'done' or ${t.personSpaces.archivedAt} is not null)`));
   return { ok: true, data: { id: d.id } };
 }
 

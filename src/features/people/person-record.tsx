@@ -13,7 +13,7 @@ import { DraftButton } from "@/features/ai/draft-sheet";
 import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
 import { IntroAsk, type IntroSpace } from "@/features/people/intro-ask";
-import { DeleteButton, LogTouchButton, PersonActions, PromiseCheck, RemoveFromSpaceButton } from "@/features/people/person-actions";
+import { DeleteButton, LogTouchButton, PersonActions, PromiseCheck, RemoveFromSpaceButton, SetAsideNote } from "@/features/people/person-actions";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -113,8 +113,10 @@ function goalStages(d: PersonDetail, g: PersonDetail["goals"][number]) {
 export function PersonRecord({ data }: { data: RecordData }) {
   const { detail: d, today, rooms, goalOptions, introSpaces, intros, score, selectedSpaceId, userId, myName } = data;
   const p = d.person;
-  const active = d.memberships.filter((m) => !m.archivedAt && !m.space.archived);
   const archived = d.memberships.length > 0 && d.memberships.every((m) => m.archivedAt);
+  // Someone set aside ("Not now" when sorting, or archived) still gets the full page: logging a
+  // touch, research and drafts work, and logging a touch brings them back.
+  const active = d.memberships.filter((m) => !m.space.archived && (archived || !m.archivedAt));
   const cadence = personCadence(active.map((m) => effectiveCadence(m.cadenceDays, m.circle?.defaultCadenceDays, m.spaceDefaults.cadenceDays)));
   const anchor = active.map((m) => m.cadenceAnchorOn).filter(Boolean).sort().at(-1) ?? null;
   const due = dueState(dueOn({ lastTouchedOn: p.lastTouchedOn, anchorOn: anchor, createdOn: p.createdAt.toISOString().slice(0, 10), cadenceDays: cadence }), today);
@@ -160,7 +162,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
                 #{tag}
               </span>
             ))}
-            {archived ? <span className="tag">Archived</span> : null}
+            {archived ? <span className="tag">Set aside</span> : null}
           </div>
         </div>
         <StarToggle personId={p.id} starred={starred} />
@@ -180,6 +182,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
         {due ? (due.due ? <strong className="font-[550] text-accent">{due.label}</strong> : `${cadenceLabel(cadence)} · ${due.label.toLowerCase()}`) : "No reminder"}
       </p>
 
+      {archived ? <SetAsideNote personId={p.id} name={p.name} /> : null}
       <PersonActions
         person={picked}
         archived={archived}
