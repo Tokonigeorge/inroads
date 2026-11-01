@@ -97,6 +97,11 @@ export const profiles = pgTable(
     industries: textArray("industries"),
     /** "Notes for Inroads": free text every AI feature reads as a preference, not a rule. */
     aiNotes: text("ai_notes"),
+    /** Push a "how did it go?" when a meeting from your calendar ends. */
+    notifyAfterMeetings: boolean("notify_after_meetings").notNull().default(true),
+    /** A wrap-up nudge every N days at `wrapUpTime` (your time zone); 0 means off. */
+    wrapUpEveryDays: integer("wrap_up_every_days").notNull().default(1),
+    wrapUpTime: time("wrap_up_time").notNull().default("18:00"),
     emails: citextArray("emails").notNull().default(sql`'{}'::citext[]`),
     timezone: text("timezone").notNull().default("Africa/Lagos"),
     defaultRegion: text("default_region").notNull().default("NG"),
@@ -767,4 +772,31 @@ export const aiUsage = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("ai_usage_user_feature_idx").on(t.userId, t.feature, t.createdAt), ...ownerReadOnly("ai_usage")],
+);
+
+/** Browsers that agreed to get notifications (Web Push). One row per device. */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: id(),
+    userId: userId(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("push_subscriptions_endpoint_key").on(t.endpoint), index("push_subscriptions_user_idx").on(t.userId), ...ownerPolicies("push_subscriptions")],
+);
+
+/** Notifications already sent, by key ("meeting:<event>:<date>", "wrapup:<date>"), so none goes twice. */
+export const notificationLog = pgTable(
+  "notification_log",
+  {
+    id: id(),
+    userId: userId(),
+    key: text("key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("notification_log_user_key").on(t.userId, t.key), ...ownerReadOnly("notification_log")],
 );

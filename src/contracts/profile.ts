@@ -68,3 +68,13 @@ export const profileGoalsSchema = z.object({
 });
 
 export type ProfileGoalsInput = z.input<typeof profileGoalsSchema>;
+
+/** Settings → Notifications: what to be nudged about, and when. */
+export const wrapUpFrequencies = [1, 2, 3, 7, 0] as const;
+export const wrapUpFrequencyLabels: Record<(typeof wrapUpFrequencies)[number], string> = { 1: "Every day", 2: "Every 2 days", 3: "Every 3 days", 7: "Once a week", 0: "Off" };
+export const notifyPrefsSchema = z.object({
+  afterMeetings: z.boolean(),
+  wrapUpEveryDays: z.coerce.number().refine((n) => (wrapUpFrequencies as readonly number[]).includes(n), "Choose how often."),
+  wrapUpTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a time."),
+});
+export type NotifyPrefs = z.input<typeof notifyPrefsSchema>;

@@ -5,7 +5,7 @@ import { firstIssue } from "@/contracts/issues";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { goalTypes, type GoalType } from "@/contracts/goals";
-import { profileGoalsSchema, profileSchema, type ProfileGoalsInput } from "@/contracts/profile";
+import { notifyPrefsSchema, profileGoalsSchema, profileSchema, type NotifyPrefs, type ProfileGoalsInput } from "@/contracts/profile";
 import { todayIn } from "@/domain/dates";
 import { fieldErrors, type FormState } from "@/features/forms";
 import { deleteAccount } from "@/server/account/delete";
@@ -16,6 +16,7 @@ import { db } from "@/server/db/client";
 import { createGoal } from "@/server/repos/goals";
 import { loadExampleData, removeExampleData } from "@/server/seed/example";
 import { readSelectedSpaceId } from "@/server/space-selection";
+import { pushToUser } from "@/server/system/notify";
 import * as t from "@/server/db/schema";
 
 export async function loadExamplesAction() {
@@ -103,4 +104,23 @@ export async function saveProfileGoalsAction(input: ProfileGoalsInput): Promise<
   if (!r.ok) return { message: r.message };
   refresh();
   return { ok: true, savedAt: Date.now(), id: r.firstNew };
+}
+
+/** Settings → Notifications: after-meeting nudges and the wrap-up's frequency and time. */
+export async function saveNotifyPrefsAction(input: NotifyPrefs): Promise<FormState> {
+  const user = await requireUser();
+  const parsed = notifyPrefsSchema.safeParse(input);
+  if (!parsed.success) return { message: firstIssue(parsed.error) };
+  const p = parsed.data;
+  await db.withUser(user.id, (tx) =>
+    tx.update(t.profiles).set({ notifyAfterMeetings: p.afterMeetings, wrapUpEveryDays: p.wrapUpEveryDays, wrapUpTime: p.wrapUpTime }).where(eq(t.profiles.userId, user.id)),
+  );
+  refresh();
+  return { ok: true, savedAt: Date.now() };
+}
+
+/** "Send a test": a notification to every device you turned them on for. */
+export async function sendTestNotificationAction(): Promise<{ sent: number }> {
+  const user = await requireUser();
+  return { sent: await pushToUser(user.id, { title: "Notifications are on", body: "This is how Inroads will nudge you after meetings and for your wrap-up.", url: "/today", tag: "test" }) };
 }

@@ -10,6 +10,7 @@ import { briefsDue, radarDue, usersAtBriefTime } from "@/server/system/briefs";
 import { refreshStarredResearch, researchUpcomingAttendees } from "@/server/ai/auto-research";
 import { connectionsStore } from "@/server/system/connections";
 import { jobsStore } from "@/server/system/jobs";
+import { sendDueNotifications } from "@/server/system/notify";
 
 export const inngest = new Inngest({ id: "inroads" });
 
@@ -85,6 +86,11 @@ export const prepareBriefs = inngest.createFunction({ id: "prepare-briefs", trig
   return { scheduled: due.length, radar: radar.length, prepUsers: users.length };
 });
 
+/** Every 15 minutes: "How did it go?" after meetings end, and wrap-ups at each person's chosen time. */
+export const sendNotifications = inngest.createFunction({ id: "send-notifications", triggers: [{ cron: "*/15 * * * *" }] }, async ({ step }) => {
+  return step.run("send", () => sendDueNotifications());
+});
+
 /** Daily clean-up: purge things deleted more than 30 days ago and expired nudge states. */
 export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", triggers: [{ cron: "17 3 * * *" }] }, async ({ step }) => {
   return step.run("purge", async () => {
@@ -104,8 +110,10 @@ export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", trigge
       .where(and(eq(t.imports.status, "review"), lt(t.imports.createdAt, new Date(Date.now() - 2 * 86_400_000))))
       .returning({ id: t.imports.id });
     if (stale.length) await sys.delete(t.importItems).where(inArray(t.importItems.importId, stale.map((s) => s.id)));
+    // The sent-notifications log only has to remember a couple of weeks (wrap-ups look back at most 7 days).
+    await sys.delete(t.notificationLog).where(lt(t.notificationLog.createdAt, new Date(Date.now() - 30 * 86_400_000)));
     return { people: people.length, events: events.length, nudges: nudges.length, jobs: jobs.length, staleImports: stale.length };
   });
 });
 
-export const functions = [syncConnection, scheduleSyncs, dailyCleanup, aiJob, prepareBriefs, exportData];
+export const functions = [syncConnection, scheduleSyncs, dailyCleanup, aiJob, prepareBriefs, exportData, sendNotifications];

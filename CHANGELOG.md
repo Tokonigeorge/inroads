@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: notifications after meetings and a wrap-up (needs a migration and two keys)
+- **Settings → Notifications:** turn on push for this device (phone or computer). Then:
+  - **After a meeting ends, ask how it went:** for meetings from your calendar, a notification when they finish ("How did Pitch with Kemi go?"); one tap opens *Who did you meet?* for that session.
+  - **Wrap-up:** every day, every 2 or 3 days, weekly, or off, at a time you choose. It says what's on ("2 meetings today, 3 people to catch up with") and opens Capture to note anything in a few words.
+  - **Send a test** to check it works.
+- Today shows a card to set this up until notifications are on (or you say Not now).
+- Works in Chrome, Edge and Firefox, including the installed app on Android. On iPhone, only once Inroads is on the Home Screen. Nothing goes by email.
+- Setup: run migration `20261101223352_push_notifications`; add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (generate with `npx web-push generate-vapid-keys`).
+
+### Fixed: the microphone in Capture
+- **Record a voice note** asks for the microphone first, so the browser shows its usual Allow prompt. When it's blocked, it says exactly where to allow it.
+
 ### Changed: a calmer, readable network map; Research up top; new contacts show up
 - **Network map:** only people you've logged a touch with (or starred) are placed; the rest are counted underneath with a way to start. The closest have their names on, dots no longer drift or pulse (they flickered under the cursor), and the rings are easier to see.
 - **A person's page:** **Research** (or Get to know) sits in the top row with Log a touch, Draft and Decode their world. The duplicate "Look up their world" button is gone (Decode does that); "Give Inroads more to work with" below now runs research with what you paste.
