@@ -35,8 +35,9 @@ export const useVoiceSupported = () => useSyncExternalStore(noSubscribe, () => B
 
 const MAX_MS = 90_000;
 const errors: Record<string, string> = {
-  "not-allowed": "Microphone access is off. Allow it for this site in your browser settings, or type instead.",
-  "service-not-allowed": "Microphone access is off. Allow it for this site in your browser settings, or type instead.",
+  "not-allowed":
+    "The microphone is blocked for Inroads. In Chrome, tap the icon left of the address, then Permissions → Microphone → Allow (in the installed app: long-press its icon, App info → Permissions). Then try again.",
+  "service-not-allowed": "This browser won't do speech-to-text here. Chrome on Android or a computer works; or type instead.",
   "no-speech": "Didn't catch anything. Try again a little closer to the microphone.",
   "audio-capture": "No microphone was found. Type instead.",
   network: "Voice needs a connection in this browser. Type instead, or try again when you're online.",
@@ -53,6 +54,20 @@ export function VoiceButton({ onText, onDone, disabled }: { onText: (text: strin
 
   useEffect(() => () => rec.current?.abort(), []);
   if (!supported) return null;
+
+  /** Ask for the microphone first, so the browser shows its usual "Allow microphone?" prompt. */
+  async function askThenStart() {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
+      stream?.getTracks().forEach((t) => t.stop());
+    } catch (e) {
+      const name = (e as { name?: string }).name;
+      // Blocked: say how to allow it. Anything else (no device found, no API): let speech recognition try and report.
+      if (name === "NotAllowedError" || name === "SecurityError") return setError(errors["not-allowed"]);
+    }
+    start();
+  }
 
   function start() {
     const Ctor = ctor();
@@ -96,7 +111,7 @@ export function VoiceButton({ onText, onDone, disabled }: { onText: (text: strin
             <Square size={14} aria-hidden /> Stop
           </Button>
         ) : (
-          <Button onClick={start} disabled={disabled}>
+          <Button onClick={() => void askThenStart()} disabled={disabled}>
             <Mic size={16} aria-hidden /> Record a voice note
           </Button>
         )}

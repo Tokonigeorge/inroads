@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CardScan } from "@/features/ai/card-scan";
 import { ChatImportForm } from "@/features/ai/chat-import";
 import { QuickCapture } from "@/features/capture/quick-capture";
@@ -31,6 +31,15 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const open = useCallback((args: OpenArgs = {}) => setState((s) => ({ open: true, mode: args.mode ?? "menu", person: args.person, spaceId: args.spaceId, line: args.line, key: s.key + 1 })), []);
   const close = () => setState((s) => ({ ...s, open: false }));
   useShortcut("c", () => open());
+  // The wrap-up notification opens /today?capture=1: go straight to Capture, then tidy the address.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("capture") !== "1") return;
+    url.searchParams.delete("capture");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    const id = requestAnimationFrame(() => open());
+    return () => cancelAnimationFrame(id);
+  }, [open]);
   const api = useMemo(() => ({ open }), [open]);
   const { data: spaces } = useSpaces();
   const spaceId = state.spaceId ?? spaces?.selectedId ?? undefined;

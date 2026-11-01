@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DeleteAccount } from "@/features/settings/delete-account";
+import { NotificationSettings } from "@/features/settings/notification-settings";
+import { pushConfigured } from "@/server/system/notify";
 import { SpacesSettings } from "@/features/spaces/spaces-settings";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { requireUser } from "@/server/auth";
@@ -59,6 +61,16 @@ async function Settings() {
       </Section>
 
       <SpacesSettings spaces={spaces} />
+
+      <section id="notifications" className="scroll-mt-20">
+        <Section title="Notifications">
+          <NotificationSettings
+            configured={pushConfigured()}
+            publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+            prefs={{ afterMeetings: profile.notifyAfterMeetings, wrapUpEveryDays: profile.wrapUpEveryDays, wrapUpTime: profile.wrapUpTime.slice(0, 5) }}
+          />
+        </Section>
+      </section>
 
       <Section title="Connections">
         <div className="grid gap-3">

@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-01: notifications
+
+184. **Nudges are Web Push, not email or SMS** (owner: notify after meetings and a wrap-up at a chosen frequency; no meeting recording or email reading for now). Push works for the installed app on Android and in desktop browsers; on iPhone only from the Home Screen. A 15-minute Inngest job sends "How did it go?" for sessions that ended in the last 20 minutes (no end time counts as an hour) and the wrap-up in the half hour after the chosen time; `notification_log` keys stop repeats. Devices the push service says are gone are deleted. Email as a fallback can come later if people without push miss it.
+185. **The wrap-up opens Capture, the meeting nudge opens "Who did you meet?"**: both already exist, so a notification leads straight to the one screen that turns it into a log, rather than a new screen.
+
 ## 2026-11-01: map placement, research up top
 
 182. **The network map places only people you've been in touch with (or starred).** A fresh import is mostly people with no touches; drawn on the edge they made an unreadable ring. They're counted under the map instead. Names show for the closest 14 (and starred), and nothing moves after the dots arrive. To reverse: drop the `onMap` filter in `app/(app)/map/page.tsx`.

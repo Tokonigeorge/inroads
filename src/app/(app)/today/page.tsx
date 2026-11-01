@@ -12,6 +12,7 @@ import { BriefBlock, loadBriefs } from "@/features/ai/briefs";
 import { AiJobButton } from "@/features/ai/ai-job-button";
 import type { RoomIdea } from "@/features/ai/room-ideas";
 import { WeekCelebration } from "@/features/goals/week-celebration";
+import { NotifyPrompt } from "@/features/settings/notify-prompt";
 import { ForYourGoals, type GoalRooms } from "@/features/today/for-your-goals";
 import { NudgeFeed } from "@/features/today/nudge-feed";
 import { requireUser } from "@/server/auth";
@@ -25,6 +26,7 @@ import { getAccountOverview } from "@/server/repos/account";
 import { listConnections } from "@/server/repos/connections";
 import { listUpcoming } from "@/server/repos/rooms";
 import { listNudges, personSpacesFor, todayAgenda, type AgendaEntry } from "@/server/repos/nudges";
+import { pushConfigured } from "@/server/system/notify";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
@@ -80,11 +82,13 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
       const reconnect = (await listConnections(tx)).filter((a) => a.status === "error" && a.lastError === "reconnect").map((a) => a.accountEmail ?? a.provider);
       const [anyGoal] = await tx.select({ id: t.goals.id }).from(t.goals).where(and(isNull(t.goals.archivedAt), eq(t.goals.example, false), eq(t.goals.active, true))).limit(1);
       const week = weekly ? await loadWeek(tx, view, c) : null;
+      const [anyDevice] = await tx.select({ id: t.pushSubscriptions.id }).from(t.pushSubscriptions).limit(1);
       // A goal's week done is celebrated on either view.
       const weekGoals = week ? week.goals : anyGoal ? (await listGoals(tx, c)).filter((g) => g.active && !g.archived) : [];
       return {
         celebrate: weekGoals.map((g) => { const m = progressMeter(g.progress); return { id: g.id, text: g.text, done: m.done, target: m.target }; }),
         hasGoals: Boolean(anyGoal),
+        notifyOn: Boolean(anyDevice),
         agenda,
         nudges,
         spaces,
@@ -167,6 +171,8 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
             </Button>
           </div>
         </section>
+      ) : !data.notifyOn && pushConfigured() ? (
+        <NotifyPrompt />
       ) : null}
 
       {weekly && data.week ? (

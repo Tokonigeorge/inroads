@@ -1,9 +1,9 @@
-/* Inroads service worker (milestone 1: app shell + offline page).
+/* Inroads service worker: app shell + offline page, and push notifications.
  * - Static build assets and icons: cache first (they're content-hashed).
  * - Page navigations: network first, falling back to the offline page.
  * - API and auth requests are never cached here.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC = `inroads-static-${VERSION}`;
 const OFFLINE_URL = "/offline";
 
@@ -46,4 +46,35 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") {
     event.respondWith(fetch(req).catch(() => caches.match(OFFLINE_URL)));
   }
+});
+
+/* Push: "How did it go?" after a meeting, and the wrap-up. Tapping opens the page it points to. */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Inroads", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Inroads", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag,
+      data: { url: data.url || "/today" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || "/today", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (open) return open.navigate(url).then((w) => (w || open).focus());
+      return self.clients.openWindow(url);
+    }),
+  );
 });
