@@ -1,6 +1,7 @@
 "use client";
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
+import { useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,33 @@ export function LogTouchButton({ person, defaultSpaceId, label = "Log a touch", 
   );
 }
 
+/** On someone set aside: say why they're missing from lists, and bring them back in one tap. */
+export function SetAsideNote({ personId, name }: { personId: string; name: string }) {
+  const [pending, start] = useTransition();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return (
+    <div role="note" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-sunk px-3.5 py-2.5 text-[14px]">
+      <span className="min-w-0 flex-1">
+        {name} is set aside (&ldquo;Not now&rdquo; when sorting, or archived), so they&apos;re not in your lists or reminders. Logging a touch brings them back.
+      </span>
+      <Button
+        size="sm"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            await setArchivedAction(personId, false);
+            void queryClient.invalidateQueries({ queryKey: ["people"] });
+            toast.show(`${name} is back.`);
+          })
+        }
+      >
+        Bring back
+      </Button>
+    </div>
+  );
+}
+
 /**
  * The record's one row of actions in the prototype's order (L1039): Log a touch, Draft message,
  * Decode their world, Edit; promises, other Spaces, archive and delete under More.
@@ -45,19 +73,24 @@ export function PersonActions({
   const capture = useCapture();
   const router = useRouter();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [, start] = useTransition();
+  // The People list keeps its pages in a client cache: drop them after a delete or archive.
+  const relist = () => void queryClient.invalidateQueries({ queryKey: ["people"] });
   useShortcut("l", () => capture.open({ mode: "touch", person, spaceId: defaultSpaceId }));
   useShortcut("e", () => router.push(`/people/${person.id}/edit`));
 
   const remove = () =>
     start(async () => {
       await deletePersonAction(person.id);
+      relist();
       router.push("/people");
       router.refresh();
       toast.show(`${person.name} deleted.`, {
         label: "Undo",
         onClick: () => start(async () => {
           await restorePersonAction(person.id);
+          relist();
           router.push(`/people/${person.id}`);
         }),
       });
@@ -65,7 +98,20 @@ export function PersonActions({
   const archive = (to: boolean) =>
     start(async () => {
       await setArchivedAction(person.id, to);
-      toast.show(to ? `${person.name} archived. They won't appear in lists or reminders.` : `${person.name} is back.`, to ? { label: "Undo", onClick: () => start(() => setArchivedAction(person.id, false)) } : undefined);
+      relist();
+      toast.show(
+        to ? `${person.name} archived. They won't appear in lists or reminders.` : `${person.name} is back.`,
+        to
+          ? {
+              label: "Undo",
+              onClick: () =>
+                start(async () => {
+                  await setArchivedAction(person.id, false);
+                  relist();
+                }),
+            }
+          : undefined,
+      );
     });
   const item = "flex h-9 items-center rounded-md px-2.5 outline-none data-[highlighted]:bg-sunken";
 
@@ -157,6 +203,7 @@ export function RemoveFromSpaceButton({ personId, spaceId, spaceName, personName
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+  const queryClient = useQueryClient();
   if (!confirming) {
     return (
       <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
@@ -178,7 +225,10 @@ export function RemoveFromSpaceButton({ personId, spaceId, spaceName, personName
             start(async () => {
               const r = await removeFromSpaceAction(personId, spaceId);
               if (r.message) setError(r.message);
-              else toast.show(`Removed from ${spaceName}.`);
+              else {
+                void queryClient.invalidateQueries({ queryKey: ["people"] });
+                toast.show(`Removed from ${spaceName}.`);
+              }
             })
           }
         >

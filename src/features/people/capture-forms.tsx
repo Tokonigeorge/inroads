@@ -34,6 +34,9 @@ export function useAfterCapture() {
   };
 }
 
+/** Shown instead of a silently disabled button when the person isn't in any Space. */
+const noSpace = (name: string) => `${firstName(name)} isn't in a Space any more. Open their page and add them to one first.`;
+
 function SpaceSelect({ person, value, onChange }: { person: PickedPerson; value: string; onChange: (v: string) => void }) {
   if (person.spaces.length < 2) return null;
   return (
@@ -74,6 +77,7 @@ export function LogTouchForm({ person, defaultSpaceId, onDone }: { person: Picke
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const promiseText = String(f.get("promise") ?? "").trim();
+    if (!spaceId) return setError(noSpace(person.name));
     if (withPromise && !promiseText) return setError("Say what was promised, or untick the promise.");
     setBusy(true);
     try {
@@ -127,7 +131,7 @@ export function LogTouchForm({ person, defaultSpaceId, onDone }: { person: Picke
           {error}
         </p>
       ) : null}
-      <Button type="submit" variant="primary" size="lg" disabled={busy || !spaceId}>
+      <Button type="submit" variant="primary" size="lg" disabled={busy}>
         {busy ? "Saving…" : "Log it"}
       </Button>
     </form>
@@ -165,6 +169,7 @@ export function AddPromiseForm({ person, defaultSpaceId, onDone }: { person: Pic
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const text = String(f.get("promise") ?? "").trim();
+    if (!spaceId) return setError(noSpace(person.name));
     if (!text) return setError("Say what was promised.");
     setBusy(true);
     const r = await sendCapture({
@@ -184,7 +189,7 @@ export function AddPromiseForm({ person, defaultSpaceId, onDone }: { person: Pic
           {error}
         </p>
       ) : null}
-      <Button type="submit" variant="primary" size="lg" disabled={busy || !spaceId}>
+      <Button type="submit" variant="primary" size="lg" disabled={busy}>
         {busy ? "Saving…" : "Add promise"}
       </Button>
     </form>

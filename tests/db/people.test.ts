@@ -166,6 +166,17 @@ describe("the people list", () => {
     expect(names(await list({}))).toContain("Seun Bello");
   });
 
+  it("a search still finds someone set aside, and logging a touch brings them back", async () => {
+    await as((tx) => setPersonArchived(tx, ids.seun, true));
+    const found = await list({ q: "Seun" });
+    expect(found.items.map((i) => [i.name, i.archived])).toEqual([["Seun Bello", true]]);
+    expect(names(await list({}))).not.toContain("Seun Bello");
+    const [m] = await sql`select space_id from person_spaces where person_id = ${ids.seun} limit 1`;
+    const r = await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: ids.seun, spaceId: m.space_id, occurredOn: TODAY, type: "call" }));
+    expect(r.ok).toBe(true);
+    expect((await list({})).items.find((i) => i.name === "Seun Bello")?.archived).toBe(false);
+  });
+
   it("deletes with undo", async () => {
     await as((tx) => deletePerson(tx, ids.seun));
     expect(names(await list({}))).not.toContain("Seun Bello");
