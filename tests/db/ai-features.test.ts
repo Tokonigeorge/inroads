@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { todayIn } from "@/domain/dates";
 import { MOVED_PREFIX } from "@/domain/nudges";
 import { starredDueForRefresh } from "@/server/ai/auto-research";
+import { applyRefreshBatch, captureRefreshRequests, refreshBatchEnded, submitRefreshBatch } from "@/server/ai/batch-refresh";
 import { draftMessage, findForStep, importChat, lookUp, researchPerson, scorePeople, writeBrief } from "@/server/ai/features";
 import type { Tx } from "@/server/db/with-user";
 import { runAiJob } from "@/server/jobs/ai-jobs";
@@ -211,6 +212,35 @@ describe("refreshing priority people", () => {
     expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([]);
     await sql`update dossiers set created_at = now() - interval '40 days' where person_id = ${kemi}`;
     expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([{ personId: kemi, spaceId: work }]);
+
+    // The monthly refresh goes through the Batches API: built without sending, saved from the answer.
+    const before = (await sql`select count(*)::int as n from dossiers where person_id = ${kemi}`)[0].n;
+    const batch = fakeAnthropic(() => ({ json: { ...research, goalId } }));
+    const captured = await captureRefreshRequests(user.id, { client: batch.client, sys, db });
+    expect(batch.calls).toHaveLength(0);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatchObject({ personId: kemi, spaceId: work });
+    expect(captured[0].params.tools?.map((x) => ("name" in x ? x.name : x.type))).toEqual(["web_search", "web_fetch"]);
+    expect(captured[0].params).not.toHaveProperty("fallbacks");
+    const answer = await batch.client.beta.messages.stream(captured[0].params).finalMessage();
+    const submitted: unknown[] = [];
+    const batches = {
+      create: async (p: { requests: unknown[] }) => (submitted.push(...p.requests), { id: "batch_1" }),
+      retrieve: async () => ({ processing_status: "ended" }),
+      results: async () => (async function* () {
+        yield { custom_id: "r0", result: { type: "succeeded", message: answer } };
+      })(),
+    };
+    const batchClient = { beta: { messages: { ...batch.client.beta.messages, batches } } } as unknown as Parameters<typeof submitRefreshBatch>[1];
+    const { batchId, items } = await submitRefreshBatch(captured, batchClient);
+    expect(submitted).toHaveLength(1);
+    expect(await refreshBatchEnded(batchId, batchClient)).toBe(true);
+    expect(await applyRefreshBatch(batchId, items, { client: batchClient, sys, db })).toEqual({ saved: 1, failed: 0 });
+    expect((await sql`select count(*)::int as n from dossiers where person_id = ${kemi}`)[0].n).toBe(before + 1);
+    // Billed at half: the usage row for the batch answer costs half the same call's full price.
+    const [half, full] = await sql`select cost_micro_usd from ai_usage where user_id = ${user.id} and feature = 'research' order by id desc limit 2`;
+    expect(half.cost_micro_usd).toBe(Math.round(full.cost_micro_usd / 2));
+
     await sql`update person_spaces set starred = false where person_id = ${kemi} and space_id = ${work}`;
     expect(await as((tx) => starredDueForRefresh(tx, cutoff, 2))).toEqual([]);
   });

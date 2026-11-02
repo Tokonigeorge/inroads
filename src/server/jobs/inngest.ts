@@ -7,10 +7,14 @@ import { runConnectionSync } from "@/server/sync/run-sync";
 import { runExport } from "@/server/account/export";
 import { aiJobSchema, runAiJob } from "./ai-jobs";
 import { briefsDue, radarDue, usersAtBriefTime } from "@/server/system/briefs";
+import { researchUpcomingAttendees } from "@/server/ai/auto-research";
 import {
-  refreshStarredResearch,
-  researchUpcomingAttendees,
-} from "@/server/ai/auto-research";
+  applyRefreshBatch,
+  captureRefreshRequests,
+  refreshBatchEnded,
+  submitRefreshBatch,
+  type RefreshItem,
+} from "@/server/ai/batch-refresh";
 import { connectionsStore } from "@/server/system/connections";
 import { jobsStore } from "@/server/system/jobs";
 import { sendDueNotifications } from "@/server/system/notify";
@@ -143,18 +147,51 @@ export const prepareBriefs = inngest.createFunction(
       );
     // Research the people you're meeting in the next two days, so Today has talking points.
     const users = await step.run("find-prep-users", () => usersAtBriefTime());
-    // And keep priority people's research fresh, so new roles and news show up. One step per person.
+    // And keep priority people's research fresh, so new roles and news show up: built here, sent
+    // through the half-price Batches API, saved when it's back (refresh-batch). One step per person.
+    const refresh: Parameters<typeof submitRefreshBatch>[0] = [];
     for (const userId of users) {
-      await step.run(`prep-${userId}`, async () => ({
+      const r = await step.run(`prep-${userId}`, async () => ({
         attendees: await researchUpcomingAttendees(userId),
-        starred: await refreshStarredResearch(userId),
+        refresh: await captureRefreshRequests(userId),
       }));
+      refresh.push(...(r.refresh as typeof refresh));
+    }
+    if (refresh.length) {
+      const batch = await step.run("submit-refresh-batch", () =>
+        submitRefreshBatch(refresh),
+      );
+      await step.sendEvent("refresh-batch-submitted", {
+        name: REFRESH_BATCH_EVENT,
+        data: batch,
+      });
     }
     return {
       scheduled: due.length,
       radar: radar.length,
       prepUsers: users.length,
+      refreshed: refresh.length,
     };
+  },
+);
+
+export const REFRESH_BATCH_EVENT = "ai/refresh-batch.submitted";
+
+/** Waits for a refresh batch (checks every 30 minutes, up to a day), then saves each answer as research. */
+export const refreshBatch = inngest.createFunction(
+  { id: "refresh-batch", triggers: [{ event: REFRESH_BATCH_EVENT }] },
+  async ({ event, step }) => {
+    const { batchId, items } = event.data as {
+      batchId: string;
+      items: RefreshItem[];
+    };
+    for (let i = 0; i < 49; i++) {
+      if (await step.run(`check-${i}`, () => refreshBatchEnded(batchId))) {
+        return step.run("apply", () => applyRefreshBatch(batchId, items));
+      }
+      await step.sleep(`wait-${i}`, "30m");
+    }
+    return { saved: 0, failed: items.length, timedOut: true };
   },
 );
 
