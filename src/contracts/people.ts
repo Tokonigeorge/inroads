@@ -129,6 +129,11 @@ export const promiseSchema = z.object({
   text: z.string().trim().min(1, "Say what was promised.").max(300, "Keep it under 300 characters."),
   owner: z.enum(promiseOwners),
   dueOn: optionalIsoDate,
+  /** "HH:MM" on the due day, in your time zone. Only kept with a date. */
+  dueTime: z
+    .union([z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a time."), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
 });
 export type PromiseInput = z.input<typeof promiseSchema>;
 

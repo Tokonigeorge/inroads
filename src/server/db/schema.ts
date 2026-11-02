@@ -445,6 +445,8 @@ export const commitments = pgTable(
     text: text("text").notNull(),
     owner: text("owner").notNull(),
     dueOn: date("due_on"),
+    /** Optional time on the due day, in your time zone; a push goes out then for promises you owe. */
+    dueTime: time("due_time"),
     doneAt: timestamp("done_at", { withTimezone: true }),
     source: text("source").notNull().default("manual"),
     interactionId: uuid("interaction_id").references(() => interactions.id, { onDelete: "set null" }),

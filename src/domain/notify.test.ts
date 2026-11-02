@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { meetingsEndedBetween, wrapUpDue, type TimedRoom } from "./notify";
+import { meetingsEndedBetween, wrapUpDue, type TimedRoom, promisesDueBetween } from "./notify";
 
 const room = (over: Partial<TimedRoom> = {}): TimedRoom => ({
   id: "r1",
@@ -51,5 +51,14 @@ describe("wrap-up", () => {
     expect(wrapUpDue({ ...base, now, everyDays: 2, lastSentOn: "2026-11-01" })).toBeNull();
     expect(wrapUpDue({ ...base, now, everyDays: 2, lastSentOn: "2026-10-31" })).toBe("2026-11-02");
     expect(wrapUpDue({ ...base, now, everyDays: 0 })).toBeNull();
+  });
+});
+
+describe("promisesDueBetween", () => {
+  const p = { id: "p1", text: "Send the deck", dueOn: "2026-11-03", dueTime: "14:30:00", personId: "x", name: "Kemi" };
+  it("uses your time zone", () => {
+    // 14:30 in Lagos (UTC+1) is 13:30 UTC; in London on 3 November (UTC+0) it's 14:30 UTC.
+    expect(promisesDueBetween([p], "Africa/Lagos", new Date("2026-11-03T13:20:00Z"), new Date("2026-11-03T13:35:00Z"))).toHaveLength(1);
+    expect(promisesDueBetween([p], "Europe/London", new Date("2026-11-03T13:20:00Z"), new Date("2026-11-03T13:35:00Z"))).toHaveLength(0);
   });
 });

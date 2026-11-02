@@ -31,6 +31,16 @@ export function meetingsEndedBetween(rooms: TimedRoom[], from: Date, to: Date): 
   return out.sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime());
 }
 
+export type TimedPromise = { id: string; text: string; dueOn: IsoDate; dueTime: string; personId: string; name: string };
+
+/** Promises you owe whose time (on their due day, in your zone) fell after `from` and by `to`. */
+export function promisesDueBetween(promises: TimedPromise[], tz: string, from: Date, to: Date): TimedPromise[] {
+  return promises.filter((p) => {
+    const at = zonedToInstant(p.dueOn, p.dueTime.slice(0, 5), tz);
+    return at > from && at <= to;
+  });
+}
+
 /**
  * Is a wrap-up due now? Every `everyDays` days (0 = off), in the half hour after `time` in your
  * zone, and not if one went out fewer than `everyDays` days ago.

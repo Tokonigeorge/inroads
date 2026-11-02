@@ -1,7 +1,9 @@
 import "server-only";
 import { and, eq, isNotNull, isNull, like, desc, sql } from "drizzle-orm";
 import webpush from "web-push";
-import { meetingsEndedBetween, wrapUpDue, type TimedRoom } from "@/domain/notify";
+import { addDays } from "@/domain/dates";
+import { meetingsEndedBetween, promisesDueBetween, wrapUpDue, type TimedRoom } from "@/domain/notify";
+import { instantInZone } from "@/domain/zoned";
 import { db as appDb, getSystemDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import type { Database } from "@/server/db/with-user";
@@ -93,6 +95,32 @@ export async function sendDueNotifications(now: Date = new Date(), deps: Deps = 
         );
       }
     }
+    // Promises you owe, at the time you set: a nudge to do it.
+    const localToday = instantInZone(now, u.tz).date;
+    const owed = await sys
+      .select({ id: t.commitments.id, text: t.commitments.text, dueOn: t.commitments.dueOn, dueTime: t.commitments.dueTime, personId: t.people.id, name: t.people.name })
+      .from(t.commitments)
+      .innerJoin(t.people, eq(t.people.id, t.commitments.personId))
+      .where(
+        and(
+          eq(t.commitments.userId, u.userId),
+          eq(t.commitments.owner, "me"),
+          isNull(t.commitments.doneAt),
+          isNotNull(t.commitments.dueTime),
+          isNull(t.people.deletedAt),
+          sql`${t.commitments.dueOn} between ${addDays(localToday, -1)}::date and ${addDays(localToday, 1)}::date`,
+        ),
+      );
+    const timed = owed.flatMap((p) => (p.dueOn && p.dueTime ? [{ ...p, dueOn: p.dueOn, dueTime: p.dueTime }] : []));
+    for (const p of promisesDueBetween(timed, u.tz, new Date(now.getTime() - 20 * 60_000), now)) {
+      if (!(await claim(sys, u.userId, `promise:${p.id}:${p.dueOn}T${p.dueTime.slice(0, 5)}`))) continue;
+      sent += await pushToUser(
+        u.userId,
+        { title: `Due now: ${p.text}`.slice(0, 120), body: `You told ${p.name.split(/\s+/)[0]} you would. Tap to open, and tick it off when it's done.`, url: `/people/${p.personId}`, tag: `promise-${p.id}` },
+        deps,
+      );
+    }
+
     const [last] = await sys
       .select({ key: t.notificationLog.key })
       .from(t.notificationLog)

@@ -92,7 +92,7 @@ export function LogTouchForm({ person, defaultSpaceId, onDone }: { person: Picke
         occurredOn: date,
         type,
         summary: String(f.get("summary") ?? ""),
-        promise: withPromise ? { id: crypto.randomUUID(), text: promiseText, owner, dueOn: String(f.get("due") ?? "") || null } : null,
+        promise: withPromise ? { id: crypto.randomUUID(), text: promiseText, owner, dueOn: String(f.get("due") ?? "") || null, dueTime: String(f.get("dueTime") ?? "") || null } : null,
       },
     });
     setBusy(false);
@@ -152,9 +152,16 @@ function PromiseFields({ person, owner, setOwner }: { person: PickedPerson; owne
           { value: "them", label: `${firstName(person.name)} does` },
         ]}
       />
-      <Field label="Due" hint="Optional.">
-        {({ id, describedBy }) => <Input id={id} name="due" type="date" aria-describedby={describedBy} className="w-auto" />}
-      </Field>
+      <div className="flex flex-wrap gap-3">
+        <Field label="Due" hint="Optional.">
+          {({ id, describedBy }) => <Input id={id} name="due" type="date" aria-describedby={describedBy} className="w-auto" />}
+        </Field>
+        {owner === "me" ? (
+          <Field label="At" hint="Optional. A reminder comes then.">
+            {({ id, describedBy }) => <Input id={id} name="dueTime" type="time" aria-describedby={describedBy} className="w-auto" />}
+          </Field>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -174,7 +181,7 @@ export function AddPromiseForm({ person, defaultSpaceId, onDone }: { person: Pic
     setBusy(true);
     const r = await sendCapture({
       kind: "promise",
-      data: { id: crypto.randomUUID(), personId: person.id, spaceId, text, owner, dueOn: String(f.get("due") ?? "") || null },
+      data: { id: crypto.randomUUID(), personId: person.id, spaceId, text, owner, dueOn: String(f.get("due") ?? "") || null, dueTime: String(f.get("dueTime") ?? "") || null },
     });
     setBusy(false);
     if (!after(r, "Promise added.")) return setError(r.ok ? null : r.message);
