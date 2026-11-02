@@ -126,7 +126,9 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
 
   const messages: BetaMessageParam[] = [{ role: "user", content: input.prompt }];
   let final: BetaMessage | null = null;
-  const totals = { input: 0, output: 0, searches: 0 };
+  const totals = { input: 0, output: 0, searches: 0, cacheRead: 0, cacheWrite: 0, turns: 0 };
+  // The model that actually answered: a strong-tier request can fall back to another one.
+  let served = model;
   try {
     for (let turn = 0; turn <= MAX_CONTINUATIONS; turn++) {
       const stream = client.beta.messages.stream({
@@ -152,6 +154,10 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
       totals.input += final.usage.input_tokens;
       totals.output += final.usage.output_tokens;
       totals.searches += final.usage.server_tool_use?.web_search_requests ?? 0;
+      totals.cacheRead += final.usage.cache_read_input_tokens ?? 0;
+      totals.cacheWrite += final.usage.cache_creation_input_tokens ?? 0;
+      totals.turns++;
+      if (final.model) served = final.model;
       if (final.stop_reason !== "pause_turn") break;
       // A long server-tool turn paused: send it back and the server resumes.
       messages.push({ role: "assistant", content: final.content as BetaContentBlockParam[] });
@@ -163,7 +169,21 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
     throw e;
   } finally {
     if (totals.input || totals.output) {
-      await recordUsage({ userId: input.userId, feature: input.feature, model, inputTokens: totals.input, outputTokens: totals.output, webSearches: totals.searches, costMicroUsd: estimateCostMicroUsd(model, totals) }, deps.sys).catch(() => undefined);
+      await recordUsage(
+        {
+          userId: input.userId,
+          feature: input.feature,
+          model: served,
+          inputTokens: totals.input,
+          outputTokens: totals.output,
+          cacheReadTokens: totals.cacheRead,
+          cacheWriteTokens: totals.cacheWrite,
+          turns: totals.turns,
+          webSearches: totals.searches,
+          costMicroUsd: estimateCostMicroUsd(served, totals),
+        },
+        deps.sys,
+      ).catch(() => undefined);
     }
   }
   if (!final) throw new AiError("failed", NO_ANSWER);

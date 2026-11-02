@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: AI cost tracking is accurate (needs a migration)
+- Usage now counts cached tokens at their real price, records the model that actually answered, and how many requests each call took, so the usage meter and limits match what Anthropic bills.
+- Migration: `20261102100225_ai_usage_cache` (three columns and two indexes on `ai_usage`).
+
 ### Added: a time on promises, with a reminder (needs a migration)
 - **When you owe something, add a time** next to the due date ("Send the deck, Tuesday at 2:30pm"). A notification arrives then: "Due now: Send the deck. You told Kemi you would." Tap it to open them and tick it off. Nothing is sent once it's done.
 - The person's page shows the time with the due date.

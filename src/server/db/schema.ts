@@ -776,11 +776,22 @@ export const aiUsage = pgTable(
     model: text("model").notNull(),
     inputTokens: integer("input_tokens"),
     outputTokens: integer("output_tokens"),
+    /** Prompt-cache reads (0.1× input price) and writes (1.25×). */
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    /** Requests in the call: 1, plus one per paused web turn resumed. */
+    turns: integer("turns").notNull().default(1),
     webSearches: integer("web_searches").notNull().default(0),
     costMicroUsd: integer("cost_micro_usd").notNull().default(0),
     createdAt: createdAt(),
   },
-  (t) => [index("ai_usage_user_feature_idx").on(t.userId, t.feature, t.createdAt), ...ownerReadOnly("ai_usage")],
+  (t) => [
+    index("ai_usage_user_feature_idx").on(t.userId, t.feature, t.createdAt),
+    // The monthly totals (per user, and app-wide for the spend cap) filter on time first.
+    index("ai_usage_user_created_idx").on(t.userId, t.createdAt),
+    index("ai_usage_created_idx").on(t.createdAt),
+    ...ownerReadOnly("ai_usage"),
+  ],
 );
 
 /** Browsers that agreed to get notifications (Web Push). One row per device. */

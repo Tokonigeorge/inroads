@@ -59,9 +59,23 @@ const prices: Record<string, { input: number; output: number }> = {
 };
 export const WEB_SEARCH_USD = 0.01;
 
-export function estimateCostMicroUsd(model: string, usage: { input: number; output: number; searches: number }) {
-  const p = prices[model] ?? prices["claude-opus-5-5"];
-  const usd = (usage.input * p.input + usage.output * p.output) / 1_000_000 + usage.searches * WEB_SEARCH_USD;
+/** Cached input is billed at a tenth of the input price to read and 1.25× to write. */
+const CACHE_READ = 0.1;
+const CACHE_WRITE = 1.25;
+
+/** The price row for a model id, also when the API reports a dated id ("claude-opus-5-5-2026…"). */
+function priceFor(model: string) {
+  if (prices[model]) return prices[model];
+  const key = Object.keys(prices)
+    .filter((k) => model.startsWith(k))
+    .sort((a, b) => b.length - a.length)[0];
+  return prices[key ?? "claude-opus-5-5"];
+}
+
+export function estimateCostMicroUsd(model: string, usage: { input: number; output: number; searches: number; cacheRead?: number; cacheWrite?: number }) {
+  const p = priceFor(model);
+  const inputUsd = (usage.input + (usage.cacheRead ?? 0) * CACHE_READ + (usage.cacheWrite ?? 0) * CACHE_WRITE) * p.input;
+  const usd = (inputUsd + usage.output * p.output) / 1_000_000 + usage.searches * WEB_SEARCH_USD;
   return Math.round(usd * 1_000_000);
 }
 
