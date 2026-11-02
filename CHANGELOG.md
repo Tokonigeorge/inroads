@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: Today drowning in prep cards
+- **One Prep card per meeting**, not one per person ("You meet Kemi, Tunde and Ada tomorrow at 5:30pm: …"), with Research for whoever hasn't been researched.
+- **No prep for**: people you've been in touch with in the last 7 days (teammates at standing meetings), meetings with more than 10 people you know (all-hands, webinars), all-day blocks, and out-of-office, focus-time, lunch, holiday or travel blocks. Google's own out-of-office, focus-time and working-location entries aren't imported at all.
+- **Going cold** only for people you've actually been in touch with (or starred), and at most 5 a day, most overdue first. Contacts you imported but never spoke to no longer all come due a month later.
+- **Every card has Done**, which clears it at once (undo is there).
+- **Meetings cancelled or declined in your calendar are removed** at the next sync (they used to stay, with their prep cards). The same meeting from two calendars (a shared invite, or Google and a calendar link) is stored once.
+
 ### Changed: a live network map; one-tap notifications; radar knows what you've added
 - **Network map** is now a live graph: you in the middle, a line to each person (thicker means more contact logged), and lines between people who know each other, work at the same company or were at the same event, so clusters form on their own. Dots are coloured by goal, else by company. Drag, pinch or scroll to move and zoom; hover or tap to see someone's connections; tap to open them; "See them as a list" for keyboards and screen readers. People on a goal or connected to someone are on it too, not only people you've logged contact with. The "Strong / Good / Fading" rings are gone.
 - **Notifications from Today in one tap**: the card turns them on right there (daily wrap-up at 18:00 by default, changeable in Settings), and shows for everyone, new accounts included.

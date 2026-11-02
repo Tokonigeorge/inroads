@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNudges, MAX_NUDGES, nextBirthday, nudgeStateFor, relativeDay, type NudgeSnapshot } from "./nudges";
+import { buildNudges, MAX_GOING_COLD, MAX_NUDGES, nextBirthday, nudgeStateFor, relativeDay, type NudgeSnapshot } from "./nudges";
 
 const today = "2026-10-24"; // Saturday
 const kemi = { id: "p-kemi", name: "Kemi Adebayo", detail: "Partner at Kestrel" };
@@ -66,23 +66,23 @@ describe("buildNudges", () => {
   it("going cold, in the prototype's words", () => {
     const [n] = buildNudges({ ...empty(), due: [{ ...kemi, dueOn: "2026-10-20", lastTouchedOn: "2026-09-20", cadenceDays: 30 }] });
     expect(n).toMatchObject({ key: "due:p-kemi:2026-10-20", label: "Going cold", title: "34 days since you spoke with Kemi", body: "Partner at Kestrel. For someone this important you aim to touch base every 30 days." });
-    expect(n.actions.map((a) => a.label)).toEqual(["Draft message", "Log a touch", "Snooze"]);
+    expect(n.actions.map((a) => a.label)).toEqual(["Draft message", "Log a touch", "Snooze", "Done"]);
   });
 
   it("rooms this week: decode the room, or see its plan", () => {
     const room = { eventId: "r1", spaceId: "s1", title: "Moonshot", date: "2026-10-28", time: "09:00", location: "Lagos", planned: false };
     const [n] = buildNudges({ ...empty(), rooms: [room, { ...room, eventId: "r2", date: "2026-11-05" }] });
     expect(n).toMatchObject({ key: "ev:r1:2026-10-28", label: "This week", title: "Moonshot" });
-    expect(n.actions.map((a) => a.label)).toEqual(["Decode the room", "Open"]);
+    expect(n.actions.map((a) => a.label)).toEqual(["Decode the room", "Open", "Done"]);
     expect(buildNudges({ ...empty(), rooms: [{ ...room, planned: true }] })[0].actions[0].label).toBe("See the plan");
     expect(buildNudges({ ...empty(), rooms: [room, { ...room, eventId: "r2", date: "2026-11-05" }] })).toHaveLength(1);
   });
 
   it("meeting someone you haven't researched offers it first; birthdays and due cards offer a draft", () => {
-    const [prep] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: null, lastTouch: null, promise: null, spaceId: "s1", researched: false }] });
+    const [prep] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: "10:00", lastTouch: null, promise: null, spaceId: "s1", researched: false }] });
     expect(prep.actions[0]).toEqual({ type: "research", personId: kemi.id, spaceId: "s1", label: "Research now" });
-    const [done] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: null, lastTouch: null, promise: null, spaceId: "s1", researched: true }] });
-    expect(done.actions.map((a) => a.type)).toEqual(["open_person", "open_room"]);
+    const [done] = buildNudges({ ...empty(), meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: "10:00", lastTouch: null, promise: null, spaceId: "s1", researched: true }] });
+    expect(done.actions.map((a) => a.type)).toEqual(["open_person", "open_room", "dismiss"]);
   });
 
   it("a sharper reason replaces the plain 'due' card for the same person", () => {
@@ -90,7 +90,7 @@ describe("buildNudges", () => {
       due: [{ ...kemi, dueOn: "2026-10-20", lastTouchedOn: null, cadenceDays: 30 }],
       meetings: [{ person: kemi, eventId: "e1", title: "Pricing review", date: "2026-10-26", time: "17:30", lastTouch: null, promise: "Send the deck" }],
     });
-    expect(k).toEqual(["prep:p-kemi:e1:2026-10-26"]);
+    expect(k).toEqual(["prep:e1:2026-10-26"]);
   });
 
   it("prep cards for meetings in the next 3 days carry the last touch and what you owe", () => {
@@ -101,6 +101,28 @@ describe("buildNudges", () => {
     expect(n.title).toBe("You meet Kemi tomorrow at 5:30pm: Pricing review");
     expect(n.body).toBe("Last spoke Thursday 1 October: Coffee in Ikoyi. You owe them: send the deck.");
     expect(keys({ meetings: [{ person: kemi, eventId: "e1", title: "x", date: "2026-10-28", time: null, lastTouch: null, promise: null }] })).toEqual([]);
+  });
+
+  it("one prep card per meeting, naming who's there; none for all-day, out-of-office or big meetings", () => {
+    const at = (person: typeof kemi, over: Partial<NudgeSnapshot["meetings"][number]> = {}) => ({ person, eventId: "e1", title: "Pricing review", date: "2026-10-25", time: "17:30", lastTouch: null, promise: null, spaceId: "s1", researched: true, ...over });
+    const ada = { id: "p-ada", name: "Ada Eze", detail: "" };
+    const [n, ...rest] = buildNudges({ ...empty(), meetings: [at(kemi, { lastTouch: { on: "2026-10-01", summary: "" }, promise: "Send the deck" }), at(tunde, { researched: false }), at(ada)] });
+    expect(rest.filter((x) => x.kind === "prep")).toEqual([]);
+    expect(n).toMatchObject({ key: "prep:e1:2026-10-25", title: "You meet Kemi, Tunde and Ada tomorrow at 5:30pm: Pricing review", body: "2 of them have no touch logged yet. You owe Kemi: send the deck.", person: null });
+    expect(n.actions.map((a) => a.label)).toEqual(["Research Tunde", "See who's there", "Done"]);
+    const many = Array.from({ length: 11 }, (_, i) => at({ id: `p${i}`, name: `P${i} X`, detail: "" }));
+    expect(keys({ meetings: many })).toEqual([]);
+    expect(keys({ meetings: [at(kemi, { title: "Olubolade Out of Office" }), at(tunde, { eventId: "e2", title: "Focus time" })] })).toEqual([]);
+    expect(keys({ meetings: [at(kemi, { time: null })] })).toEqual([]);
+    // Teammates you spoke with this week (a standing meeting): nothing to prep.
+    expect(keys({ meetings: [at(kemi, { lastTouch: { on: "2026-10-22", summary: "Standup" } }), at(tunde, { lastTouch: { on: "2026-10-20", summary: "" } })] })).toEqual([]);
+  });
+
+  it("going cold: the few most overdue, every card can be cleared", () => {
+    const due = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `P ${i}`, detail: "", dueOn: today, lastTouchedOn: "2026-08-01", cadenceDays: 30 }));
+    const n = buildNudges({ ...empty(), due });
+    expect(n).toHaveLength(MAX_GOING_COLD);
+    expect(n.every((x) => x.actions.some((a) => a.type === "dismiss"))).toBe(true);
   });
 
   it("context for recent additions; one triage card a day (upcoming rooms live in Today's week list)", () => {
@@ -119,8 +141,8 @@ describe("buildNudges", () => {
 
   it("hides snoozed or dismissed keys and caps the feed", () => {
     expect(keys({ birthdays: [{ ...kemi, birthday: "10-24" }], hidden: new Set(["bday:p-kemi:2026-10-24"]) })).toEqual([]);
-    const due = Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, name: `P ${i}`, detail: "", dueOn: today, lastTouchedOn: null, cadenceDays: 30 }));
-    expect(buildNudges({ ...empty(), due })).toHaveLength(MAX_NUDGES);
+    const birthdays = Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, name: `P ${i}`, detail: "", birthday: "10-25" }));
+    expect(buildNudges({ ...empty(), birthdays })).toHaveLength(MAX_NUDGES);
   });
 });
 

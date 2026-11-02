@@ -2,6 +2,13 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-02: nudges that earn their place
+
+188. **Prep is per meeting and only where it helps** (reported: 20 cards, nearly all "You meet X today" for colleagues at standing meetings and an out-of-office block). Grouped by session; skipped for anyone touched in the last 7 days, meetings with more than 10 linked people, untimed (all-day) sessions and blocks whose title says out of office, focus, lunch, holiday, leave, travel and the like. Google's `eventType` out-of-office, focus time, working location and birthdays are dropped at import.
+189. **"Going cold" needs a relationship**: at least one logged touch, or starred, and at most 5 cards a day. A bulk import otherwise turns every never-contacted contact into a reminder 30 days later.
+190. **Every card can be cleared with Done** (a dismiss, undoable), on top of its own actions.
+191. **Cancellations and declines remove the room** at the next sync (Google sends only the id of a cancelled meeting, so both `<id>` and `<id>@google.com` are matched), and a meeting arriving from a second calendar with the same event id joins the existing room instead of creating another.
+
 ## 2026-11-02: the map as a graph
 
 186. **The network map is a force-directed graph** (owner: "what's the point… interconnected relationships or clusters… colourful, interactive, zoom"). It supersedes #179 and #182: edges to you are weighted by strength; edges between people come from saved links, same company and shared events (at most 600), and clusters come out of those. Colour is the goal, else the company. `react-force-graph-2d` (canvas, zoom/pan/drag built in), loaded in the browser only; a list underneath is the accessible version. Strength stays "contact you've logged", now said in the subtitle, since a close friend you never logged otherwise looks distant.
