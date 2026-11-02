@@ -1,0 +1,1 @@
+ALTER TABLE "person_spaces" ADD COLUMN "want_to_meet" boolean DEFAULT false NOT NULL;

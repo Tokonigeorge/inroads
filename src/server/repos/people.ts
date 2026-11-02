@@ -43,6 +43,8 @@ export type PersonListItem = {
   cadenceDays: number | null;
   dueOn: IsoDate | null;
   unsorted: boolean;
+  /** Added to meet (from a goal, a plan or a room) and no touch logged yet. */
+  wantToMeet: boolean;
   /** Set aside in every Space they're in (only shows up in searches and the Archived filter). */
   archived: boolean;
   spaces: { id: string; name: string }[];
@@ -79,6 +81,7 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
              min(nullif(coalesce(ps.cadence_days, c.default_cadence_days, (s.defaults ->> 'cadenceDays')::int), 0)) as cadence,
              max(ps.cadence_anchor_on) as anchor,
              bool_or(ps.triage_state = 'pending') as unsorted,
+             bool_or(ps.want_to_meet) as want_flag,
              bool_and(ps.archived_at is not null) as archived,
              bool_and(ps.where_met is null and cardinality(ps.interests) = 0) as needs_context,
              (array_agg(ps.where_met order by s.position) filter (where ps.where_met is not null))[1] as where_met,
@@ -92,8 +95,10 @@ export function personRollup(membershipWhere: SQL[], having: SQL[] = [sql`true`]
       having ${sql.join(having, sql` and `)}
     ),
     base as (
-      select p.*, m.starred, m.cadence, m.unsorted, m.archived, m.spaces, m.space_ids, m.needs_context, m.where_met,
-             case when m.cadence is null then null
+      select p.*, m.starred, m.cadence, m.unsorted,
+             (m.want_flag and p.last_touched_on is null) as want_to_meet, m.archived, m.spaces, m.space_ids, m.needs_context, m.where_met,
+             -- Nobody goes cold before you've met them.
+             case when m.cadence is null or (m.want_flag and p.last_touched_on is null) then null
                   else coalesce(p.last_touched_on, m.anchor, (p.created_at at time zone 'UTC')::date) + m.cadence end as r_due_on
         from people p join m on m.person_id = p.id
     )`;
@@ -135,6 +140,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     )`);
   }
   if (q.filter === "starred") where.push(sql`p.starred`);
+  if (q.filter === "want_to_meet") where.push(sql`p.want_to_meet`);
   if (q.filter === "due") where.push(sql`p.r_due_on <= ${today}::date`);
   if (q.filter === "context") where.push(sql`p.needs_context`);
   if (q.filter === "no_dossier") where.push(sql`not exists (select 1 from dossiers d where d.person_id = p.id)`);
@@ -171,6 +177,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     cadence: number | null;
     due_on: string | null;
     unsorted: boolean;
+    want_to_meet: boolean;
     archived: boolean;
     spaces: string[];
     space_ids: string[];
@@ -180,7 +187,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
   }>(sql`
     ${personRollup(membershipWhere, having)}
     select p.id, p.name, p.company, p.position, p.last_touched_on::text as last_touched_on, p.starred, p.cadence,
-           p.r_due_on::text as due_on, p.unsorted, p.archived, p.spaces, p.space_ids, p.sort_key, p.where_met, p.score
+           p.r_due_on::text as due_on, p.unsorted, p.want_to_meet, p.archived, p.spaces, p.space_ids, p.sort_key, p.where_met, p.score
       from (
         select p.*, ${sort.key} as sort_key
           from (
@@ -208,6 +215,7 @@ export async function listPeople(tx: Tx, rawQuery: PeopleQuery, today: IsoDate) 
     cadenceDays: r.cadence,
     dueOn: r.due_on,
     unsorted: r.unsorted,
+    wantToMeet: r.want_to_meet,
     archived: r.archived,
     spaces: r.spaces.map((name, i) => ({ id: r.space_ids[i], name })),
     whereMet: r.where_met,
@@ -386,6 +394,11 @@ export async function setPersonArchived(tx: Tx, personId: string, archived: bool
 /** The prototype's ★ priority toggle: one flag for the person, across their Spaces. */
 export async function setPersonStarred(tx: Tx, personId: string, starred: boolean) {
   await tx.update(t.personSpaces).set({ starred }).where(eq(t.personSpaces.personId, personId));
+}
+
+/** Mark (or unmark) someone as a person you want to meet. It lapses by itself at the first logged touch. */
+export async function setPersonWantToMeet(tx: Tx, personId: string, wantToMeet: boolean) {
+  await tx.update(t.personSpaces).set({ wantToMeet }).where(eq(t.personSpaces.personId, personId));
 }
 
 /** Soft delete: gone from the app now, restorable for 30 days, then purged. */

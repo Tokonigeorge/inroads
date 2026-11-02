@@ -14,7 +14,7 @@ import {
   restorePerson,
   saveMembership,
   setPersonArchived,
-  setPersonStarred,
+  setPersonStarred, setPersonWantToMeet,
   updatePersonIdentity,
 } from "@/server/repos/people";
 import { requestIntro } from "@/server/repos/intros";
@@ -52,6 +52,12 @@ export async function removeFromSpaceAction(personId: string, spaceId: string): 
 export async function setArchivedAction(personId: string, archived: boolean) {
   const user = await requireUser();
   await db.withUser(user.id, (tx) => setPersonArchived(tx, id.parse(personId), archived));
+  refresh();
+}
+
+export async function setWantToMeetAction(personId: string, wantToMeet: boolean) {
+  const user = await requireUser();
+  await db.withUser(user.id, (tx) => setPersonWantToMeet(tx, id.parse(personId), wantToMeet));
   refresh();
 }
 
