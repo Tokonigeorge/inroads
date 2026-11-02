@@ -43,7 +43,7 @@ test.describe.serial("Importing files and merging duplicates", () => {
     await expect(done.getByText("People added")).toBeVisible({ timeout: 15_000 });
     await done.getByRole("link", { name: /^Sort \d+ new people$/ }).click();
     await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: /^Use suggested sort for/ }).click();
+    await page.getByRole("button", { name: /^Sort \d+ (people|person)$/ }).click();
     await expect(page.getByText("Everyone is sorted.")).toBeVisible();
   });
 

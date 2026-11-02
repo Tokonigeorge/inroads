@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { triageActionLabels, triageActions } from "@/contracts/connections";
 import { cadenceChoices } from "@/contracts/spaces";
+import type { RuleOption, SortRule } from "@/domain/sort-rules";
 import type { TriageAction } from "@/domain/triage";
-import { acceptSuggestedSortAction, decideTriageAction } from "@/features/connections/actions";
+import { decideTriageAction, sortByRuleAction } from "@/features/connections/actions";
 import { Button } from "@/ui/button";
 import { Select } from "@/ui/field";
 import { Avatar } from "@/ui/list-row";
@@ -25,7 +26,8 @@ export type TriageCard = {
 type Props = {
   items: TriageCard[];
   total: number;
-  byAction: Record<TriageAction, number>;
+  /** The sort rules that fit these people, with what each would keep. */
+  rules: RuleOption[];
   spaceId: string | null;
   showSpaces: boolean;
 };
@@ -34,10 +36,12 @@ const n = (x: number) => x.toLocaleString("en-GB");
 const people = (x: number) => `${n(x)} ${x === 1 ? "person" : "people"}`;
 
 /**
- * Sorting people who arrived from an import. Everyone has a suggestion; one button accepts them
- * all, or go through one at a time. Nothing is decided without the user (brief §2).
+ * Sorting people who arrived from an import. You choose the rule (keep everyone, keep people
+ * you've met, …) and see what it does before it runs, or go one at a time. Inroads never sets
+ * people aside on its own guess (DECISIONS #192).
  */
-export function TriageQueue({ items, total, byAction, spaceId, showSpaces }: Props) {
+export function TriageQueue({ items, total, rules, spaceId, showSpaces }: Props) {
+  const [rule, setRule] = useState<SortRule>("everyone");
   const [decided, setDecided] = useState<Set<string>>(() => new Set());
   const [cadence, setCadence] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
@@ -83,33 +87,44 @@ export function TriageQueue({ items, total, byAction, spaceId, showSpaces }: Pro
     );
   }
 
-  const suggested = [
-    byAction.priority ? `${n(byAction.priority)} priority` : null,
-    byAction.keep ? `${n(byAction.keep)} keep` : null,
-    byAction.not_now ? `${n(byAction.not_now)} not now` : null,
-  ].filter(Boolean);
+  const chosen = rules.find((r) => r.rule === rule) ?? rules[0];
 
   return (
     <div className="grid gap-8">
-      <section className="grid gap-3 rounded-md border border-border bg-surface p-4">
-        <p>
-          Suggested: {suggested.join(", ")}. Priority people are starred and get reminders, Not now are archived and still searchable.
-        </p>
+      <section aria-labelledby="sort-how" className="grid gap-3 rounded-md border border-border bg-surface p-4">
+        <h2 id="sort-how" className="text-title font-semibold">
+          How do you want {people(remaining)} sorted?
+        </h2>
+        <fieldset className="grid gap-2">
+          <legend className="sr-only">Sort rule</legend>
+          {rules.map((r) => (
+            <label key={r.rule} className={`flex cursor-pointer items-start gap-2.5 rounded-md border p-3 ${rule === r.rule ? "border-accent bg-accent-soft" : "border-border"}`}>
+              <input type="radio" name="sort-rule" value={r.rule} checked={rule === r.rule} onChange={() => setRule(r.rule)} className="mt-1 accent-[var(--accent)]" />
+              <span className="min-w-0">
+                <span className="font-[550]">{r.label}</span>
+                <span className="block text-small text-muted">{r.hint}</span>
+                <span className="block text-small">
+                  {r.setAside ? `${n(r.keep)} on your list, ${n(r.setAside)} set aside` : `All ${n(r.keep)} on your list`}
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <p className="text-small text-muted">Set aside means off your list and out of suggestions, but still in search. Bring anyone back from their page.</p>
         <div>
           <Button
             variant="primary"
-            disabled={pending}
+            disabled={pending || !chosen}
             onClick={() =>
               start(async () => {
-                const r = await acceptSuggestedSortAction(spaceId);
-                const done = Object.values(r).reduce((a, b) => a + (b ?? 0), 0);
+                const r = await sortByRuleAction(spaceId, chosen.rule);
                 setDecided(new Set(items.map((i) => i.membershipId)));
                 void queryClient.invalidateQueries({ queryKey: ["people"] });
-                toast.show(`Sorted ${people(done)}.`);
+                toast.show(r.setAside ? `${people(r.kept)} on your list, ${n(r.setAside)} set aside.` : `${people(r.kept)} added to your list.`);
               })
             }
           >
-            Use suggested sort for {people(remaining)}
+            Sort {people(remaining)}
           </Button>
         </div>
       </section>
@@ -129,12 +144,7 @@ export function TriageQueue({ items, total, byAction, spaceId, showSpaces }: Pro
                 {showSpaces ? <p className="text-small text-muted">{current.spaceName}</p> : null}
               </div>
             </div>
-            {current.suggestion ? (
-              <p className="text-small">
-                <span className="font-[550]">Suggested: {triageActionLabels[current.suggestion.action]}.</span>{" "}
-                <span className="text-muted">{current.suggestion.reason}</span>
-              </p>
-            ) : null}
+            {current.suggestion?.reason ? <p className="text-small text-muted">{current.suggestion.reason}</p> : null}
             <label className="grid max-w-[260px] gap-1.5 text-small font-[550]">
               Reminder
               <Select
@@ -151,7 +161,7 @@ export function TriageQueue({ items, total, byAction, spaceId, showSpaces }: Pro
             </label>
             <div className="flex flex-wrap gap-2">
               {triageActions.map((a) => (
-                <Button key={a} variant={current.suggestion?.action === a ? "primary" : "secondary"} onClick={() => decide(current, a)}>
+                <Button key={a} variant={a === "keep" ? "primary" : "secondary"} onClick={() => decide(current, a)}>
                   {triageActionLabels[a]}
                 </Button>
               ))}
@@ -163,7 +173,6 @@ export function TriageQueue({ items, total, byAction, spaceId, showSpaces }: Pro
               {queue.slice(1, 6).map((i) => (
                 <li key={i.membershipId}>
                   {i.name}
-                  {i.suggestion ? ` · ${triageActionLabels[i.suggestion.action]}` : ""}
                 </li>
               ))}
             </ul>

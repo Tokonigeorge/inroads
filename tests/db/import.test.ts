@@ -5,7 +5,7 @@ import type { Tx } from "@/server/db/with-user";
 import { applyCalendar } from "@/server/import/calendar";
 import { applyContacts } from "@/server/import/contacts";
 import { startImport } from "@/server/import/imports";
-import { acceptSuggestedSort, applyTriage, computeTriageSuggestions, listTriage, undoImport } from "@/server/import/triage";
+import { applySortRule, applyTriage, computeTriageSuggestions, listTriage, previewSortRules, undoImport } from "@/server/import/triage";
 import { createPerson } from "@/server/repos/people";
 import { listSpaces } from "@/server/repos/spaces";
 import { connect, createUser } from "./helpers";
@@ -148,7 +148,7 @@ describe("importing contacts and a calendar", () => {
     expect(await live()).toEqual(["c-3/google"]);
   });
 
-  it("suggests a sort with reasons, and accepting it sorts everyone in one go", async () => {
+  it("notes why each person might matter, and sorts everyone by the rule you choose", async () => {
     await as((tx) => computeTriageSuggestions(tx, { today: TODAY, importId }));
     const triage = await as((tx) => listTriage(tx, work));
     const by = Object.fromEntries(triage.items.map((i) => [i.name, i.suggestion]));
@@ -160,8 +160,15 @@ describe("importing contacts and a calendar", () => {
 
     const david = triage.items.find((i) => i.name === "David Okafor")!;
     await as((tx) => applyTriage(tx, [{ membershipId: david.membershipId, action: "keep", cadenceDays: 30 }]));
-    const result = await as((tx) => acceptSuggestedSort(tx, work));
-    expect(result).toEqual({ priority: 2, not_now: 1 });
+    const preview = await as((tx) => previewSortRules(tx, work, TODAY));
+    expect(preview.total).toBe(3);
+    expect(preview.options[0]).toMatchObject({ rule: "everyone", keep: 3, setAside: 0 });
+    // Kemi is starred in Google (always kept), Ifeoma has meetings, the bare number has neither.
+    expect(preview.options.find((o) => o.rule === "met")).toMatchObject({ keep: 2, setAside: 1 });
+    const result = await as((tx) => applySortRule(tx, work, "met", TODAY));
+    expect(result).toEqual({ kept: 2, setAside: 1 });
+    const [kemi] = await sql`select ps.starred, ps.archived_at is null as listed from person_spaces ps join people p on p.id = ps.person_id where p.user_id = ${user.id} and p.name = 'Kemi Adebayo'`;
+    expect(kemi).toEqual({ starred: true, listed: true });
     expect((await as((tx) => listTriage(tx, work))).total).toBe(0);
     const [nameless] = await sql`select ps.archived_at is not null as archived from person_spaces ps join people p on p.id = ps.person_id where p.user_id = ${user.id} and p.name = '+2348012345678'`;
     expect(nameless.archived).toBe(true);
