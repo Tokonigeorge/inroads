@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { Inngest } from "inngest";
 import { getSystemDb } from "@/server/db/client";
 import * as t from "@/server/db/schema";
@@ -110,9 +110,20 @@ export const dailyCleanup = inngest.createFunction({ id: "daily-cleanup", trigge
       .where(and(eq(t.imports.status, "review"), lt(t.imports.createdAt, new Date(Date.now() - 2 * 86_400_000))))
       .returning({ id: t.imports.id });
     if (stale.length) await sys.delete(t.importItems).where(inArray(t.importItems.importId, stale.map((s) => s.id)));
+    // Sync records that brought nothing in (most scheduled runs did, before they were skipped): a day
+    // old, nothing points at them, so Import history only shows syncs that changed something.
+    const emptySyncs = await sys.execute(sql`
+      delete from imports i
+       where i.id in (
+         select i2.id from imports i2
+          where i2.type in ('google', 'microsoft', 'apple_ics') and i2.status = 'done' and i2.created_at < now() - interval '1 day'
+            and not exists (select 1 from people p where p.import_id = i2.id)
+            and not exists (select 1 from interactions x where x.import_id = i2.id)
+            and not exists (select 1 from events e where e.import_id = i2.id)
+          limit 5000)`);
     // The sent-notifications log only has to remember a couple of weeks (wrap-ups look back at most 7 days).
     await sys.delete(t.notificationLog).where(lt(t.notificationLog.createdAt, new Date(Date.now() - 30 * 86_400_000)));
-    return { people: people.length, events: events.length, nudges: nudges.length, jobs: jobs.length, staleImports: stale.length };
+    return { people: people.length, events: events.length, nudges: nudges.length, jobs: jobs.length, staleImports: stale.length, emptySyncs: emptySyncs.count ?? 0 };
   });
 });
 

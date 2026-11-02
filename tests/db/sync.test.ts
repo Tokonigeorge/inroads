@@ -82,11 +82,17 @@ describe("Google sync", () => {
     expect(state.tokens?.access_token).toBe("fake-access"); // refreshed and saved
   });
 
-  it("a second sync uses sync tokens and adds nothing", async () => {
+  it("a second sync uses sync tokens, adds nothing, and leaves no import record behind", async () => {
+    const before = await sql`select count(*)::int as n from imports where user_id = ${user.id}`;
     const jobId = await jobsStore(sys).create(user.id, "sync:google");
     const r = await runConnectionSync(connectionId, jobId, deps);
     expect(r.contacts).toBeNull();
     expect(r.calendar).toBeNull();
+    expect(await sql`select count(*)::int as n from imports where user_id = ${user.id}`).toEqual(before);
+    const [job] = await sql`select status, progress -> 'summary' ->> 'unchanged' as unchanged from jobs where id = ${jobId}`;
+    expect(job).toEqual({ status: "done", unchanged: "true" });
+    const [c] = await sql`select last_synced_at > now() - interval '1 minute' as fresh from connections where id = ${connectionId}`;
+    expect(c.fresh).toBe(true);
     const [{ n }] = await sql`select count(*)::int as n from people where user_id = ${user.id}`;
     expect(n).toBe(4);
   });

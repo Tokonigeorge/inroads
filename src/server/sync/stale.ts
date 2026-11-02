@@ -1,5 +1,5 @@
 import "server-only";
-import { and, gt, inArray, like } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, like, ne, or } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { enqueueSync } from "@/server/jobs/enqueue";
@@ -13,6 +13,12 @@ import { listConnections } from "@/server/repos/connections";
 export async function syncStale(userId: string): Promise<number> {
   const now = Date.now();
   const due = await db.withUser(userId, async (tx) => {
+    // Opening the app counts as being active (sign-in dates go stale on long sessions).
+    const today = new Date().toISOString().slice(0, 10);
+    await tx
+      .update(t.profiles)
+      .set({ lastSeenOn: today })
+      .where(and(eq(t.profiles.userId, userId), or(isNull(t.profiles.lastSeenOn), ne(t.profiles.lastSeenOn, today))));
     const stale = (await listConnections(tx)).filter(
       (a) => a.status === "active" && (!a.lastSyncedAt || now - a.lastSyncedAt.getTime() > (a.provider === "apple_ics" ? 30 : 10) * 60_000),
     );
