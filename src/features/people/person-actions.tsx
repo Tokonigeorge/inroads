@@ -65,7 +65,7 @@ export function WantToMeetNote({ person, next, defaultSpaceId }: { person: Picke
   return (
     <div role="note" aria-label="Want to meet" className="grid gap-2.5 rounded-lg border border-accent/40 bg-accent-soft px-3.5 py-3 text-[14px]">
       <p>
-        <span className="font-[600]">You want to meet {first}.</span> No reminders until you&apos;ve been in touch; your first logged touch moves them into your network.
+        <span className="font-[600]">You want to meet {first}.</span> Your first logged touch moves them into your network.
       </p>
       <p>
         <span className="font-[550]">Next step:</span>{" "}
