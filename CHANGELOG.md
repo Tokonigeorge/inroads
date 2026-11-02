@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: Today loads faster
+- Today, the person page and the notification job read only the events that matter for the dates shown, instead of every event you've ever had (three times over on Today).
+- Today and the person page no longer download a 192 KB phone-number library.
+- After the app syncs on open, the page refreshes once and only when something new came in, instead of three times regardless.
+- Who's signed in is checked once per page load instead of once per part of the page.
+
 ### Added: Want to meet (needs a migration)
 - **People you're trying to meet have their own place.** Anyone added from a goal, a look-up or event plan, or a research step is marked **Want to meet**; so is anyone you add with "I haven't met them yet" ticked, or mark from their page's More menu.
 - **No "going cold" reminders** for them: you can't drift from someone you haven't met.

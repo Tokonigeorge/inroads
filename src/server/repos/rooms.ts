@@ -22,17 +22,33 @@ export function timingOf(e: EventRow): RoomTiming {
   return { id: e.id, start: e.startsOn, ...recurrenceOf(e), startTime: e.startTime ? e.startTime.slice(0, 5) : null, allDay: e.allDay, tz: e.tz };
 }
 
-async function activeRooms(tx: Tx, spaceId: string | null) {
+/**
+ * Live rooms, optionally only those that can have a session between `from` and `to` (a series
+ * still running, or a one-off in the window; a day's slack either side for time zones), so Today
+ * doesn't load every event you've ever had.
+ */
+async function activeRooms(tx: Tx, spaceId: string | null, window?: { from: IsoDate; to: IsoDate }) {
+  const inWindow = window
+    ? sql`${t.events.startsOn} <= ${addDays(window.to, 1)}::date and (
+        (${t.events.rrule} is not null and (${t.events.untilOn} is null or ${t.events.untilOn} >= ${addDays(window.from, -1)}::date))
+        or ${t.events.startsOn} >= ${addDays(window.from, -1)}::date)`
+    : undefined;
   return tx
     .select({ e: t.events })
     .from(t.events)
     .innerJoin(t.spaces, eq(t.spaces.id, t.events.spaceId))
-    .where(and(isNull(t.events.deletedAt), isNull(t.events.archivedAt), isNull(t.spaces.archivedAt), spaceId ? eq(t.events.spaceId, spaceId) : undefined))
+    .where(and(isNull(t.events.deletedAt), isNull(t.events.archivedAt), isNull(t.spaces.archivedAt), spaceId ? eq(t.events.spaceId, spaceId) : undefined, inWindow))
     .then((rows) => rows.map((r) => r.e));
 }
 
-async function peopleCounts(tx: Tx) {
-  const rows = await tx.select({ id: t.eventPeople.eventId, n: sql<number>`count(distinct person_id)::int` }).from(t.eventPeople).groupBy(t.eventPeople.eventId);
+/** How many people are linked to each of these rooms. */
+async function peopleCounts(tx: Tx, eventIds: string[]) {
+  if (!eventIds.length) return new Map<string, number>();
+  const rows = await tx
+    .select({ id: t.eventPeople.eventId, n: sql<number>`count(distinct person_id)::int` })
+    .from(t.eventPeople)
+    .where(inArray(t.eventPeople.eventId, eventIds))
+    .groupBy(t.eventPeople.eventId);
   return new Map(rows.map((r) => [r.id, r.n]));
 }
 
@@ -52,10 +68,11 @@ export type UpcomingItem = {
 
 /** Every session from today for `days` days, in the user's zone, soonest first. */
 export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDate, userTz: string, days = 60): Promise<UpcomingItem[]> {
-  const rooms = await activeRooms(tx, spaceId);
+  const rooms = await activeRooms(tx, spaceId, { from: today, to: addDays(today, days) });
   const byId = new Map(rooms.map((r) => [r.id, r]));
-  const counts = await peopleCounts(tx);
-  return expandAgenda(rooms.map(timingOf), today, addDays(today, days), userTz).map((a) => {
+  const agenda = expandAgenda(rooms.map(timingOf), today, addDays(today, days), userTz);
+  const counts = await peopleCounts(tx, [...new Set(agenda.map((a) => a.eventId))]);
+  return agenda.map((a) => {
     const e = byId.get(a.eventId)!;
     return { ...a, spaceId: e.spaceId, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0 };
   });
@@ -66,13 +83,13 @@ export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDat
  * haven't recorded yet (no attendance either way): the "Who did you meet?" cards.
  */
 export async function roomsToDebrief(tx: Tx, spaceId: string | null, today: IsoDate, userTz: string) {
-  const rooms = (await activeRooms(tx, spaceId)).filter((r) => r.kind !== "meeting");
+  const rooms = (await activeRooms(tx, spaceId, { from: addDays(today, -2), to: addDays(today, -1) })).filter((r) => r.kind !== "meeting");
   const items = expandAgenda(rooms.map(timingOf), addDays(today, -2), addDays(today, -1), userTz);
   if (!items.length) return [];
   const ids = [...new Set(items.map((i) => i.eventId))];
   const [answered, counts] = await Promise.all([
     tx.select({ eventId: t.eventAttendance.eventId, on: t.eventAttendance.occurrenceOn }).from(t.eventAttendance).where(inArray(t.eventAttendance.eventId, ids)),
-    peopleCounts(tx),
+    peopleCounts(tx, ids),
   ]);
   const done = new Set(answered.map((a) => `${a.eventId}:${a.on}`));
   const byId = new Map(rooms.map((r) => [r.id, r]));
@@ -84,7 +101,7 @@ export async function roomsToDebrief(tx: Tx, spaceId: string | null, today: IsoD
 /** Recurring rooms with their next date and how often you've gone lately. */
 export async function listSeries(tx: Tx, spaceId: string | null, today: IsoDate) {
   const rooms = (await activeRooms(tx, spaceId)).filter((r) => r.rrule);
-  const counts = await peopleCounts(tx);
+  const counts = await peopleCounts(tx, rooms.map((r) => r.id));
   const attendance = await tx.select().from(t.eventAttendance).where(eq(t.eventAttendance.attended, true));
   const went = new Set(attendance.map((a) => `${a.eventId}:${a.occurrenceOn}`));
   return rooms
@@ -126,8 +143,8 @@ export async function whereNetworkGathers(tx: Tx, spaceId: string | null) {
 
 /** One-off rooms that have already happened (last 6 months), newest first. */
 export async function listPast(tx: Tx, spaceId: string | null, today: IsoDate) {
-  const rooms = (await activeRooms(tx, spaceId)).filter((r) => !r.rrule && r.startsOn < today && r.startsOn >= addDays(today, -183));
-  const counts = await peopleCounts(tx);
+  const rooms = (await activeRooms(tx, spaceId, { from: addDays(today, -183), to: addDays(today, -1) })).filter((r) => !r.rrule && r.startsOn < today && r.startsOn >= addDays(today, -183));
+  const counts = await peopleCounts(tx, rooms.map((r) => r.id));
   return rooms.sort((a, b) => b.startsOn.localeCompare(a.startsOn)).map((e) => ({ id: e.id, title: e.title, kind: e.kind, location: e.location, date: e.startsOn, people: counts.get(e.id) ?? 0 }));
 }
 

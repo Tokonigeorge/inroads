@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { whatsappDigits } from "@/domain/normalise";
+import { whatsappDigits } from "@/domain/whatsapp";
 import { Button } from "@/ui/button";
 import { Segmented, Textarea } from "@/ui/field";
 import { Sheet } from "@/ui/sheet";

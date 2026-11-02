@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { whatsappDigits } from "@/domain/normalise";
+import { whatsappDigits } from "@/domain/whatsapp";
 import { logSentDraftAction } from "@/features/ai/actions";
 import { useToast } from "@/ui/toast";
 import { setStarredAction } from "./actions";
