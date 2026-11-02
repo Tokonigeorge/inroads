@@ -35,7 +35,8 @@ export function lenient(schema: z.ZodType, value: unknown): unknown {
     return out;
   }
   if (schema instanceof z.ZodArray) return Array.isArray(value) ? value.map((x) => lenient(schema.element as z.ZodType, x)) : [];
-  if (schema instanceof z.ZodString) return typeof value === "string" ? value : value == null ? "" : String(value);
+  // A list where text was asked for ("caveats": ["…", "…"]) reads as sentences, not "a.,b".
+  if (schema instanceof z.ZodString) return typeof value === "string" ? value : value == null ? "" : Array.isArray(value) ? value.map(String).join(" ") : String(value);
   if (schema instanceof z.ZodNumber) {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;

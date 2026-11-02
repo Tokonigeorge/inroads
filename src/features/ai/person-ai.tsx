@@ -16,7 +16,7 @@ import { DeleteResearchButton } from "./delete-research";
 import { JobStatus } from "./job-status";
 import { ResearchControls } from "./research-controls";
 import { LookItUpYourself } from "./discover-view";
-import { AcceptAllButton, SuggestionList } from "./suggestion-list";
+import { SuggestionChecklist } from "./suggestion-list";
 
 type Space = { id: string; name: string; kind: SpaceKind; researchMode: "full" | "get_to_know" | "off" };
 type Src = { title: string; url: string };
@@ -92,19 +92,13 @@ export async function PersonAi({ userId, personId, name, spaces }: { userId: str
   });
   const when = (d: Date) => formatLongDate(instantInZone(d, ctx.timezone).date, ctx.today);
   const researchable = spaces.filter((s) => s.researchMode !== "off");
-  // Details for their profile (role, company, city, birthday, profiles): one tap adds them all.
-  const fills = suggestions.filter((x) => x.kind === "person_field" || x.kind === "social");
   const first = name.split(/\s+/)[0];
 
   return (
     <>
       {suggestions.length ? (
-        <Block title={fills.length === suggestions.length ? "Missing from their profile" : `Suggestions · ${suggestions.length}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="hint">Found by research or a chat import. Nothing is changed until you accept.</p>
-            <AcceptAllButton ids={fills.map((f) => f.id)} />
-          </div>
-          <SuggestionList items={suggestions.map(describeSuggestion)} />
+        <Block title="Update their profile?">
+          <SuggestionChecklist items={suggestions.map(describeSuggestion)} />
         </Block>
       ) : null}
 

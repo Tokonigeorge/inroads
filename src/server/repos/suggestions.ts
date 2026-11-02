@@ -131,7 +131,15 @@ export async function acceptSuggestion(tx: Tx, userId: string, id: string, edite
     }
     case "interests": {
       const v = p as z.infer<typeof suggestionPayloads.interests>;
-      await tx.execute(sql`update person_spaces set interests = array(select distinct unnest(interests || ${v.values}::text[])) where person_id = ${v.personId} and space_id = ${v.spaceId}`);
+      // Each value as its own parameter: a JS array passed whole reaches Postgres as one string.
+      const values = v.values.filter((x) => x.trim());
+      if (values.length) {
+        const list = sql`array[${sql.join(
+          values.map((x) => sql`${x}`),
+          sql`, `,
+        )}]::text[]`;
+        await tx.execute(sql`update person_spaces set interests = array(select distinct unnest(interests || ${list})) where person_id = ${v.personId} and space_id = ${v.spaceId}`);
+      }
       break;
     }
     case "note": {

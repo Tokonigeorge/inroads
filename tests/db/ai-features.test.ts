@@ -14,7 +14,7 @@ import { keepStakeholder } from "@/server/repos/prep";
 import { listNudges } from "@/server/repos/nudges";
 import { createPerson, logTouch, saveMembership } from "@/server/repos/people";
 import { createRoom, linkPerson } from "@/server/repos/rooms";
-import { acceptSuggestion, discardSuggestion, pendingForPerson } from "@/server/repos/suggestions";
+import { acceptSuggestion, createSuggestions, discardSuggestion, pendingForPerson } from "@/server/repos/suggestions";
 import { listSpaces } from "@/server/repos/spaces";
 import { jobsStore } from "@/server/system/jobs";
 import { fakeAnthropic, promptText, type FakeRequest } from "../fixtures/fake-anthropic";
@@ -179,6 +179,25 @@ describe("suggestions", () => {
     expect(p).toEqual({ company: "Kestrel Ventures", city: "Ikoyi, Lagos", socials: { linkedin: "https://www.linkedin.com/in/kemi" } });
     expect(await sql`select stage from goal_links where person_id = ${kemi}`).toHaveLength(1);
     expect(await as((tx) => acceptSuggestion(tx, user.id, company.id))).toMatchObject({ ok: false });
+  });
+
+  it("accepting interests adds them to what's saved, without doubles", async () => {
+    await as((tx) => createSuggestions(tx, user.id, "chat", null, [{ kind: "interests", spaceId: work, targetId: kemi, why: "From a chat", payload: { personId: kemi, spaceId: work, values: ["jazz", "running"] } }]));
+    const sug = (await as((tx) => pendingForPerson(tx, kemi))).find((x) => x.kind === "interests")!;
+    await sql`update person_spaces set interests = '{running}' where person_id = ${kemi} and space_id = ${work}`;
+    expect(await as((tx) => acceptSuggestion(tx, user.id, sug.id))).toEqual({ ok: true, data: null });
+    const [m] = await sql`select interests from person_spaces where person_id = ${kemi} and space_id = ${work}`;
+    expect([...m.interests].sort()).toEqual(["jazz", "running"]);
+  });
+  it("a different city is suggested with what's saved now, and no congratulations", async () => {
+    await sql`update people set city = 'Abuja' where id = ${kemi}`;
+    const r = fakeAnthropic(() => ({ json: { ...research, goalId } }));
+    await researchPerson({ client: r.client, sys, db }, user.id, { personId: kemi, spaceId: work, mode: "research" });
+    const city = (await as((tx) => pendingForPerson(tx, kemi))).find((x) => x.kind === "person_field" && (x.payload as { field: string }).field === "city")!;
+    expect(city.payload).toMatchObject({ value: "Lagos", was: "Abuja" });
+    expect(city.why?.startsWith(MOVED_PREFIX)).toBe(false);
+    for (const x of await as((tx) => pendingForPerson(tx, kemi))) await as((tx) => discardSuggestion(tx, x.id));
+    await sql`update people set city = 'Ikoyi, Lagos' where id = ${kemi}`;
   });
 });
 

@@ -31,23 +31,26 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     await context.addCookies([{ ...sessionCookie(user), domain: "localhost", path: "/", httpOnly: false, secure: false, sameSite: "Lax" }]);
   });
 
-  test("research a Work contact, then accept or discard what it found", async ({ page }) => {
+  test("research a Work contact, then apply what it found, leaving out what's wrong", async ({ page }, info) => {
     await page.goto(`/people/${ids.adaeze}`);
     await page.getByRole("button", { name: "Research Adaeze" }).click();
     await expect(page.getByText("Early-stage investor focused on West African fintech.")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Ask how Kestrel thinks about B2B payments")).toBeVisible();
 
+    // Everything comes ticked; untick the X profile and apply the rest.
     const suggestions = page.getByRole("list", { name: "Suggestions" });
-    await suggestions.getByRole("article", { name: "Company" }).getByRole("button", { name: "Accept" }).click();
-    await expect(suggestions.getByRole("article", { name: "Company" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Adaeze Okafor", level: 1 }).locator("..")).toContainText("Kestrel Ventures");
-    await suggestions.getByRole("article", { name: "City" }).getByRole("button", { name: "Edit" }).click();
-    await page.getByLabel("Edit: City").fill("Ikoyi, Lagos");
-    await suggestions.getByRole("article", { name: "City" }).getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("· Ikoyi, Lagos")).toBeVisible();
-    await suggestions.getByRole("article", { name: "Profile: x" }).getByRole("button", { name: "Discard" }).click();
-    await expect(suggestions.getByRole("article", { name: "Profile: x" })).toHaveCount(0);
+    await expect(suggestions.getByRole("checkbox", { name: /^Company: Kestrel Ventures/ })).toBeChecked();
+    await suggestions.getByRole("checkbox", { name: /^X: / }).uncheck();
     await expectAccessible(page);
+    await suggestions.screenshot({ path: info.outputPath("suggestions.png") });
+    await page.getByRole("region", { name: "Update their profile?" }).screenshot({ path: info.outputPath("suggestions-block.png") });
+    await page.getByRole("button", { name: /^Apply \d+$/ }).click();
+    await expect(page.getByRole("heading", { name: "Adaeze Okafor", level: 1 }).locator("..")).toContainText("Kestrel Ventures");
+    await expect(page.getByText("· Lagos")).toBeVisible();
+    // What was left unticked is still there until you dismiss it.
+    await expect(suggestions.getByRole("checkbox", { name: /^X: / })).toBeVisible();
+    await page.getByRole("button", { name: "Dismiss all" }).click();
+    await expect(suggestions).toHaveCount(0);
   });
 
   test("draft a message, then log it as a touch", async ({ page }) => {
@@ -77,7 +80,7 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     await page.keyboard.press("Escape");
     await page.reload();
     const suggestions = page.getByRole("list", { name: "Suggestions" });
-    await suggestions.getByRole("article", { name: "A promise you made" }).getByRole("button", { name: "Accept" }).click();
+    await page.getByRole("button", { name: /^Apply/ }).click();
     await expect(page.getByText("Send the pitch deck").first()).toBeVisible();
   });
 

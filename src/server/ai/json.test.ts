@@ -17,4 +17,8 @@ describe("lenient", () => {
     expect(lenient(s, { name: "Kemi", score: "80", level: "nope" })).toEqual({ name: "Kemi", tags: [], score: 80, level: "low", inner: { x: "" } });
     expect(s.safeParse(lenient(s, null)).success).toBe(true);
   });
+
+  it("joins a list given where text was asked for into sentences", () => {
+    expect(lenient(z.string(), ["Check her role.", "Find where she's based."])).toBe("Check her role. Find where she's based.");
+  });
 });

@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: research findings are one tick-box list
+- On a person's page, what research found is a short list under "Update their profile?", all ticked: untick anything wrong and Apply, or Dismiss all. Each line says what changes ("City: London (was Lagos)").
+- Research now suggests a new city too, not only a new company or role.
+- Fixed: accepting interests from a chat import failed; the "Check:" note no longer runs sentences together.
+
 ### Added: a brief eval
 - `pnpm eval:briefs --email you@example.com` compares today's brief model with a cheaper one on your own briefs and 12 made-up accounts, has the current model grade them blind, and stops before $5 (`--dry` shows the cases and the estimate without spending anything).
 
