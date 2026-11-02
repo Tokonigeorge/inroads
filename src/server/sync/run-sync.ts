@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { addDays } from "@/domain/dates";
 import type { IncomingContact } from "@/domain/dedupe";
@@ -135,6 +136,16 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
       meEmails = [];
     }
 
+    // Nothing new (the usual 30-minute run): no import record, nothing re-applied. Outlook and
+    // calendar links send the whole calendar every time, so compare it with the last one; the day
+    // is part of it, so meetings that have just happened still get logged once a day.
+    const feedHash = createHash("sha256").update(JSON.stringify([ctx.today, contacts, events, cancelled])).digest("base64url");
+    if (!contacts.length && !cancelled.length && (!events.length || feedHash === state.feedHash)) {
+      await store.saveSync(connectionId, { ...next, feedHash });
+      await jobs.done(jobId, { step: "Up to date", summary: { contacts: null, calendar: null, unchanged: true } }, { importId: null, connectionId });
+      return { contacts: null, calendar: null, importId: "" };
+    }
+
     await jobs.progress(jobId, {
       step: `Found ${plural(contacts.length, "contact", "contacts")} and ${plural(events.length, "calendar event", "calendar events")}. Matching them with your people`,
       summary: { contactsFound: contacts.length, eventsFound: events.length },
@@ -159,7 +170,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
       await sys.execute(sql`analyze person_spaces`);
     }
 
-    await store.saveSync(connectionId, { ...next, lastImportId: result.importId, lastJobId: jobId, lastSummary: { contacts: result.contacts, calendar: result.calendar } });
+    await store.saveSync(connectionId, { ...next, feedHash, lastImportId: result.importId, lastJobId: jobId, lastSummary: { contacts: result.contacts, calendar: result.calendar } });
     await jobs.done(jobId, { step: "Done", summary: { contacts: result.contacts, calendar: result.calendar } }, { importId: result.importId, connectionId });
     // Conferences and mixers from the calendar get a plan, like rooms you add by hand (P3).
     if (!deps.skipPrep) await prepareSyncedRooms(userId, spaceId, result.eventRooms, ctx.today).catch((e) => console.error("room prep after sync failed", e));

@@ -1,6 +1,6 @@
 {
-  "id": "8c06bd74-2af3-4dab-af0e-916440571a8d",
-  "prevId": "73103655-8cce-4d50-b771-dacc008efd09",
+  "id": "0ea0ab72-c591-46cc-afba-753263f2e463",
+  "prevId": "1083acdb-1c1c-450d-9ffb-82ccb259aec6",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1728,6 +1728,22 @@
           ],
           "isUnique": false,
           "where": "\"events\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "events_import_idx": {
+          "name": "events_import_idx",
+          "columns": [
+            {
+              "expression": "import_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"events\".\"import_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -4508,6 +4524,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'07:30'"
+        },
+        "last_seen_on": {
+          "name": "last_seen_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
         },
         "onboarding_state": {
           "name": "onboarding_state",

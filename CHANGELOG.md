@@ -7,7 +7,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Added: "I'm going" on events (needs a migration)
 - **Tell Inroads you're going**: on the event page, on Today ("Going to ArtX Lagos?"), or with the "I'm going" box when adding an event. Preparing the room, researching who'll be there, Today's agenda and prep cards, "How did it go?" and "Who did you meet?" now only happen for events you're going to.
 - **Saving an idea isn't saying yes**: events added from Suggested rooms or a look-up start as "Saved · not going yet". Calendar meetings count as going unless you declined.
-- Migration: `20261102094856_going` (adds one column; existing events count as going).
+- Migration: `20261102095346_going` (adds one column; existing events count as going).
 
 ### Changed: Today loads faster
 - Today, the person page and the notification job read only the events that matter for the dates shown, instead of every event you've ever had (three times over on Today).
@@ -15,6 +15,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - After the app syncs on open, the page refreshes once and only when something new came in, instead of three times regardless.
 - Who's signed in is checked once per page load instead of once per part of the page.
 
+### Changed: less waste (needs a migration)
+- **Syncs that find nothing new don't write an import record**, and calendar links and Outlook skip re-applying an unchanged calendar. Old empty sync records are cleaned up daily, so Import history shows only syncs that changed something.
+- **Daily briefs, suggested rooms and attendee prep only run for people who've opened Inroads (or signed in) in the last 30 days.** Briefs used to keep writing themselves, on the most capable model, for accounts nobody was using.
+- Migration: `20261102093124_last_seen` (a `last_seen_on` date on profiles, and an index for the clean-up).
 ### Added: Want to meet (needs a migration)
 - **People you're trying to meet have their own place.** Anyone added from a goal, a look-up or event plan, or a research step is marked **Want to meet**; so is anyone you add with "I haven't met them yet" ticked, or mark from their page's More menu.
 - **No "going cold" reminders** for them: you can't drift from someone you haven't met.
