@@ -10,6 +10,7 @@ import { useCapture } from "@/features/shell/capture-sheet";
 import { Button } from "@/ui/button";
 import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
+import { setGoingAction } from "@/features/rooms/actions";
 import { dismissNudgeAction, snoozeNudgeAction, undoNudgeAction } from "./actions";
 
 /** Kind colours (prototype .k-*, L168): cold cool, birthday fresh, promise warn, context faint, research accent, event good. */
@@ -80,6 +81,13 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
           if (!r.jobId) return toast.show(r.message ?? "Couldn't start decoding the room.");
           toast.show(`Decoding ${a.title}. The plan will be on the room in a minute.`);
           router.push(`/rooms/${a.eventId}`);
+        });
+      case "going":
+        hide(n.key);
+        return start(async () => {
+          const r = await setGoingAction(a.eventId, true);
+          toast.show(r.prepping ? "Marked as going. Preparing the room now." : "Marked as going.");
+          router.refresh();
         });
       case "debrief_room":
         return router.push(`/rooms/${a.eventId}/after?on=${a.occurrenceOn}`);

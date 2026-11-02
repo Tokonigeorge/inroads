@@ -95,7 +95,7 @@ async function sessionPeople(tx: Tx, sessions: UpcomingItem[]) {
 
 /** Everyone linked to sessions from today to `days` ahead, once each (for researching ahead of time). */
 export async function upcomingAttendees(tx: Tx, ctx: Ctx, days: number): Promise<PrepPerson[]> {
-  const sessions = await listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, days);
+  const sessions = (await listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, days)).filter((s) => s.going);
   const people = await sessionPeople(tx, sessions);
   const seen = new Map<string, PrepPerson>();
   for (const s of sessions) for (const p of people.get(`${s.eventId}:${s.occurrenceOn}`) ?? []) if (!seen.has(`${p.id}:${p.spaceId}`)) seen.set(`${p.id}:${p.spaceId}`, p);
@@ -104,7 +104,7 @@ export async function upcomingAttendees(tx: Tx, ctx: Ctx, days: number): Promise
 
 /** Today's sessions, in the user's zone, with prep for each person you'll see. */
 export async function todayAgenda(tx: Tx, ctx: Ctx): Promise<AgendaEntry[]> {
-  const sessions = (await listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, 0)).filter((s) => s.date === ctx.today);
+  const sessions = (await listUpcoming(tx, ctx.spaceId, ctx.today, ctx.tz, 0)).filter((s) => s.date === ctx.today && s.going);
   const people = await sessionPeople(tx, sessions);
   return sessions.map((s) => ({ ...s, attendees: people.get(`${s.eventId}:${s.occurrenceOn}`) ?? [] }));
 }
@@ -123,7 +123,7 @@ async function weekRooms(tx: Tx, upcoming: UpcomingItem[]) {
   const rooms = upcoming.filter((s) => s.kind !== "meeting");
   const ids = [...new Set(rooms.map((r) => r.eventId))];
   const planned = ids.length ? new Set((await tx.selectDistinct({ id: t.searches.eventId }).from(t.searches).where(inArray(t.searches.eventId, ids))).map((r) => r.id)) : new Set();
-  return rooms.map((r) => ({ eventId: r.eventId, spaceId: r.spaceId, title: r.title, date: r.date, time: r.time, location: r.location, planned: planned.has(r.eventId) }));
+  return rooms.map((r) => ({ eventId: r.eventId, spaceId: r.spaceId, title: r.title, date: r.date, time: r.time, location: r.location, planned: planned.has(r.eventId), going: r.going }));
 }
 
 /** Loads only the candidates each rule needs, so this stays quick with thousands of people. */
@@ -178,7 +178,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
   ]);
   const moves = await recentMoves(tx, ctx.spaceId);
 
-  const soon = upcoming.filter((s) => s.date <= addDays(ctx.today, 3));
+  const soon = upcoming.filter((s) => s.date <= addDays(ctx.today, 3) && s.going);
   const prep = await sessionPeople(tx, soon);
   const person = (r: { id: string; name: string; company: string | null; position: string | null }): NudgePerson => ({ id: r.id, name: r.name, detail: detailOf(r.position, r.company) });
 

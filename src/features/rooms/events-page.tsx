@@ -141,7 +141,7 @@ export async function EventsPage() {
                   title={u.title}
                   lines={[
                     [DOW[ymd(u.date).getUTCDay()], u.time ? formatTime(u.time) : "All day", u.localTimeLabel ? `(${u.localTimeLabel})` : null, u.location].filter(Boolean).join(" · "),
-                    u.people ? `${people(u.people)} linked` : null,
+                    [u.going ? null : "Saved · not going yet", u.people ? `${people(u.people)} linked` : null].filter(Boolean).join(" · ") || null,
                   ]}
                   end={
                     <>

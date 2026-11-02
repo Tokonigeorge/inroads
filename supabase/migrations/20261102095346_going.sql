@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "going" boolean DEFAULT true NOT NULL;

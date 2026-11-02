@@ -36,7 +36,7 @@ export async function NewRoomFormLoader({ searchParams }: { searchParams: Promis
       spaces={spaces}
       aiEnabled={isAiConfigured()}
       fromPrep={fromPrep}
-      values={{ spaceId, title: one("title")?.slice(0, 120) ?? "", kind: "meetup", startsOn: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ctx.today, startTime: time && /^\d{2}:\d{2}$/.test(time) ? time : "18:00", endTime: null, allDay: false, tz: ctx.timezone, location: one("location"), url: one("url"), notes: one("notes"), freq: "none", byDays: null, nth: null, untilOn: null, goalId: null }}
+      values={{ spaceId, title: one("title")?.slice(0, 120) ?? "", kind: "meetup", startsOn: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ctx.today, startTime: time && /^\d{2}:\d{2}$/.test(time) ? time : "18:00", endTime: null, allDay: false, tz: ctx.timezone, location: one("location"), url: one("url"), notes: one("notes"), freq: "none", byDays: null, nth: null, untilOn: null, goalId: null, going: !(one("title") || fromPrep) }}
     />
   );
 }
@@ -81,6 +81,7 @@ export function EditRoomForm({ data }: { data: Awaited<ReturnType<typeof loadRoo
           nth: d.recurrence.nth ?? null,
           untilOn: e.untilOn,
           goalId: e.goalId,
+          going: e.going,
         }}
       />
     </>

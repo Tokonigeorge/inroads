@@ -13,10 +13,10 @@ import { Segmented } from "@/ui/field";
 import { Sheet } from "@/ui/sheet";
 import { useToast } from "@/ui/toast";
 import { useShortcut } from "@/ui/use-shortcut";
-import { deleteRoomAction, linkPersonAction, restoreRoomAction, setAttendanceAction, unlinkPersonAction } from "./actions";
+import { deleteRoomAction, linkPersonAction, restoreRoomAction, setAttendanceAction, setGoingAction, unlinkPersonAction } from "./actions";
 
 /** The event record's actions (prototype L1132): Add people, Edit, Event page ↗, and More → Delete. */
-export function RoomActions({ roomId, title, spaceId, url }: { roomId: string; title: string; spaceId: string; url?: string | null }) {
+export function RoomActions({ roomId, title, spaceId, url, going }: { roomId: string; title: string; spaceId: string; url?: string | null; going?: boolean | null }) {
   const router = useRouter();
   const toast = useToast();
   const [, start] = useTransition();
@@ -35,8 +35,24 @@ export function RoomActions({ roomId, title, spaceId, url }: { roomId: string; t
         }),
       });
     });
+  const [pendingGoing, startGoing] = useTransition();
+  const markGoing = (to: boolean) =>
+    startGoing(async () => {
+      const r = await setGoingAction(roomId, to);
+      toast.show(to ? (r.prepping ? "You're going. Preparing the room now." : "You're going.") : "Marked as not going. No prep, research or reminders for it.");
+      router.refresh();
+    });
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {going == null ? null : going ? (
+        <Button aria-pressed="true" variant="secondary" disabled={pendingGoing} onClick={() => markGoing(false)} title="Tap if you're not going after all">
+          ✓ Going
+        </Button>
+      ) : (
+        <Button variant="primary" disabled={pendingGoing} onClick={() => markGoing(true)}>
+          I&apos;m going
+        </Button>
+      )}
       <Button onClick={() => setAdding(true)}>Add people</Button>
       <Button asChild variant="ghost">
         <Link href={`/rooms/${roomId}/edit`}>Edit</Link>

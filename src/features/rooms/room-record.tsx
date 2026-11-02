@@ -98,7 +98,8 @@ function RoomView({ d, today, userTz, impact, prep }: { d: RoomDetail; today: st
           </div>
         ) : null}
       </header>
-      <RoomActions roomId={e.id} title={e.title} spaceId={d.space.id} url={e.url} />
+      {d.next.length && !e.going ? <p className="text-[14px] text-muted">Saved, not going yet. Say you&apos;re going and Inroads prepares the room, researches who&apos;ll be there and asks how it went.</p> : null}
+      <RoomActions roomId={e.id} title={e.title} spaceId={d.space.id} url={e.url} going={d.next.length ? e.going : null} />
 
       {d.next.length ? prep : null}
 
