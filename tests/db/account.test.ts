@@ -80,10 +80,15 @@ describe("briefs prepared at your brief time", () => {
   it("finds Spaces where you read briefs, once your brief time has passed, until today's is written", async () => {
     const u = await createUser(sql, "Brief Reader");
     const [s] = await sql`select id from spaces where user_id = ${u.id} and kind = 'work'`;
-    await sql`update profiles set timezone = 'Africa/Lagos', brief_time = '07:30' where user_id = ${u.id}`;
+    await sql`update profiles set timezone = 'Africa/Lagos', brief_time = '07:30', last_seen_on = '2026-10-20' where user_id = ${u.id}`;
     await sql`insert into briefs (user_id, space_id, kind, period_key, markdown, created_at) values (${u.id}, ${s.id}, 'daily', '2026-10-23', 'x', '2026-10-23T07:00:00Z')`;
     const mine = async (at: string) => (await briefsDue(sys, new Date(at))).filter((b) => b.userId === u.id);
     expect(await mine("2026-10-24T06:40:00Z")).toEqual([{ userId: u.id, spaceId: s.id }]); // 07:40 in Lagos
+    // Not for someone who hasn't opened the app (or signed in) in 30 days: briefs written for nobody kept themselves going.
+    await sql`update profiles set last_seen_on = '2026-09-20' where user_id = ${u.id}`;
+    expect(await mine("2026-10-24T06:40:00Z")).toEqual([]);
+    await sql`update auth.users set last_sign_in_at = '2026-10-10T09:00:00Z' where id = ${u.id}`;
+    expect(await mine("2026-10-24T06:40:00Z")).toEqual([{ userId: u.id, spaceId: s.id }]);
     expect(await mine("2026-10-24T06:20:00Z")).toEqual([]); // 07:20: not yet
     expect(await mine("2026-10-24T07:10:00Z")).toEqual([]); // 08:10: window passed
     await sql`insert into briefs (user_id, space_id, kind, period_key, markdown, created_at) values (${u.id}, ${s.id}, 'daily', '2026-10-24', 'y', '2026-10-24T07:00:00Z')`;

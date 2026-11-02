@@ -11,6 +11,8 @@ export type SyncState = {
   contacts?: { syncToken?: string | null; deltaLink?: string | null };
   calendars?: Record<string, string>;
   lastSummary?: Record<string, unknown>;
+  /** What the last applied fetch looked like (plus the day), to skip re-applying an unchanged calendar link or Outlook feed. */
+  feedHash?: string;
   lastImportId?: string;
   lastJobId?: string;
 };

@@ -99,6 +99,13 @@
       "when": 1793572432964,
       "tag": "20261101223352_push_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793611330254,
+      "tag": "20261102092210_last_seen",
+      "breakpoints": true
     }
   ]
 }

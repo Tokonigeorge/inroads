@@ -14,8 +14,11 @@ export async function briefsDue(sys: Database = getSystemDb(), now: Date = new D
     select b.user_id, b.space_id
     from (select distinct user_id, space_id from briefs where kind = 'daily' and created_at > ${at}::timestamptz - interval '7 days') b
     join profiles p on p.user_id = b.user_id
+    join auth.users u on u.id = b.user_id
     join spaces s on s.id = b.space_id and s.archived_at is null
-    where mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
+    -- Only for people still using Inroads: a brief written for nobody would keep itself going forever.
+    where greatest(u.last_sign_in_at, p.last_seen_on::timestamptz) > ${at}::timestamptz - interval '30 days'
+      and mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
       and not exists (
         select 1 from briefs x
         where x.user_id = b.user_id and x.space_id = b.space_id and x.kind = 'daily'
@@ -39,7 +42,7 @@ export async function radarDue(sys: Database = getSystemDb(), now: Date = new Da
     join profiles p on p.user_id = g.user_id
     join auth.users u on u.id = g.user_id
     where g.active and g.archived_at is null and not g.example
-      and u.last_sign_in_at > ${at}::timestamptz - interval '30 days'
+      and greatest(u.last_sign_in_at, p.last_seen_on::timestamptz) > ${at}::timestamptz - interval '30 days'
       and mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
       and not exists (
         select 1 from searches r
@@ -56,7 +59,7 @@ export async function usersAtBriefTime(sys: Database = getSystemDb(), now: Date 
     select p.user_id
     from profiles p
     join auth.users u on u.id = p.user_id
-    where u.last_sign_in_at > ${at}::timestamptz - interval '30 days'
+    where greatest(u.last_sign_in_at, p.last_seen_on::timestamptz) > ${at}::timestamptz - interval '30 days'
       and mod((extract(epoch from ((${at}::timestamptz at time zone p.timezone)::time - p.brief_time))::int / 60) + 1440, 1440) < 30
     limit 500`);
   return [...rows].map((r) => r.user_id);
