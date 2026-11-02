@@ -338,6 +338,8 @@ export const events = pgTable(
     notes: text("notes"),
     rrule: text("rrule"),
     rruleSource: text("rrule_source"),
+    /** You said you're going (calendar meetings are, unless declined; ideas you saved aren't yet). Drives prep, attendee research and "how did it go?". */
+    going: boolean("going").notNull().default(true),
     untilOn: date("until_on"),
     goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
     source: text("source").notNull().default("manual"),

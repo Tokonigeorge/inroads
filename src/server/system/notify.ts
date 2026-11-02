@@ -77,6 +77,7 @@ export async function sendDueNotifications(now: Date = new Date(), deps: Deps = 
             isNull(t.events.archivedAt),
             isNull(t.spaces.archivedAt),
             isNotNull(t.events.startTime),
+            eq(t.events.going, true),
             // Only rooms that can have a session around now: a running series, or a one-off from the last couple of days.
             sql`((${t.events.rrule} is not null and (${t.events.untilOn} is null or ${t.events.untilOn} >= ${recent}::date)) or ${t.events.startsOn} >= ${recent}::date)`,
           ),

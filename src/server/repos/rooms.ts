@@ -64,6 +64,8 @@ export type UpcomingItem = {
   localTimeLabel: string | null;
   repeats: boolean;
   people: number;
+  /** You said you're going (prep, research and "how did it go?" only follow these). */
+  going: boolean;
 };
 
 /** Every session from today for `days` days, in the user's zone, soonest first. */
@@ -74,7 +76,7 @@ export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDat
   const counts = await peopleCounts(tx, [...new Set(agenda.map((a) => a.eventId))]);
   return agenda.map((a) => {
     const e = byId.get(a.eventId)!;
-    return { ...a, spaceId: e.spaceId, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0 };
+    return { ...a, spaceId: e.spaceId, title: e.title, kind: e.kind, location: e.location, repeats: Boolean(e.rrule), people: counts.get(e.id) ?? 0, going: e.going };
   });
 }
 
@@ -83,7 +85,7 @@ export async function listUpcoming(tx: Tx, spaceId: string | null, today: IsoDat
  * haven't recorded yet (no attendance either way): the "Who did you meet?" cards.
  */
 export async function roomsToDebrief(tx: Tx, spaceId: string | null, today: IsoDate, userTz: string) {
-  const rooms = (await activeRooms(tx, spaceId, { from: addDays(today, -2), to: addDays(today, -1) })).filter((r) => r.kind !== "meeting");
+  const rooms = (await activeRooms(tx, spaceId, { from: addDays(today, -2), to: addDays(today, -1) })).filter((r) => r.kind !== "meeting" && r.going);
   const items = expandAgenda(rooms.map(timingOf), addDays(today, -2), addDays(today, -1), userTz);
   if (!items.length) return [];
   const ids = [...new Set(items.map((i) => i.eventId))];
@@ -220,7 +222,7 @@ function rowFrom(input: RoomInput): Result<Omit<typeof t.events.$inferInsert, "u
 export async function createRoom(tx: Tx, userId: string, input: RoomInput): Promise<Result<{ id: string }>> {
   const row = rowFrom(input);
   if (!row.ok) return row;
-  const r = await guarded(tx, (sp) => sp.insert(t.events).values({ ...row.data, userId, source: "manual" }).returning({ id: t.events.id }));
+  const r = await guarded(tx, (sp) => sp.insert(t.events).values({ ...row.data, userId, source: "manual", going: input.going ?? true }).returning({ id: t.events.id }));
   return r.ok ? { ok: true, data: { id: r.value[0].id } } : fail(r.message, "goalId");
 }
 
@@ -233,8 +235,14 @@ export async function updateRoom(tx: Tx, id: string, input: RoomInput): Promise<
     const [linked] = await tx.select({ n: sql<number>`count(*)::int` }).from(t.eventPeople).where(eq(t.eventPeople.eventId, id));
     if (linked.n > 0) return fail("Rooms with people linked can't move to another Space. Remove the people first.", "spaceId");
   }
-  const r = await guarded(tx, (sp) => sp.update(t.events).set({ ...row.data, rruleSource: null }).where(eq(t.events.id, id)));
+  const r = await guarded(tx, (sp) => sp.update(t.events).set({ ...row.data, rruleSource: null, ...(input.going === undefined ? {} : { going: input.going }) }).where(eq(t.events.id, id)));
   return r.ok ? { ok: true, data: null } : fail(r.message, "goalId");
+}
+
+/** "I'm going" / "Not going". True when it changed. */
+export async function setGoing(tx: Tx, id: string, going: boolean) {
+  const r = await tx.update(t.events).set({ going }).where(and(eq(t.events.id, id), isNull(t.events.deletedAt), sql`${t.events.going} is distinct from ${going}`)).returning({ id: t.events.id });
+  return r.length > 0;
 }
 
 export async function deleteRoom(tx: Tx, id: string) {

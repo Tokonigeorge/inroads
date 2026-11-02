@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: "I'm going" on events (needs a migration)
+- **Tell Inroads you're going**: on the event page, on Today ("Going to ArtX Lagos?"), or with the "I'm going" box when adding an event. Preparing the room, researching who'll be there, Today's agenda and prep cards, "How did it go?" and "Who did you meet?" now only happen for events you're going to.
+- **Saving an idea isn't saying yes**: events added from Suggested rooms or a look-up start as "Saved · not going yet". Calendar meetings count as going unless you declined.
+- Migration: `20261102094856_going` (adds one column; existing events count as going).
+
 ### Changed: Today loads faster
 - Today, the person page and the notification job read only the events that matter for the dates shown, instead of every event you've ever had (three times over on Today).
 - Today and the person page no longer download a 192 KB phone-number library.

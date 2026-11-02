@@ -31,7 +31,7 @@ export type NudgeSnapshot = {
     researched?: boolean;
   }[];
   /** Rooms (not 1:1 meetings) in the next 7 days, from tomorrow; `planned` when a look-up is attached. */
-  rooms?: { eventId: string; spaceId: string; title: string; date: IsoDate; time: string | null; location: string | null; planned: boolean }[];
+  rooms?: { eventId: string; spaceId: string; title: string; date: IsoDate; time: string | null; location: string | null; planned: boolean; going?: boolean }[];
   /** People added by hand in the last 14 days with no context yet. */
   needContext: (NudgePerson & { createdOn: IsoDate })[];
   /** Rooms (not 1:1 meetings) in the last 2 days you haven't said whether you went to. */
@@ -61,6 +61,7 @@ export type NudgeAction =
   | { type: "draft"; personId: string; purpose: "checkin" | "birthday" | "followup" | "congrats"; label: string }
   | { type: "research"; personId: string; spaceId: string; label: string }
   | { type: "decode_room"; eventId: string; spaceId: string; title: string; label: string }
+  | { type: "going"; eventId: string; label: string }
   | { type: "snooze"; days: number; label: string }
   | { type: "dismiss"; label: string };
 
@@ -283,6 +284,23 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
   for (const r of s.rooms ?? []) {
     const n = diffDays(t, r.date);
     if (n < 1 || n > 7) continue;
+    // Saved but not confirmed: ask first; the plan, research and "how did it go?" follow a yes.
+    if (r.going === false) {
+      out.push({
+        key: `ev:${r.eventId}:${r.date}`,
+        kind: "room",
+        priority: 3,
+        label: "This week",
+        title: `Going to ${r.title}?`,
+        body: [formatLongDate(r.date, t), r.time ? formatTime(r.time) : null, r.location].filter(Boolean).join(" · "),
+        person: null,
+        actions: [
+          { type: "going", eventId: r.eventId, label: "I'm going" },
+          { type: "open_room", eventId: r.eventId, label: "Open" },
+        ],
+      });
+      continue;
+    }
     out.push({
       key: `ev:${r.eventId}:${r.date}`,
       kind: "room",

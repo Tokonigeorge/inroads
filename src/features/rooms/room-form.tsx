@@ -31,6 +31,7 @@ export type RoomFormValues = {
   nth: Nth | null;
   untilOn: string | null;
   goalId: string | null;
+  going?: boolean;
 };
 
 type SpaceChoice = { id: string; name: string; goals: { id: string; text: string }[] };
@@ -180,6 +181,13 @@ export function RoomForm({
             </>
           ) : null}
         </div>
+        <label className="flex items-start gap-2.5 text-[14.5px]">
+          <input type="checkbox" checked={v.going !== false} onChange={(e) => set("going", e.target.checked)} className="mt-1 accent-[var(--accent)]" />
+          <span>
+            <span className="font-[550]">I&apos;m going</span>
+            <span className="block text-small text-muted">Inroads prepares the room, researches who&apos;ll be there and asks how it went. Untick to just save it for later.</span>
+          </span>
+        </label>
         <label className="flex items-center gap-2 text-small font-[550]">
           <input type="checkbox" checked={v.allDay} onChange={(e) => set("allDay", e.target.checked)} className="accent-[var(--accent)]" />
           All day

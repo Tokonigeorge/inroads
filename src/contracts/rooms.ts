@@ -64,6 +64,8 @@ export const roomSchema = z
       .union([z.string().uuid(), z.literal(""), z.null()])
       .optional()
       .transform((v) => (v ? v : null)),
+    /** "I'm going". Left out on edits that don't show it, so they never change it. */
+    going: z.boolean().optional(),
   })
   .superRefine((r, ctx) => {
     if (r.untilOn && r.untilOn < r.startsOn) ctx.addIssue({ code: "custom", path: ["untilOn"], message: "The end date is before the first date." });

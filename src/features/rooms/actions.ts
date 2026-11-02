@@ -9,8 +9,10 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import { saveRoomDebrief, skipRoomSession } from "@/server/repos/debrief";
 import { createGoal } from "@/server/repos/goals";
-import { attachPrep, loadPlan, roomDetailsOf } from "@/server/repos/prep";
-import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, unlinkPerson, updateRoom } from "@/server/repos/rooms";
+import { attachPrep, latestPrepId, loadPlan, roomDetailsOf } from "@/server/repos/prep";
+import * as t from "@/server/db/schema";
+import { eq } from "drizzle-orm";
+import { createRoom, deleteRoom, linkPerson, restoreRoom, setAttendance, setGoing, unlinkPerson, updateRoom } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 
 const id = z.string().uuid();
@@ -25,11 +27,27 @@ export async function saveRoomAction(roomId: string | null, input: RoomInput, pr
     if (created.ok && prepId) await attachPrep(tx, id.parse(prepId), created.data.id);
     return created;
   });
-  // Added without "Find details": prepare it in the background instead.
-  if (r.ok && !roomId && !prepId) await autoPrepRoom(user.id, { id: r.data.id, spaceId: input.spaceId, title: input.title, kind: input.kind ?? "meetup" });
+  // Added without "Find details" and you're going: prepare it in the background instead.
+  if (r.ok && !roomId && !prepId && input.going !== false) await autoPrepRoom(user.id, { id: r.data.id, spaceId: input.spaceId, title: input.title, kind: input.kind ?? "meetup" });
   if (!r.ok) return r.field ? { fieldErrors: { [r.field]: r.message } } : { message: r.message };
   refresh();
   return { ok: true, id: r.data.id };
+}
+
+/** "I'm going" (or not). Saying yes to a room you saved prepares its plan, if it hasn't one yet. */
+export async function setGoingAction(roomId: string, going: boolean): Promise<{ prepping: boolean }> {
+  const user = await requireUser();
+  const rid = id.parse(roomId);
+  const r = await db.withUser(user.id, async (tx) => {
+    const changed = await setGoing(tx, rid, going);
+    if (!changed || !going) return null;
+    const [room] = await tx.select({ id: t.events.id, spaceId: t.events.spaceId, title: t.events.title, kind: t.events.kind }).from(t.events).where(eq(t.events.id, rid));
+    const planned = room ? Boolean(await latestPrepId(tx, rid)) : true;
+    return room && !planned ? room : null;
+  });
+  const jobId = r ? await autoPrepRoom(user.id, r) : null;
+  refresh();
+  return { prepping: Boolean(jobId) };
 }
 
 export async function deleteRoomAction(roomId: string) {
