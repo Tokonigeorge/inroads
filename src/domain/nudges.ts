@@ -76,6 +76,14 @@ export type Nudge = {
 };
 
 export const MAX_NUDGES = 20;
+/** "Going cold" cards a day, most overdue first. */
+export const MAX_GOING_COLD = 5;
+/** Meetings with more people you know than this are all-hands or webinars: no prep card. */
+export const MAX_PREP_PEOPLE = 10;
+/** In touch within this many days: no prep card for them. */
+export const RECENT_DAYS = 7;
+/** Calendar blocks that aren't meetings with people. */
+const NOT_A_MEETING = /\b(out of office|ooo|focus( time)?|busy|blocked|block|lunch|holiday|annual leave|leave|vacation|travel|commute|gym)\b/i;
 /** Starts the why-text of a "they've moved" suggestion, so Today can pick it out. */
 export const MOVED_PREFIX = "New since you saved it:";
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
@@ -193,29 +201,67 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
     });
   }
 
+  // One card per meeting (not per person), for meetings with a few people you know. All-day
+  // blocks, out-of-office and focus time, and big meetings (all-hands, webinars) get none.
+  const sessions = new Map<string, NudgeSnapshot["meetings"]>();
   for (const m of s.meetings) {
     const n = diffDays(t, m.date);
-    if (n < 0 || n > 3) continue;
-    const bits = [m.lastTouch ? `Last spoke ${formatLongDate(m.lastTouch.on, t)}${m.lastTouch.summary ? `: ${m.lastTouch.summary}` : ""}.` : "You haven't logged a touch with them yet."];
-    if (m.promise) bits.push(`You owe them: ${lowerFirst(m.promise)}.`);
+    if (n < 0 || n > 3 || !m.time || NOT_A_MEETING.test(m.title)) continue;
+    // Someone you've been in touch with this past week (a teammate at a standing meeting) needs no prep.
+    if (m.lastTouch && diffDays(m.lastTouch.on, t) <= RECENT_DAYS) continue;
+    const k = `${m.eventId}:${m.date}`;
+    sessions.set(k, [...(sessions.get(k) ?? []), m]);
+  }
+  for (const [k, people] of sessions) {
+    if (people.length > MAX_PREP_PEOPLE) continue;
+    const m = people[0];
+    const when = `${relativeDay(m.date, t)} at ${formatTime(m.time!)}`;
+    const names = people.map((p) => firstName(p.person.name));
+    const toResearch = people.find((p) => p.spaceId && p.researched === false);
+    if (people.length === 1) {
+      const bits = [m.lastTouch ? `Last spoke ${formatLongDate(m.lastTouch.on, t)}${m.lastTouch.summary ? `: ${m.lastTouch.summary}` : ""}.` : "You haven't logged a touch with them yet."];
+      if (m.promise) bits.push(`You owe them: ${lowerFirst(m.promise)}.`);
+      out.push({
+        key: `prep:${k}`,
+        kind: "prep",
+        priority: 1,
+        label: "Prep",
+        title: `You meet ${names[0]} ${when}: ${m.title}`,
+        body: bits.join(" "),
+        person: who(m.person),
+        actions: [
+          ...(toResearch ? [{ type: "research" as const, personId: m.person.id, spaceId: toResearch.spaceId!, label: "Research now" }] : []),
+          { type: "open_person", personId: m.person.id, label: "Open" },
+          { type: "open_room", eventId: m.eventId, label: "See the room" },
+        ],
+      });
+      continue;
+    }
+    const list = names.length > 3 ? `${names.slice(0, 2).join(", ")} and ${names.length - 2} others` : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+    const owe = people.filter((p) => p.promise).map((p) => `${firstName(p.person.name)}: ${lowerFirst(p.promise!)}`);
+    const never = people.filter((p) => !p.lastTouch).length;
     out.push({
-      key: `prep:${m.person.id}:${m.eventId}:${m.date}`,
+      key: `prep:${k}`,
       kind: "prep",
       priority: 1,
       label: "Prep",
-      title: `You meet ${firstName(m.person.name)} ${relativeDay(m.date, t)}${m.time ? ` at ${formatTime(m.time)}` : ""}: ${m.title}`,
-      body: bits.join(" "),
-      person: who(m.person),
+      title: `You meet ${list} ${when}: ${m.title}`,
+      body: [
+        never === people.length ? "You haven't logged a touch with any of them yet." : never ? `${never} of them ${never === 1 ? "has" : "have"} no touch logged yet.` : "You've spoken with all of them before.",
+        owe.length ? `You owe ${owe.join("; ")}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      person: null,
       actions: [
-        ...(m.spaceId && m.researched === false ? [{ type: "research" as const, personId: m.person.id, spaceId: m.spaceId, label: "Research now" }] : []),
-        { type: "open_person", personId: m.person.id, label: "Open" },
-        { type: "open_room", eventId: m.eventId, label: "See the room" },
+        ...(toResearch ? [{ type: "research" as const, personId: toResearch.person.id, spaceId: toResearch.spaceId!, label: `Research ${firstName(toResearch.person.name)}` }] : []),
+        { type: "open_room", eventId: m.eventId, label: "See who's there" },
       ],
     });
   }
 
-  // The prototype's "Going cold" card (L831–833).
-  for (const p of s.due) {
+  // The prototype's "Going cold" card (L831–833): the most overdue few, so they don't crowd the rest.
+  for (const p of s.due.slice(0, MAX_GOING_COLD)) {
     const days = p.lastTouchedOn ? diffDays(p.lastTouchedOn, t) : null;
     out.push({
       key: `due:${p.id}:${p.dueOn}`,
@@ -343,6 +389,10 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
 
   // One card per person for "due" when they also have a sharper reason (a promise, a meeting, a birthday).
   const sharper = new Set(out.filter((n) => n.kind !== "due" && n.person).map((n) => n.person!.id));
+  // Every card can be cleared in one tap ("Done"), whatever else it offers.
+  for (const n of out) {
+    if (!n.actions.some((a) => a.type === "dismiss" || a.type === "promise_done")) n.actions.push({ type: "dismiss", label: "Done" });
+  }
   return out
     .filter((n) => !s.hidden.has(n.key))
     .filter((n) => n.kind !== "due" || !sharper.has(n.person!.id))

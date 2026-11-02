@@ -139,7 +139,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
   const spaceOnly = <T extends SQL | undefined>(col: T) => (ctx.spaceId ? eq(t.commitments.spaceId, ctx.spaceId) : col);
 
   const [due, birthdays, context, owed, owedToMe, upcoming, triagePending, hidden, duplicates, suggestions, afterRooms] = await Promise.all([
-    tx.execute<Row>(sql`${rollup} ${select} where deleted_at is null and not unsorted and r_due_on <= ${ctx.today}::date order by r_due_on asc, id limit 40`),
+    tx.execute<Row>(sql`${rollup} ${select} where deleted_at is null and not unsorted and r_due_on <= ${ctx.today}::date and (last_touched_on is not null or starred) order by starred desc, r_due_on asc, id limit 40`),
     tx.execute<Row>(sql`${rollup} ${select} where deleted_at is null and birthday = any(${sql.raw(`array[${bdays.map((d) => `'${d}'`).join(",")}]`)})`),
     tx.execute<Row>(
       sql`${rollup} ${select} where deleted_at is null and needs_context and not unsorted and source = 'manual' and not example and created_at >= now() - interval '15 days' order by created_at desc limit 10`,
@@ -190,7 +190,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     owed: owed.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn, person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
     owedToMe: owedToMe.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn!, person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
     meetings: soon.flatMap((s) =>
-      (prep.get(`${s.eventId}:${s.occurrenceOn}`) ?? []).slice(0, 6).map((p) => ({
+      (prep.get(`${s.eventId}:${s.occurrenceOn}`) ?? []).map((p) => ({
         person: { id: p.id, name: p.name, detail: p.detail },
         eventId: s.eventId,
         title: s.title,

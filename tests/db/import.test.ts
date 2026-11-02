@@ -131,6 +131,23 @@ describe("importing contacts and a calendar", () => {
     expect(summary.logged).toBe(0);
   });
 
+  it("a meeting cancelled or declined later goes; the same meeting from a second calendar isn't added twice", async () => {
+    const run = (source: string, events: ReturnType<typeof event>[], cancelled: string[] = []) =>
+      as((tx) => applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source, meEmails: ["me@example.com"], connectionId: null, cancelled }, events));
+    const call = (uid: string, status = "ACCEPTED") => event({ uid, summary: `Call ${uid}`, start: { date: "2026-11-03", time: "10:00", tz: "Africa/Lagos" }, attendees: [att("me@example.com", status), att("tunde@meridian.example")] });
+    await run("google", [call("c-1"), call("c-2"), call("c-3")]);
+    const live = async () => (await sql`select external_id, source from events where user_id = ${user.id} and external_id like 'c-%' and deleted_at is null order by external_id`).map((r) => `${r.external_id}/${r.source}`);
+    expect(await live()).toEqual(["c-1/google", "c-2/google", "c-3/google"]);
+
+    // Next sync: c-1 cancelled (Google sends just its id), c-2 declined.
+    await run("google", [call("c-2", "DECLINED")], ["c-1"]);
+    expect(await live()).toEqual(["c-3/google"]);
+
+    // The same c-3 invite from a calendar link: no second room.
+    await run("calendar", [call("c-3")]);
+    expect(await live()).toEqual(["c-3/google"]);
+  });
+
   it("suggests a sort with reasons, and accepting it sorts everyone in one go", async () => {
     await as((tx) => computeTriageSuggestions(tx, { today: TODAY, importId }));
     const triage = await as((tx) => listTriage(tx, work));

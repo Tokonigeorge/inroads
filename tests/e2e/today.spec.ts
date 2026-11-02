@@ -40,8 +40,9 @@ test.describe.serial("Today", () => {
     }
     // Adaeze: last spoke 40 days ago, monthly reminder → due.
     await sql`insert into interactions (user_id, person_id, space_id, occurred_on, type, summary) values (${user.id}, ${people.adaeze.id}, ${work.id}, ${addDays(today, -40)}, 'coffee', 'Talked about the round')`;
-    // Tunde: a promise you owe, overdue, and a meeting today.
-    await sql`insert into interactions (user_id, person_id, space_id, occurred_on, type, summary) values (${user.id}, ${people.tunde.id}, ${work.id}, ${addDays(today, -3)}, 'call', 'Pricing questions')`;
+    // Tunde: a promise you owe, overdue, and a meeting today. Last spoke 20 days ago (within a week
+    // there'd be nothing to prep).
+    await sql`insert into interactions (user_id, person_id, space_id, occurred_on, type, summary) values (${user.id}, ${people.tunde.id}, ${work.id}, ${addDays(today, -20)}, 'call', 'Pricing questions')`;
     await sql`insert into commitments (user_id, person_id, space_id, text, owner, due_on) values (${user.id}, ${people.tunde.id}, ${work.id}, 'Send the pricing deck', 'me', ${addDays(today, -1)})`;
     const [room] = await sql`insert into events (user_id, space_id, title, kind, starts_on, start_time, tz) values (${user.id}, ${work.id}, 'Pricing review with Meridian', 'meeting', ${today}, '23:30', 'Africa/Lagos') returning id`;
     await sql`insert into event_people (event_id, person_id, user_id, role) values (${room.id}, ${people.tunde.id}, ${user.id}, 'attendee')`;

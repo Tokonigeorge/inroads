@@ -53,6 +53,11 @@ beforeAll(async () => {
   await sql`update person_spaces set cadence_days = 7 where person_id = ${ids.dating}`;
   await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: ids.dating, spaceId: dating, occurredOn: addDays(TODAY, -10), type: "message" }));
 
+  // Imported two months ago, kept, never in touch.
+  await person("never", "Old Import", work);
+  await sql`update people set created_at = now() - interval '60 days' where id = ${ids.never}`;
+  await sql`update person_spaces set created_at = now() - interval '60 days', cadence_anchor_on = null where person_id = ${ids.never}`;
+
   await person("bday", "Kwame Mensah", work, { birthday: addDays(TODAY, 1).slice(5) });
   await person("ctx", "New Contact", work, { whereMet: "" });
 
@@ -77,8 +82,8 @@ describe("Today's reminders", () => {
     expect(k).toContain(`bday:${ids.bday}:${addDays(TODAY, 1)}`);
     expect(k.filter((x) => x.startsWith("p:"))).toHaveLength(1); // the later promise waits
     expect(k.some((x) => x.startsWith("them:"))).toBe(true);
-    expect(k).toContain(`prep:${ids.promise}:${ids.meetup}:${addDays(TODAY, 1)}`);
-    expect(k).toContain(`prep:${ids.due}:${ids.meeting}:${TODAY}`);
+    expect(k).toContain(`prep:${ids.meetup}:${addDays(TODAY, 1)}`);
+    expect(k).toContain(`prep:${ids.meeting}:${TODAY}`);
     // Rooms from tomorrow to a week out get a "This week" card; 1:1 meetings and today's rooms don't.
     expect(k).toContain(`ev:${ids.meetup}:${addDays(TODAY, 1)}`);
     expect(k).not.toContain(`ev:${ids.meeting}:${TODAY}`);
@@ -89,6 +94,8 @@ describe("Today's reminders", () => {
     expect(k.some((x) => x.includes(ids.pending) && !x.startsWith("triage"))).toBe(false);
     expect(k.some((x) => x.includes(ids.archived))).toBe(false);
     expect(k).toContain(`triage:${TODAY}`);
+    // Never been in touch (an old import you kept): not "going cold".
+    expect(k.some((x) => x.startsWith(`due:${ids.never}:`))).toBe(false);
   });
 
   it("one Space at a time", async () => {

@@ -184,7 +184,12 @@ type GEvent = {
   recurringEventId?: string;
   attendees?: { email?: string; displayName?: string; responseStatus?: string; resource?: boolean; organizer?: boolean; self?: boolean }[];
   organizer?: { email?: string; displayName?: string; self?: boolean };
+  /** "default", or Google's own blocks: "outOfOffice", "focusTime", "workingLocation", "birthday", "fromGmail". */
+  eventType?: string;
 };
+
+/** Google's own calendar blocks that aren't meetings with people. */
+const NOT_MEETINGS = new Set(["outOfOffice", "focusTime", "workingLocation", "birthday"]);
 
 function wallClock(t: GTime | undefined, fallbackTz: string): { date: string; time: string | null; tz: string } | null {
   if (!t) return null;
@@ -198,6 +203,7 @@ function wallClock(t: GTime | undefined, fallbackTz: string): { date: string; ti
 const STATUS: Record<string, string> = { accepted: "ACCEPTED", declined: "DECLINED", tentative: "TENTATIVE", needsAction: "NEEDS-ACTION" };
 
 export function mapGoogleEvent(e: GEvent, calendarTz: string): IcsEvent | null {
+  if (e.eventType && NOT_MEETINGS.has(e.eventType)) return null;
   const start = wallClock(e.start, calendarTz);
   if (!start) return null;
   const end = wallClock(e.end, start.tz);
@@ -242,6 +248,8 @@ export async function fetchGoogleEvents(
   );
   const calendars = (list.items ?? []).filter((c) => c.primary || (c.selected && (c.accessRole === "owner" || c.accessRole === "writer")) && !/#holiday@|#contacts@|#weeknum@/.test(c.id));
   const events: IcsEvent[] = [];
+  /** Whole meetings (not single sessions) cancelled since the last sync: Google sends only their id. */
+  const cancelled: string[] = [];
   const nextTokens: Record<string, string> = {};
   for (const cal of calendars) {
     let pageToken: string | undefined;
@@ -258,6 +266,10 @@ export async function fetchGoogleEvents(
           });
           const page = await getJson<{ items?: GEvent[]; nextPageToken?: string; nextSyncToken?: string }>(f, url.calendar(`calendars/${encodeURIComponent(cal.id)}/events?${q}`), accessToken);
           for (const e of page.items ?? []) {
+            if (e.status === "cancelled" && !e.recurringEventId) {
+              cancelled.push(e.iCalUID ?? e.id, `${e.id}@google.com`, e.id);
+              continue;
+            }
             const m = mapGoogleEvent(e, cal.timeZone ?? opts.defaultTz);
             if (m) events.push(m);
           }
@@ -280,5 +292,5 @@ export async function fetchGoogleEvents(
       }
     }
   }
-  return { events, nextTokens, calendars: calendars.map((c) => c.summary ?? c.id) };
+  return { events, cancelled: [...new Set(cancelled)], nextTokens, calendars: calendars.map((c) => c.summary ?? c.id) };
 }

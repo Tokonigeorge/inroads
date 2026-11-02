@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { roomKindFromTitle } from "@/domain/room-kind";
 import { addDays } from "@/domain/dates";
 import { nameKey } from "@/domain/normalise";
@@ -32,7 +32,7 @@ const MAX_NEW_PEOPLE = 200;
  */
 export async function applyCalendar(
   tx: Tx,
-  ctx: ImportContext & { meEmails: string[]; connectionId: string | null; includeSolo?: boolean },
+  ctx: ImportContext & { meEmails: string[]; connectionId: string | null; includeSolo?: boolean; cancelled?: string[] },
   events: IcsEvent[],
 ): Promise<CalendarSummary & { eventRooms: CalendarEventRoom[] }> {
   const me = new Set(ctx.meEmails.map((e) => e.toLowerCase()));
@@ -54,14 +54,18 @@ export async function applyCalendar(
   const newPeople = new Map<string, { name: string; email: string; meetings: { date: string; summary: string; key: string }[]; first: string }>();
   const rooms: { row: typeof t.events.$inferInsert; people: string[]; attended: string[] }[] = [];
   let skipped = 0;
+  // Meetings cancelled or declined since they were imported: their rooms (and prep) go.
+  const gone = new Set(ctx.cancelled ?? []);
 
   for (const ev of events) {
     if (ev.status === "CANCELLED" || ev.isException) {
+      if (ev.status === "CANCELLED" && !ev.isException && ev.uid) gone.add(ev.uid);
       skipped++;
       continue;
     }
     const mine = ev.attendees.find((a) => a.email && me.has(a.email) && a.role === "ATTENDEE");
     if (mine?.status === "DECLINED") {
+      if (ev.uid) gone.add(ev.uid);
       skipped++;
       continue;
     }
@@ -153,8 +157,25 @@ export async function applyCalendar(
     logged += inserted.length;
   }
 
+  if (gone.size) {
+    await tx
+      .update(t.events)
+      .set({ deletedAt: new Date() })
+      .where(and(inArray(t.events.externalId, [...gone]), eq(t.events.source, ctx.source), isNull(t.events.deletedAt)));
+  }
+
+  // The same meeting can come from two calendars (a shared invite, or Google and a calendar
+  // link): one room per calendar event id, whichever calendar brought it first.
+  const existing = new Map(
+    (await tx.select({ id: t.events.id, externalId: t.events.externalId, source: t.events.source }).from(t.events).where(and(isNull(t.events.deletedAt), isNotNull(t.events.externalId)))).map((e) => [e.externalId!, e]),
+  );
   const eventRooms: CalendarEventRoom[] = [];
   for (const r of rooms) {
+    const other = existing.get(r.row.externalId!);
+    if (other && other.source !== r.row.source) {
+      if (r.people.length) await tx.insert(t.eventPeople).values(r.people.map((personId) => ({ userId: ctx.userId, eventId: other.id, personId, role: "attendee" }))).onConflictDoNothing();
+      continue;
+    }
     const [saved] = await tx
       .insert(t.events)
       .values(r.row)

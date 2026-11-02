@@ -77,6 +77,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
 
     let contacts: IncomingContact[] = [];
     let events: IcsEvent[] = [];
+    let cancelled: string[] = [];
     const next: SyncState = {};
     let meEmails = [conn.accountEmail ?? ""].filter(Boolean);
 
@@ -115,6 +116,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
             defaultTz: ctx.timezone,
           });
           events = ev.events;
+          cancelled = ev.cancelled;
           next.calendars = ev.nextTokens;
         }
       } else {
@@ -143,7 +145,7 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
       const imp = await startImport(tx, { userId, spaceId, type: conn.provider, connectionId, jobId });
       const ictx = { userId, importId: imp.id, spaceId, today: ctx.today, source: conn.provider === "apple_ics" ? "calendar" : conn.provider };
       const c = contacts.length ? await applyContacts(tx, ictx, contacts) : null;
-      const applied = events.length ? await applyCalendar(tx, { ...ictx, meEmails: [...meEmails, ...profileEmails], connectionId }, events) : null;
+      const applied = events.length || cancelled.length ? await applyCalendar(tx, { ...ictx, meEmails: [...meEmails, ...profileEmails], connectionId, cancelled }, events) : null;
       const { eventRooms = [], ...cal } = applied ?? {};
       const calendar = applied ? (cal as CalendarSummary) : null;
       await computeTriageSuggestions(tx, { today: ctx.today, importId: imp.id });

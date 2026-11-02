@@ -53,7 +53,8 @@ describe("Google sync", () => {
     const jobId = await jobsStore(sys).create(user.id, "sync:google");
     const r = await runConnectionSync(connectionId, jobId, deps);
     expect(r.contacts).toEqual({ found: 3, added: 2, updated: 1, unchanged: 0, possibleDuplicates: 0 });
-    expect(r.calendar).toMatchObject({ skipped: 1, newPeople: 1, rooms: 2 });
+    // The cancelled lunch comes back as a cancellation (removing any room it made), not a skipped event.
+    expect(r.calendar).toMatchObject({ skipped: 0, newPeople: 1, rooms: 2 });
     expect(r.calendar!.logged).toBeGreaterThanOrEqual(6); // 3 past weekly sessions × Tunde and Ifeoma
 
     const [job] = await sql`select status, progress, result_ref from jobs where id = ${jobId}`;
