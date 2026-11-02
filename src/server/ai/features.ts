@@ -39,10 +39,10 @@ import {
   type DraftPurpose,
 } from "./prompts/writing";
 import { shortDate } from "./prompts/shared";
-import { AiError, runAI, runWithWebFallback } from "./run";
+import { AiError, runAI, runWithWebFallback, type RunDeps } from "./run";
 import { isSearchPage, mergeSources, type Source } from "./sources";
 
-export type FeatureDeps = { db?: Pick<typeof appDb, "withUser">; sys?: Database; client?: AnthropicLike };
+export type FeatureDeps = { db?: Pick<typeof appDb, "withUser">; sys?: Database; client?: AnthropicLike } & Pick<RunDeps, "capture" | "firstMessage">;
 type Progress = (step: string) => void;
 const noop: Progress = () => {};
 

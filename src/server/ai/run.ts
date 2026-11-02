@@ -1,10 +1,23 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import type { BetaContentBlock, BetaContentBlockParam, BetaMessage, BetaMessageParam, BetaToolUnion } from "@anthropic-ai/sdk/resources/beta/messages/messages";
+import type {
+  BetaContentBlock,
+  BetaContentBlockParam,
+  BetaMessage,
+  BetaMessageParam,
+  BetaToolUnion,
+} from "@anthropic-ai/sdk/resources/beta/messages/messages";
+import type { MessageCreateParamsNonStreaming as BetaMessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { z } from "zod";
 import { getAnthropic, type AnthropicLike } from "./client";
-import { aiConfig, estimateCostMicroUsd, isAiConfigured, type AiFeature, type Tier } from "./config";
+import {
+  aiConfig,
+  estimateCostMicroUsd,
+  isAiConfigured,
+  type AiFeature,
+  type Tier,
+} from "./config";
 import { extractJson, lenient } from "./json";
 import type { Database } from "@/server/db/with-user";
 import { checkLimit, recordUsage } from "./limits";
@@ -23,12 +36,19 @@ export class AiError extends Error {
 }
 
 const BUSY = "Inroads is busy right now. Try again in a minute.";
-const NO_ANSWER = "Inroads couldn't get an answer this time. Try again shortly.";
-const REFUSED = "Inroads couldn't do this one. Try rewording it or adding more context.";
-const BAD_SHAPE = "Inroads couldn't make sense of the answer this time. Try again.";
+const NO_ANSWER =
+  "Inroads couldn't get an answer this time. Try again shortly.";
+const REFUSED =
+  "Inroads couldn't do this one. Try rewording it or adding more context.";
+const BAD_SHAPE =
+  "Inroads couldn't make sense of the answer this time. Try again.";
 
 export type WebOptions = {
-  search?: { maxUses: number; allowedDomains?: string[]; userLocation?: { city?: string; country?: string; timezone?: string } };
+  search?: {
+    maxUses: number;
+    allowedDomains?: string[];
+    userLocation?: { city?: string; country?: string; timezone?: string };
+  };
   fetch?: { maxUses: number; allowedDomains?: string[] };
 };
 
@@ -53,8 +73,33 @@ export type RunInput<T> = {
   isRepair?: boolean;
 };
 
-export type RunResult<T> = { output: T; text: string; seen: Source[]; model: string };
-export type RunDeps = { client?: AnthropicLike; sys?: Database };
+export type RunResult<T> = {
+  output: T;
+  text: string;
+  seen: Source[];
+  model: string;
+};
+export type RunDeps = {
+  client?: AnthropicLike;
+  sys?: Database;
+  /**
+   * Batch, step 1: build the first request and throw it as `CapturedRequest` instead of sending
+   * it, so it can go through the Message Batches API at half price.
+   */
+  capture?: boolean;
+  /** Batch, step 2: the batch's answer to that first request. Billed at half; anything after it (resumed web turns, a repair) runs as usual. */
+  firstMessage?: BetaMessage;
+};
+
+/** Thrown by `runAI` when `deps.capture` is set: the request it would have sent. */
+export class CapturedRequest extends Error {
+  constructor(public params: BetaMessageCreateParamsNonStreaming) {
+    super("captured");
+  }
+}
+
+/** The Batches API takes half the token price. */
+const BATCH_DISCOUNT = 0.5;
 
 const MAX_CONTINUATIONS = 3;
 
@@ -65,19 +110,38 @@ function tools(web?: WebOptions): BetaToolUnion[] {
       type: "web_search_20260209",
       name: "web_search",
       max_uses: web.search.maxUses,
-      ...(web.search.allowedDomains?.length ? { allowed_domains: web.search.allowedDomains } : {}),
-      ...(web.search.userLocation ? { user_location: { type: "approximate" as const, ...web.search.userLocation } } : {}),
+      ...(web.search.allowedDomains?.length
+        ? { allowed_domains: web.search.allowedDomains }
+        : {}),
+      ...(web.search.userLocation
+        ? {
+            user_location: {
+              type: "approximate" as const,
+              ...web.search.userLocation,
+            },
+          }
+        : {}),
     });
   }
   if (web?.fetch) {
-    out.push({ type: "web_fetch_20260209", name: "web_fetch", max_uses: web.fetch.maxUses, ...(web.fetch.allowedDomains?.length ? { allowed_domains: web.fetch.allowedDomains } : {}) });
+    out.push({
+      type: "web_fetch_20260209",
+      name: "web_fetch",
+      max_uses: web.fetch.maxUses,
+      ...(web.fetch.allowedDomains?.length
+        ? { allowed_domains: web.fetch.allowedDomains }
+        : {}),
+    });
   }
   return out;
 }
 
 const textOf = (content: BetaContentBlock[]) =>
   content
-    .filter((b): b is Extract<BetaContentBlock, { type: "text" }> => b.type === "text")
+    .filter(
+      (b): b is Extract<BetaContentBlock, { type: "text" }> =>
+        b.type === "text",
+    )
     .map((b) => b.text)
     .join("")
     .trim();
@@ -86,9 +150,15 @@ function seenSources(content: BetaContentBlock[]): Source[] {
   const out: Source[] = [];
   for (const b of content) {
     if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
-      for (const r of b.content) if (r.type === "web_search_result") out.push({ title: r.title, url: r.url });
+      for (const r of b.content)
+        if (r.type === "web_search_result")
+          out.push({ title: r.title, url: r.url });
     }
-    if (b.type === "web_fetch_tool_result" && b.content.type === "web_fetch_result") out.push({ title: b.content.url, url: b.content.url });
+    if (
+      b.type === "web_fetch_tool_result" &&
+      b.content.type === "web_fetch_result"
+    )
+      out.push({ title: b.content.url, url: b.content.url });
   }
   return out;
 }
@@ -96,7 +166,8 @@ function seenSources(content: BetaContentBlock[]): Source[] {
 function progressFor(block: BetaContentBlock): string | null {
   if (block.type !== "server_tool_use") return null;
   const input = block.input as { query?: string; url?: string };
-  if (block.name === "web_search" && input.query) return `Searching for "${input.query}"`;
+  if (block.name === "web_search" && input.query)
+    return `Searching for "${input.query}"`;
   if (block.name === "web_fetch" && input.url) {
     try {
       return `Reading ${new URL(input.url).hostname.replace(/^www\./, "")}`;
@@ -114,9 +185,18 @@ function progressFor(block: BetaContentBlock): string | null {
  * reply and, if it doesn't validate, repaired once), records usage, and maps refusals and
  * failures to plain messages.
  */
-export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}): Promise<RunResult<T>> {
-  if (!deps.client && !isAiConfigured()) throw new AiError("not_configured", "AI features aren't set up on this server yet.");
-  if (!input.skipLimit) await checkLimit(input.userId, input.feature, deps.sys);
+export async function runAI<T = string>(
+  input: RunInput<T>,
+  deps: RunDeps = {},
+): Promise<RunResult<T>> {
+  if (!deps.client && !isAiConfigured())
+    throw new AiError(
+      "not_configured",
+      "AI features aren't set up on this server yet.",
+    );
+  // A batch answer was already checked against the limits when it was submitted.
+  if (!input.skipLimit && !deps.firstMessage)
+    await checkLimit(input.userId, input.feature, deps.sys);
   const client = deps.client ?? getAnthropic();
   const cfg = aiConfig();
   const model = cfg.models[input.tier];
@@ -124,13 +204,66 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
   const structured = Boolean(input.schema) && !webTools.length;
   const strong = input.tier === "strong";
 
-  const messages: BetaMessageParam[] = [{ role: "user", content: input.prompt }];
+  const messages: BetaMessageParam[] = [
+    { role: "user", content: input.prompt },
+  ];
   let final: BetaMessage | null = null;
-  const totals = { input: 0, output: 0, searches: 0, cacheRead: 0, cacheWrite: 0, turns: 0 };
+  const totals = {
+    input: 0,
+    output: 0,
+    searches: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    turns: 0,
+  };
   // The model that actually answered: a strong-tier request can fall back to another one.
   let served = model;
+  // What the batch answer cost (half price), kept apart from full-price turns.
+  let batchCost = 0;
   try {
     for (let turn = 0; turn <= MAX_CONTINUATIONS; turn++) {
+      if (turn === 0 && (deps.capture || deps.firstMessage)) {
+        if (deps.capture) {
+          throw new CapturedRequest({
+            model,
+            max_tokens: input.maxTokens ?? 16000,
+            system: input.system ?? INROADS_SYSTEM,
+            messages: [...messages],
+            ...(webTools.length ? { tools: webTools } : {}),
+            output_config: {
+              effort: input.effort ?? (strong ? "medium" : "low"),
+              ...(structured
+                ? { format: betaZodOutputFormat(input.schema as z.ZodType) }
+                : {}),
+            },
+            // No server-side fallback here: the Batches API doesn't take it.
+          } as BetaMessageCreateParamsNonStreaming);
+        }
+        final = deps.firstMessage!;
+        const u = final.usage;
+        batchCost =
+          BATCH_DISCOUNT *
+          estimateCostMicroUsd(final.model || model, {
+            input: u.input_tokens,
+            output: u.output_tokens,
+            searches: u.server_tool_use?.web_search_requests ?? 0,
+            cacheRead: u.cache_read_input_tokens ?? 0,
+            cacheWrite: u.cache_creation_input_tokens ?? 0,
+          });
+        totals.input += u.input_tokens;
+        totals.output += u.output_tokens;
+        totals.searches += u.server_tool_use?.web_search_requests ?? 0;
+        totals.cacheRead += u.cache_read_input_tokens ?? 0;
+        totals.cacheWrite += u.cache_creation_input_tokens ?? 0;
+        totals.turns++;
+        if (final.model) served = final.model;
+        if (final.stop_reason !== "pause_turn") break;
+        messages.push({
+          role: "assistant",
+          content: final.content as BetaContentBlockParam[],
+        });
+        continue;
+      }
       const stream = client.beta.messages.stream({
         model,
         max_tokens: input.maxTokens ?? 16000,
@@ -139,10 +272,17 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
         ...(webTools.length ? { tools: webTools } : {}),
         output_config: {
           effort: input.effort ?? (strong ? "medium" : "low"),
-          ...(structured ? { format: betaZodOutputFormat(input.schema as z.ZodType) } : {}),
+          ...(structured
+            ? { format: betaZodOutputFormat(input.schema as z.ZodType) }
+            : {}),
         },
         // Strong-tier requests fall back to another model if one declines (server-side, by category).
-        ...(strong ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+        ...(strong
+          ? {
+              betas: ["server-side-fallback-2026-07-01"],
+              fallbacks: "default" as const,
+            }
+          : {}),
       });
       if (input.onProgress) {
         stream.on("contentBlock", (block) => {
@@ -160,12 +300,21 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
       if (final.model) served = final.model;
       if (final.stop_reason !== "pause_turn") break;
       // A long server-tool turn paused: send it back and the server resumes.
-      messages.push({ role: "assistant", content: final.content as BetaContentBlockParam[] });
+      messages.push({
+        role: "assistant",
+        content: final.content as BetaContentBlockParam[],
+      });
     }
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) throw new AiError("failed", BUSY);
+    if (e instanceof Anthropic.RateLimitError)
+      throw new AiError("failed", BUSY);
     // With web tools on, a rejected request (tools not enabled, or the tools failing) gets one retry without them.
-    if (e instanceof Anthropic.APIError) throw new AiError("failed", NO_ANSWER, webTools.length > 0 && e.status !== 401 && e.status !== 413);
+    if (e instanceof Anthropic.APIError)
+      throw new AiError(
+        "failed",
+        NO_ANSWER,
+        webTools.length > 0 && e.status !== 401 && e.status !== 413,
+      );
     throw e;
   } finally {
     if (totals.input || totals.output) {
@@ -180,7 +329,11 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
           cacheWriteTokens: totals.cacheWrite,
           turns: totals.turns,
           webSearches: totals.searches,
-          costMicroUsd: estimateCostMicroUsd(served, totals),
+          // A batch answer counts at half: full price for everything, less the half saved on it.
+          costMicroUsd: Math.max(
+            0,
+            estimateCostMicroUsd(served, totals) - batchCost,
+          ),
         },
         deps.sys,
       ).catch(() => undefined);
@@ -194,7 +347,9 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
   if (!input.schema) return { output: text as T, text, seen, model };
 
   const raw = extractJson(text);
-  const parsed = input.schema.safeParse(raw === undefined ? raw : lenient(input.schema, raw));
+  const parsed = input.schema.safeParse(
+    raw === undefined ? raw : lenient(input.schema, raw),
+  );
   if (parsed.success) return { output: parsed.data, text, seen, model };
   if (input.isRepair) throw new AiError("invalid_output", BAD_SHAPE);
 
@@ -221,15 +376,29 @@ export async function runAI<T = string>(input: RunInput<T>, deps: RunDeps = {}):
  * "knowledge" mode (no tools, sources [], say what to verify). The result says which it was.
  */
 export async function runWithWebFallback<T>(
-  input: Omit<RunInput<T>, "prompt" | "web"> & { web: WebOptions; prompt: (mode: WebMode) => RunInput<T>["prompt"] },
+  input: Omit<RunInput<T>, "prompt" | "web"> & {
+    web: WebOptions;
+    prompt: (mode: WebMode) => RunInput<T>["prompt"];
+  },
   deps: RunDeps = {},
 ): Promise<RunResult<T> & { mode: WebMode }> {
   const { prompt, web, ...rest } = input;
   try {
-    return { ...(await runAI({ ...rest, web, prompt: prompt("web") }, deps)), mode: "web" };
+    return {
+      ...(await runAI({ ...rest, web, prompt: prompt("web") }, deps)),
+      mode: "web",
+    };
   } catch (e) {
     if (!(e instanceof AiError) || !e.webUnavailable) throw e;
-    input.onProgress?.("Web search isn't available, so answering from what's already known");
-    return { ...(await runAI({ ...rest, skipLimit: true, prompt: prompt("knowledge") }, deps)), mode: "knowledge" };
+    input.onProgress?.(
+      "Web search isn't available, so answering from what's already known",
+    );
+    return {
+      ...(await runAI(
+        { ...rest, skipLimit: true, prompt: prompt("knowledge") },
+        deps,
+      )),
+      mode: "knowledge",
+    };
   }
 }

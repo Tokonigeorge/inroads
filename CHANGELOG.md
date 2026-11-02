@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: monthly re-research costs half
+- The monthly refresh of your priority people's research now goes through Anthropic's batch service at half price. Results arrive within a day (usually within the hour) instead of straight away; research you ask for yourself is unchanged.
+
 ### Changed: background jobs run in batches
 - Scheduled syncs, briefs and suggested-room searches are started together instead of one after another, so each run takes a few steps rather than two per account, and notifications go out for several people at once. One person's failing notification no longer holds up everyone else's.
 
