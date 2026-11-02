@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: a brief eval
+- `pnpm eval:briefs --email you@example.com` compares today's brief model with a cheaper one on your own briefs and 12 made-up accounts, has the current model grade them blind, and stops before $5 (`--dry` shows the cases and the estimate without spending anything).
+
 ### Changed: monthly re-research costs half
 - The monthly refresh of your priority people's research now goes through Anthropic's batch service at half price. Results arrive within a day (usually within the hour) instead of straight away; research you ask for yourself is unchanged.
 
