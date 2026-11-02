@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: background jobs run in batches
+- Scheduled syncs, briefs and suggested-room searches are started together instead of one after another, so each run takes a few steps rather than two per account, and notifications go out for several people at once. One person's failing notification no longer holds up everyone else's.
+
 ### Changed: AI cost tracking is accurate (needs a migration)
 - Usage now counts cached tokens at their real price, records the model that actually answered, and how many requests each call took, so the usage meter and limits match what Anthropic bills.
 - Migration: `20261102100225_ai_usage_cache` (three columns and two indexes on `ai_usage`).
