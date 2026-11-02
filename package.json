@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "eval:briefs": "tsx --conditions=react-server scripts/eval-briefs.ts",
+    "eval:research": "tsx --conditions=react-server scripts/eval-research.ts",
     "db:migrate:local": "tsx scripts/db-migrate.ts --stub",
     "check": "pnpm typecheck && pnpm lint && pnpm test"
   },

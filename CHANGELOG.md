@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: a research and look-up eval
+- `pnpm eval:research --email you@example.com` compares Opus and Sonnet on your own recent research and look-ups (with web search), grades them blind and stops before $5 (`--dry` shows the cases and estimate first). These features are where the AI spend goes, so this is the eval that decides whether a cheaper model is worth it.
+
 ### Changed: research findings are one tick-box list
 - On a person's page, what research found is a short list under "Update their profile?", all ticked: untick anything wrong and Apply, or Dismiss all. Each line says what changes ("City: London (was Lagos)").
 - Research now suggests a new city too, not only a new company or role.
