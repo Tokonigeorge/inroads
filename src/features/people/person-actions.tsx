@@ -12,7 +12,7 @@ import { useCapture } from "@/features/shell/capture-sheet";
 import { Button } from "@/ui/button";
 import { useToast } from "@/ui/toast";
 import { useShortcut } from "@/ui/use-shortcut";
-import { deletePersonAction, deletePromiseAction, deleteTouchAction, removeFromSpaceAction, restorePersonAction, setArchivedAction } from "./actions";
+import { deletePersonAction, deletePromiseAction, deleteTouchAction, removeFromSpaceAction, restorePersonAction, setArchivedAction, setWantToMeetAction } from "./actions";
 import type { PickedPerson } from "./capture-forms";
 import { useAfterCapture } from "./capture-forms";
 
@@ -54,6 +54,51 @@ export function SetAsideNote({ personId, name }: { personId: string; name: strin
 }
 
 /**
+ * On someone you want to meet and haven't yet: what to do next (meet them at a room you're both
+ * in, ask a mutual friend for an intro, or reach out), and the way out of the list.
+ */
+export function WantToMeetNote({ person, next, defaultSpaceId }: { person: PickedPerson; next: { text: string; href?: string }; defaultSpaceId?: string }) {
+  const [pending, start] = useTransition();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const first = person.name.split(/\s+/)[0];
+  return (
+    <div role="note" aria-label="Want to meet" className="grid gap-2.5 rounded-lg border border-accent/40 bg-accent-soft px-3.5 py-3 text-[14px]">
+      <p>
+        <span className="font-[600]">You want to meet {first}.</span> No reminders until you&apos;ve been in touch; your first logged touch moves them into your network.
+      </p>
+      <p>
+        <span className="font-[550]">Next step:</span>{" "}
+        {next.href ? (
+          <Link href={next.href as Route} className="text-accent underline-offset-2 hover:underline">
+            {next.text}
+          </Link>
+        ) : (
+          next.text
+        )}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <LogTouchButton person={person} defaultSpaceId={defaultSpaceId} label="We've met: log it" />
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              await setWantToMeetAction(person.id, false);
+              void queryClient.invalidateQueries({ queryKey: ["people"] });
+              toast.show(`${person.name} is off your Want to meet list.`);
+            })
+          }
+        >
+          Not trying to meet them
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The record's one row of actions in the prototype's order (L1039): Log a touch, Draft message,
  * Decode their world, Edit; promises, other Spaces, archive and delete under More.
  */
@@ -64,9 +109,12 @@ export function PersonActions({
   draft,
   decodeHref,
   research,
+  canWantToMeet = false,
 }: {
   person: PickedPerson;
   archived: boolean;
+  /** No touches yet and not already on Want to meet: offer to put them there. */
+  canWantToMeet?: boolean;
   defaultSpaceId?: string;
   draft?: ReactNode;
   decodeHref?: string;
@@ -143,6 +191,20 @@ export function PersonActions({
             <Menu.Item asChild className={item}>
               <Link href={`/people/${person.id}/spaces/new`}>Add to another Space</Link>
             </Menu.Item>
+            {canWantToMeet ? (
+              <Menu.Item
+                onSelect={() =>
+                  start(async () => {
+                    await setWantToMeetAction(person.id, true);
+                    relist();
+                    toast.show(`${person.name} is on your Want to meet list.`);
+                  })
+                }
+                className={item}
+              >
+                Want to meet them
+              </Menu.Item>
+            ) : null}
             <Menu.Item onSelect={() => archive(!archived)} className={item}>
               {archived ? "Unarchive" : "Archive"}
             </Menu.Item>

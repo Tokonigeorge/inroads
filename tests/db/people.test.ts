@@ -302,3 +302,28 @@ describe("isolation", () => {
     void t;
   });
 });
+
+describe("want to meet", () => {
+  it("has its own filter, no reminders, and lapses at the first logged touch", async () => {
+    const id = randomUUID();
+    const r = await as((tx) =>
+      createPerson(tx, user.id, { id, identity: { name: "Wunmi Target" }, membership: { spaceId: work, wantToMeet: true, cadenceDays: 7 } }, "2026-08-01"),
+    );
+    expect(r.ok).toBe(true);
+    const listed = await as((tx) => listPeople(tx, { filter: "want_to_meet", spaceId: work } as PeopleQuery, TODAY));
+    expect(names(listed)).toEqual(["Wunmi Target"]);
+    // A weekly reminder, added months ago: still not "going cold", because you haven't met.
+    expect(listed.items[0]).toMatchObject({ wantToMeet: true, dueOn: null });
+    expect(names(await as((tx) => listPeople(tx, { filter: "due", spaceId: work } as PeopleQuery, TODAY)))).not.toContain("Wunmi Target");
+
+    // Editing their details doesn't touch the flag.
+    await as((tx) => saveMembership(tx, user.id, id, { spaceId: work, whereMet: "Twitter" }, TODAY));
+    expect(names(await as((tx) => listPeople(tx, { filter: "want_to_meet", spaceId: work } as PeopleQuery, TODAY)))).toEqual(["Wunmi Target"]);
+
+    await as((tx) => logTouch(tx, user.id, { id: randomUUID(), personId: id, spaceId: work, occurredOn: TODAY, type: "coffee" }));
+    expect(names(await as((tx) => listPeople(tx, { filter: "want_to_meet", spaceId: work } as PeopleQuery, TODAY)))).toEqual([]);
+    const after = await as((tx) => listPeople(tx, { q: "Wunmi", spaceId: work } as PeopleQuery, TODAY));
+    // Now they're in your network, with the Space's monthly reminder (the edit above cleared the weekly one).
+    expect(after.items[0]).toMatchObject({ wantToMeet: false, dueOn: "2026-11-23" });
+  });
+});

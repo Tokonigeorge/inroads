@@ -92,6 +92,8 @@ export const membershipSchema = z.object({
     .transform((v) => (v ? v : null)),
   cadenceDays: cadenceSchema,
   starred: z.boolean().default(false),
+  /** Haven't met yet. Left out on edits, so saving a form never changes it. */
+  wantToMeet: z.boolean().optional(),
 });
 export type MembershipInput = z.input<typeof membershipSchema>;
 export type Membership = z.output<typeof membershipSchema>;
@@ -158,11 +160,12 @@ export type Capture = z.input<typeof captureSchema>;
 
 /* ---------- list query ---------- */
 
-export const peopleFilters = ["all", "starred", "due", "context", "no_dossier", "untouched", "unsorted", "archived"] as const;
+export const peopleFilters = ["all", "starred", "want_to_meet", "due", "context", "no_dossier", "untouched", "unsorted", "archived"] as const;
 export type PeopleFilter = (typeof peopleFilters)[number];
 export const peopleFilterLabels: Record<PeopleFilter, string> = {
   all: "All",
   starred: "Priority",
+  want_to_meet: "Want to meet",
   due: "Going cold",
   context: "Needs context",
   no_dossier: "No dossier",

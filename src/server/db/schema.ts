@@ -241,6 +241,8 @@ export const personSpaces = pgTable(
     circleId: uuid("circle_id").references(() => circles.id, { onDelete: "set null" }),
     cadenceDays: integer("cadence_days"),
     starred: boolean("starred").notNull().default(false),
+    /** Someone you want to meet and haven't yet (added from a goal, a plan or a room). Ends at the first logged touch. */
+    wantToMeet: boolean("want_to_meet").notNull().default(false),
     triageState: text("triage_state").notNull().default("done"),
     triageSuggestion: jsonb("triage_suggestion"),
     cadenceAnchorOn: date("cadence_anchor_on"),

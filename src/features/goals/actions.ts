@@ -61,7 +61,7 @@ export async function addNewPersonToGoalAction(goalId: string, name: string, sta
     if (!goal) return { ok: false as const, message: "This goal no longer exists." };
     const ctx = await userContext(tx);
     const personId = randomUUID();
-    const created = await createPerson(tx, user.id, { id: personId, identity: { name }, membership: { spaceId: goal.spaceId } }, ctx.today);
+    const created = await createPerson(tx, user.id, { id: personId, identity: { name }, membership: { spaceId: goal.spaceId, wantToMeet: true } }, ctx.today);
     if (!created.ok) return created;
     const linked = await linkPeople(tx, user.id, gid, [personId], stage);
     return linked.ok ? { ok: true as const, data: { personId, spaceId: goal.spaceId } } : linked;

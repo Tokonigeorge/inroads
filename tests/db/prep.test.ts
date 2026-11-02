@@ -124,8 +124,8 @@ describe("plans become actions", () => {
     const r = await as((tx) => keepStakeholder(tx, user.id, { searchId, index: 1, goalId: null }, TODAY));
     if (!r.ok) throw new Error(r.message);
     expect(r.data.created).toBe(true);
-    const [p] = await sql`select p.name, p.position, ps.notes from people p join person_spaces ps on ps.person_id = p.id where p.id = ${r.data.personId}`;
-    expect(p).toEqual({ name: "Adaeze Okafor", position: "Head of programmes, organiser", notes: "From your plan for Moonshot by TechCabal. Curates the investor lounge" });
+    const [p] = await sql`select p.name, p.position, ps.notes, ps.want_to_meet from people p join person_spaces ps on ps.person_id = p.id where p.id = ${r.data.personId}`;
+    expect(p).toEqual({ name: "Adaeze Okafor", position: "Head of programmes, organiser", notes: "From your plan for Moonshot by TechCabal. Curates the investor lounge", want_to_meet: true });
     expect(await sql`select role from event_people where person_id = ${r.data.personId}`).toEqual([{ role: "organiser" }]);
     expect(await as((tx) => keepStakeholder(tx, user.id, { searchId, index: 2, goalId: goal }, TODAY))).toMatchObject({ ok: false });
 
