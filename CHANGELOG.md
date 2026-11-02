@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: you choose how new people are sorted
+- **Sort new people asks how you want them sorted**, with the numbers before you confirm: keep everyone (the default), keep people you've met, keep people with a company or job title, keep people who fit your goals and industries, or set aside anyone without a name. Only rules that make a difference for these people are offered. Contacts you starred in Google or Outlook are always kept.
+- **"Use suggested sort" is gone**: it set aside everyone with no meetings or details, which for one account hid 2,617 of 2,986 contacts.
+- One at a time still works, and shows why someone might matter (meetings, groups, title) instead of a suggestion.
+
 ### Fixed: Today drowning in prep cards
 - **One Prep card per meeting**, not one per person ("You meet Kemi, Tunde and Ada tomorrow at 5:30pm: …"), with Research for whoever hasn't been researched.
 - **No prep for**: people you've been in touch with in the last 7 days (teammates at standing meetings), meetings with more than 10 people you know (all-hands, webinars), all-day blocks, and out-of-office, focus-time, lunch, holiday or travel blocks. Google's own out-of-office, focus-time and working-location entries aren't imported at all.

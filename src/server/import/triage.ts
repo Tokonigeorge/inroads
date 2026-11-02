@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { addDays, type IsoDate } from "@/domain/dates";
+import { fitMatcher, fitWords, keeps, ruleOptions, type SortCandidate, type SortRule } from "@/domain/sort-rules";
 import { suggestTriage, type TriageAction } from "@/domain/triage";
 import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
@@ -110,20 +111,60 @@ export async function applyTriage(tx: Tx, decisions: { membershipId: string; act
   }
 }
 
-/** "Use suggested sort for everyone": one statement, so it's quick for thousands. */
-export async function acceptSuggestedSort(tx: Tx, spaceId: string | null) {
-  const rows = await tx.execute<{ action: string; n: number }>(sql`
-    with done as (
-      update person_spaces ps
-         set triage_state = 'done',
-             starred = ps.starred or coalesce(ps.triage_suggestion ->> 'action', 'keep') = 'priority',
-             archived_at = case when ps.triage_suggestion ->> 'action' = 'not_now' then now() else ps.archived_at end
-       where ps.triage_state = 'pending' ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}
-         and exists (select 1 from people p where p.id = ps.person_id and p.deleted_at is null)
-      returning coalesce(ps.triage_suggestion ->> 'action', 'keep') as action
-    )
-    select action, count(*)::int as n from done group by action`);
-  return Object.fromEntries([...rows].map((r) => [r.action, r.n])) as Partial<Record<TriageAction, number>>;
+/** Everyone waiting to be sorted, with what the sort rules look at. */
+async function sortCandidates(tx: Tx, spaceId: string | null, today: IsoDate) {
+  const since = addDays(today, -183);
+  const rows = await tx.execute<{ id: string; signals: Signals | null; company: string | null; position: string | null; meetings: number }>(sql`
+    select ps.id, ps.triage_suggestion as signals, p.company, p.position,
+           (select count(*)::int from interactions i where i.person_id = p.id and i.occurred_on >= ${since}::date) as meetings
+      from person_spaces ps join people p on p.id = ps.person_id and p.deleted_at is null
+     where ps.triage_state = 'pending' ${spaceId ? sql`and ps.space_id = ${spaceId}` : sql``}`);
+  return [...rows].map((r) => ({
+    membershipId: r.id,
+    c: { hasName: r.signals?.hasName ?? true, starred: Boolean(r.signals?.starred), labels: r.signals?.labels ?? [], meetings: r.meetings, company: r.company, position: r.position } satisfies SortCandidate,
+  }));
+}
+
+/** The words "fits my goals and industries" looks for: from your profile and this Space's goals. */
+async function sortFitWords(tx: Tx, spaceId: string | null) {
+  const [profile] = await tx.select({ industries: t.profiles.industries }).from(t.profiles).limit(1);
+  const goals = await tx
+    .select({ text: t.goals.text, type: t.goals.type })
+    .from(t.goals)
+    .where(and(eq(t.goals.active, true), isNull(t.goals.archivedAt), eq(t.goals.example, false), spaceId ? eq(t.goals.spaceId, spaceId) : undefined));
+  return fitWords({ industries: profile?.industries ?? [], goals });
+}
+
+/** The rules on offer for the people waiting, each with how many it keeps and sets aside. */
+export async function previewSortRules(tx: Tx, spaceId: string | null, today: IsoDate) {
+  const [cands, words] = await Promise.all([sortCandidates(tx, spaceId, today), sortFitWords(tx, spaceId)]);
+  return { total: cands.length, options: ruleOptions(cands.map((x) => x.c), words), fitWords: words };
+}
+
+/**
+ * Sorts everyone waiting by the rule you chose: kept people go on your list (starred if you
+ * starred them in Google or Outlook), the rest are set aside: still searchable, no reminders.
+ */
+export async function applySortRule(tx: Tx, spaceId: string | null, rule: SortRule, today: IsoDate) {
+  const [cands, words] = await Promise.all([sortCandidates(tx, spaceId, today), sortFitWords(tx, spaceId)]);
+  const fits = fitMatcher(words);
+  const keepIds: string[] = [];
+  const asideIds: string[] = [];
+  for (const x of cands) (keeps(rule, x.c, fits) ? keepIds : asideIds).push(x.membershipId);
+  const sortIds = async (ids: string[], aside: boolean) => {
+    for (let i = 0; i < ids.length; i += 1000) {
+      const chunk = sql`array[${sql.join(ids.slice(i, i + 1000).map((id) => sql`${id}::uuid`), sql`, `)}]`;
+      await tx.execute(sql`
+        update person_spaces ps
+           set triage_state = 'done',
+               starred = ps.starred or coalesce((ps.triage_suggestion ->> 'starred')::boolean, false),
+               archived_at = ${aside ? sql`now()` : sql`ps.archived_at`}
+         where ps.id = any(${chunk}) and ps.triage_state = 'pending'`);
+    }
+  };
+  await sortIds(keepIds, false);
+  await sortIds(asideIds, true);
+  return { kept: keepIds.length, setAside: asideIds.length };
 }
 
 /** Undo an import: removes the people, touches and rooms it created. Filled-in details on people you already had stay. */

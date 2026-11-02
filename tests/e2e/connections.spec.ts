@@ -61,16 +61,17 @@ test.describe.serial("Connecting Google", () => {
     await page.goForward();
     await expect(page.getByRole("heading", { name: "Sort new people", level: 1 })).toBeVisible();
 
-    // One at a time first: Ifeoma (three meetings in the calendar) is suggested as priority.
+    // One at a time first: Ifeoma, with why she might matter (meetings in the calendar).
     const card = page.locator("article");
     await expect(card.getByText("Ifeoma Nwosu")).toBeVisible();
     await expectAccessible(page);
-    await expect(card.getByText("Suggested: Priority.")).toBeVisible();
+    await expect(card.getByText(/meetings in the last 6 months/)).toBeVisible();
     await card.getByRole("button", { name: "Priority" }).click();
     await expect(card.getByText("Ifeoma Nwosu")).toHaveCount(0);
 
-    // Then accept the rest as suggested.
-    await page.getByRole("button", { name: /^Use suggested sort for/ }).click();
+    // Then the rest by a rule you choose; "Keep everyone" is the default.
+    await expect(page.getByRole("radio", { name: /Keep everyone/ })).toBeChecked();
+    await page.getByRole("button", { name: /^Sort \d+ (people|person)$/ }).click();
     await expect(page.getByText("Everyone is sorted.")).toBeVisible();
   });
 

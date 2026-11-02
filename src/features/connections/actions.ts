@@ -7,6 +7,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { aboutYouSchema, icsLinkSchema, pickedContactsSchema, triageDecisionsSchema } from "@/contracts/connections";
+import { sortRules, type SortRule } from "@/domain/sort-rules";
 import { fieldErrors, type FormState } from "@/features/forms";
 import { mapPickedContacts } from "@/importers/contact-picker";
 import { requireUser } from "@/server/auth";
@@ -14,7 +15,7 @@ import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { applyContacts } from "@/server/import/contacts";
 import { finishImport, startImport } from "@/server/import/imports";
-import { acceptSuggestedSort, applyTriage, computeTriageSuggestions, undoImport } from "@/server/import/triage";
+import { applySortRule, applyTriage, computeTriageSuggestions, undoImport } from "@/server/import/triage";
 import { revokeGoogle } from "@/server/integrations/google";
 import { IcsUrlError, normaliseIcsUrl } from "@/server/integrations/ics-url";
 import { enqueueSync } from "@/server/jobs/enqueue";
@@ -105,9 +106,10 @@ export async function undoImportAction(importId: string) {
 
 /* ---------------- triage ---------------- */
 
-export async function acceptSuggestedSortAction(spaceId: string | null) {
+export async function sortByRuleAction(spaceId: string | null, rule: SortRule) {
   const user = await requireUser();
-  const result = await db.withUser(user.id, (tx) => acceptSuggestedSort(tx, spaceId ? idSchema.parse(spaceId) : null));
+  const r = z.enum(sortRules).parse(rule);
+  const result = await db.withUser(user.id, async (tx) => applySortRule(tx, spaceId ? idSchema.parse(spaceId) : null, r, (await userContext(tx)).today));
   refresh();
   return result;
 }
