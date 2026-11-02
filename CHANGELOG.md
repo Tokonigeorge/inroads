@@ -9,6 +9,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed: background jobs run in batches
 - Scheduled syncs, briefs and suggested-room searches are started together instead of one after another, so each run takes a few steps rather than two per account, and notifications go out for several people at once. One person's failing notification no longer holds up everyone else's.
+
 ### Fixed: repeating meetings from Google stopped being logged
 - Weekly standups and other repeating meetings were only logged when Google first synced; later sessions never arrived, so it looked like the calendar had stopped syncing. Inroads now reads your Google calendar in full once a day, and changes in between.
 
@@ -36,6 +37,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Syncs that find nothing new don't write an import record**, and calendar links and Outlook skip re-applying an unchanged calendar. Old empty sync records are cleaned up daily, so Import history shows only syncs that changed something.
 - **Daily briefs, suggested rooms and attendee prep only run for people who've opened Inroads (or signed in) in the last 30 days.** Briefs used to keep writing themselves, on the most capable model, for accounts nobody was using.
 - Migration: `20261102093124_last_seen` (a `last_seen_on` date on profiles, and an index for the clean-up).
+
 ### Added: Want to meet (needs a migration)
 - **People you're trying to meet have their own place.** Anyone added from a goal, a look-up or event plan, or a research step is marked **Want to meet**; so is anyone you add with "I haven't met them yet" ticked, or mark from their page's More menu.
 - **No "going cold" reminders** for them: you can't drift from someone you haven't met.
