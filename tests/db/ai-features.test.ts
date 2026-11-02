@@ -220,7 +220,7 @@ describe("refreshing priority people", () => {
     expect(batch.calls).toHaveLength(0);
     expect(captured).toHaveLength(1);
     expect(captured[0]).toMatchObject({ personId: kemi, spaceId: work });
-    expect(captured[0].params.tools?.map((x) => x.name)).toEqual(["web_search", "web_fetch"]);
+    expect(captured[0].params.tools?.map((x) => ("name" in x ? x.name : x.type))).toEqual(["web_search", "web_fetch"]);
     expect(captured[0].params).not.toHaveProperty("fallbacks");
     const answer = await batch.client.beta.messages.stream(captured[0].params).finalMessage();
     const submitted: unknown[] = [];
