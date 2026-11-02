@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/ui/button";
 import { hideRoomIdeaAction } from "./actions";
 
-export type RoomIdea = { id: string; title: string; kind: string; date: string; time: string; timing: string; where: string; why: string; who: string; url: string; howToFind: string; confidence: string };
+export type RoomIdea = { id: string; title: string; kind: string; date: string; time: string; timing: string; where: string; why: string; who: string; url: string; howToFind: string; confidence: string; addedEventId?: string };
 
 const confidenceLabel: Record<string, string> = { confirmed: "Date confirmed", recurring: "Recurring", idea: "Idea" };
 
@@ -36,9 +36,15 @@ export function RoomIdeas({ searchId, items }: { searchId: string; items: RoomId
                 </a>
               ) : null}
               <div className="flex flex-wrap gap-2 pt-1">
-                <Button asChild size="sm">
-                  <Link href={`/rooms/new?${q}`}>+ My events</Link>
-                </Button>
+                {i.addedEventId ? (
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href={`/rooms/${i.addedEventId}`}>✓ In my events</Link>
+                  </Button>
+                ) : (
+                  <Button asChild size="sm">
+                    <Link href={`/rooms/new?${q}`}>+ My events</Link>
+                  </Button>
+                )}
                 <Button asChild size="sm" variant="ghost">
                   <Link href={`/discover?${new URLSearchParams({ q: i.title, type: "event" })}`}>Decode</Link>
                 </Button>

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { layoutNetwork } from "@/domain/network-map";
 import { NetworkMap } from "@/features/people/network-map";
 import { LoadingRows, PageFrame } from "@/features/shell/page-frame";
 import { loadSpaceView } from "@/features/spaces/space-view";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
-import { loadNetworkMap, MAP_LIMIT } from "@/server/repos/network-map";
+import { loadMapLinks, loadNetworkMap, MAP_LIMIT } from "@/server/repos/network-map";
 import { userContext } from "@/server/user-context";
 import { BackLink } from "@/ui/back-link";
 import { PageHeader } from "@/ui/layout";
@@ -27,18 +26,16 @@ export default function MapPage() {
 
 async function MapSection() {
   const user = await requireUser();
-  const { map, spaceName } = await db.withUser(user.id, async (tx) => {
+  const { map, links, spaceName } = await db.withUser(user.id, async (tx) => {
     const [view, ctx] = await Promise.all([loadSpaceView(tx), userContext(tx)]);
-    return { map: await loadNetworkMap(tx, view.selected?.id ?? null, ctx.today), spaceName: view.selected?.name ?? "All spaces" };
+    const map = await loadNetworkMap(tx, view.selected?.id ?? null, ctx.today);
+    // On the map: people you've been in touch with, starred, on a goal, or linked to someone.
+    const onMap = map.people.filter((p) => p.strength != null || p.starred || p.goalId || p.linked);
+    return { map: { ...map, people: onMap }, links: await loadMapLinks(tx, onMap.map((p) => p.id)), spaceName: view.selected?.name ?? "All spaces" };
   });
-  // Only people you've been in touch with (or starred) have a place on the map; the rest are counted.
-  const onMap = map.people.filter((p) => p.strength != null || p.starred);
-  const untouched = map.total - onMap.length;
-  // Only when the cap actually cut off people you've been in touch with.
-  const capped = map.total > MAP_LIMIT && onMap.length === map.people.length;
-  const placed = layoutNetwork(onMap, map.goals);
+  const onMap = map.people;
+  const rest = map.total - onMap.length;
   const strong = onMap.filter((p) => (p.strength ?? 0) >= 70).length;
-  const fading = onMap.filter((p) => p.strength != null && p.strength < 40).length;
   return (
     <>
       <PageHeader
@@ -46,21 +43,21 @@ async function MapSection() {
         title="Network map"
         subtitle={
           onMap.length
-            ? `${strong} strong, ${fading} fading or weak.${capped ? ` Showing your ${MAP_LIMIT} closest and starred.` : ""} Log a touch and they move closer.`
+            ? `${onMap.length} people, ${strong} strong, ${links.length} ${links.length === 1 ? "connection" : "connections"} between them. Closeness comes from the contact you log here, so someone you're close to but haven't logged sits further out.`
             : undefined
         }
       />
-      {placed.length ? <NetworkMap people={placed} goals={map.goals} /> : null}
-      {untouched > 0 ? (
+      {onMap.length ? <NetworkMap people={onMap} links={links} goals={map.goals} /> : null}
+      {rest > 0 ? (
         <p className="mt-4 text-center text-small text-muted">
-          {untouched.toLocaleString("en-GB")} more {untouched === 1 ? "person isn't" : "people aren't"} on the map: {capped ? `no touches logged yet, or past your closest ${MAP_LIMIT}` : "no touches logged yet"}.{" "}
+          {rest.toLocaleString("en-GB")} more {rest === 1 ? "person isn't" : "people aren't"} on the map: no contact logged, no goal and no connection yet{map.total > MAP_LIMIT ? `, or past the first ${MAP_LIMIT}` : ""}.{" "}
           <Link href="/people" className="font-semibold text-accent hover:underline">
             Log a touch
           </Link>{" "}
           with someone and they appear here.
         </p>
       ) : null}
-      {placed.length || untouched > 0 ? null : (
+      {onMap.length || rest > 0 ? null : (
         <p className="text-muted">
           No one here yet.{" "}
           <Link href="/people/new" className="font-semibold text-accent hover:underline">

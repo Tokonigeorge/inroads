@@ -24,7 +24,7 @@ import { dueGoalSteps } from "@/server/repos/goal-steps";
 import { listGoals } from "@/server/repos/goals";
 import { getAccountOverview } from "@/server/repos/account";
 import { listConnections } from "@/server/repos/connections";
-import { listUpcoming } from "@/server/repos/rooms";
+import { listUpcoming, markSavedIdeas } from "@/server/repos/rooms";
 import { listNudges, personSpacesFor, todayAgenda, type AgendaEntry } from "@/server/repos/nudges";
 import { pushConfigured } from "@/server/system/notify";
 import { userContext } from "@/server/user-context";
@@ -171,8 +171,9 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
             </Button>
           </div>
         </section>
-      ) : !data.notifyOn && pushConfigured() ? (
-        <NotifyPrompt />
+      ) : null}
+      {!data.notifyOn && pushConfigured() ? (
+        <NotifyPrompt publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} wrapUpTime={profile.wrapUpTime.slice(0, 5)} />
       ) : null}
 
       {weekly && data.week ? (
@@ -424,7 +425,7 @@ async function loadGoalRooms(tx: Tx, view: Awaited<ReturnType<typeof loadSpaceVi
   const items = ((latest.result as { items?: RoomIdea[] }).items ?? [])
     .filter((i) => (i.date ? i.date >= today && i.date <= week : i.confidence !== "idea"))
     .slice(0, 3);
-  return { spaceId: space.id, rooms: { searchId: latest.id, spaceId: space.id, items } };
+  return { spaceId: space.id, rooms: { searchId: latest.id, spaceId: space.id, items: await markSavedIdeas(tx, items) } };
 }
 
 /** Today's rooms (prototype .agenda, L776–790): time on the left, then each person you'll see with prep. */

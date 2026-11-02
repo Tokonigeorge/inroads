@@ -13,7 +13,7 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
 import { roomImpactCounts } from "@/server/repos/room-impact";
-import { listPast, listSeries, listUpcoming, whereNetworkGathers } from "@/server/repos/rooms";
+import { listPast, listSeries, listUpcoming, markSavedIdeas, whereNetworkGathers } from "@/server/repos/rooms";
 import { userContext } from "@/server/user-context";
 import { Button } from "@/ui/button";
 import { PageHeader, Section } from "@/ui/layout";
@@ -90,9 +90,10 @@ export async function EventsPage() {
         : Promise.resolve([]),
     ]);
     const impact = new Map(await roomImpactCounts(tx, [...series.map((s) => s.id), ...past.map((p) => p.id)], ctx.today));
-    return { today: ctx.today, upcoming, series, past, gathers, radar: radar ?? null, radarSpace, impact, spaceName: view.selected?.name ?? null };
+    const ideas = await markSavedIdeas(tx, ((radar?.result as { items?: RoomIdea[] } | undefined)?.items ?? []) as RoomIdea[]);
+    return { today: ctx.today, upcoming, series, past, gathers, radar: radar ?? null, ideas, radarSpace, impact, spaceName: view.selected?.name ?? null };
   });
-  const { today, series, past, gathers, radar, radarSpace, impact } = data;
+  const { today, series, past, gathers, radar, radarSpace, impact, ideas } = data;
   // At most two sessions per series, like the prototype (L931).
   const perSeries = new Map<string, number>();
   const upcoming = data.upcoming.filter((u) => {
@@ -172,7 +173,7 @@ export async function EventsPage() {
             <p className="hint">
               Scanned {formatLongDate(radarResult.from, today)} for the three weeks to {formatLongDate(radarResult.to, today)}.
             </p>
-            <RoomIdeas searchId={radar.id} items={radarResult.items} />
+            <RoomIdeas searchId={radar.id} items={ideas} />
           </>
         ) : null}
       </section>
