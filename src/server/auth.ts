@@ -1,17 +1,21 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type SessionUser = { id: string; email: string | null };
 
-/** The signed-in user, or null. Verifies the JWT rather than trusting the cookie. */
-export async function getSessionUser(): Promise<SessionUser | null> {
+/**
+ * The signed-in user, or null. Verifies the JWT rather than trusting the cookie. Once per request:
+ * the layout's pieces and the page each ask, and they all get the same answer.
+ */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
   return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
-}
+});
 
 /** The signed-in user, or a redirect to /sign-in. Use at the top of every signed-in data read. */
 export async function requireUser(): Promise<SessionUser> {

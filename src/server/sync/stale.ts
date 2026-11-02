@@ -10,7 +10,7 @@ import { listConnections } from "@/server/repos/connections";
  * on top of the scheduled sync, so new meetings show up when the app is opened. Skips accounts
  * with a sync already running and ones that need reconnecting.
  */
-export async function syncStale(userId: string): Promise<number> {
+export async function syncStale(userId: string): Promise<string[]> {
   const now = Date.now();
   const due = await db.withUser(userId, async (tx) => {
     // Opening the app counts as being active (sign-in dates go stale on long sessions).
@@ -30,6 +30,7 @@ export async function syncStale(userId: string): Promise<number> {
     const busy = new Set(running.map((r) => r.kind));
     return stale.filter((a) => !busy.has(`sync:${a.provider}`));
   });
-  for (const a of due) await enqueueSync(userId, a.id, a.provider);
-  return due.length;
+  const jobIds: string[] = [];
+  for (const a of due) jobIds.push(await enqueueSync(userId, a.id, a.provider));
+  return jobIds;
 }

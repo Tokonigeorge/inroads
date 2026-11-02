@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { strengthLabel } from "@/domain/relationship";
 import { useState, useTransition } from "react";
 import { introAsk } from "@/domain/intro";
-import { whatsappDigits } from "@/domain/normalise";
+import { whatsappDigits } from "@/domain/whatsapp";
 import { Button } from "@/ui/button";
 import { Field, Select, Textarea } from "@/ui/field";
 import { Sheet } from "@/ui/sheet";

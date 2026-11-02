@@ -29,10 +29,7 @@ export function formatPhone(e164: string): string {
   return parsePhoneNumberFromString(e164)?.formatInternational() ?? e164;
 }
 
-/** wa.me wants digits only, no plus. */
-export function whatsappDigits(e164: string): string {
-  return e164.replace(/\D/g, "");
-}
+export { whatsappDigits } from "./whatsapp";
 
 /** Accent- and case-insensitive key for comparing names. Only ever used for suggestions. */
 export function nameKey(raw: string | null | undefined): string {

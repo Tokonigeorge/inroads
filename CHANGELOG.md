@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: Today loads faster
+- Today, the person page and the notification job read only the events that matter for the dates shown, instead of every event you've ever had (three times over on Today).
+- Today and the person page no longer download a 192 KB phone-number library.
+- After the app syncs on open, the page refreshes once and only when something new came in, instead of three times regardless.
+- Who's signed in is checked once per page load instead of once per part of the page.
+
 ### Changed: less waste (needs a migration)
 - **Syncs that find nothing new don't write an import record**, and calendar links and Outlook skip re-applying an unchanged calendar. Old empty sync records are cleaned up daily, so Import history shows only syncs that changed something.
 - **Daily briefs, suggested rooms and attendee prep only run for people who've opened Inroads (or signed in) in the last 30 days.** Briefs used to keep writing themselves, on the most capable model, for accounts nobody was using.

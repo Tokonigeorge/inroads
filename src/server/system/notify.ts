@@ -63,13 +63,24 @@ export async function sendDueNotifications(now: Date = new Date(), deps: Deps = 
     .from(t.profiles)
     .innerJoin(t.pushSubscriptions, eq(t.pushSubscriptions.userId, t.profiles.userId));
   let sent = 0;
+  const recent = new Date(now.getTime() - 2 * 86_400_000).toISOString().slice(0, 10);
   for (const u of users) {
     if (u.afterMeetings) {
       const rows = await sys
         .select({ e: t.events })
         .from(t.events)
         .innerJoin(t.spaces, eq(t.spaces.id, t.events.spaceId))
-        .where(and(eq(t.events.userId, u.userId), isNull(t.events.deletedAt), isNull(t.events.archivedAt), isNull(t.spaces.archivedAt), isNotNull(t.events.startTime)));
+        .where(
+          and(
+            eq(t.events.userId, u.userId),
+            isNull(t.events.deletedAt),
+            isNull(t.events.archivedAt),
+            isNull(t.spaces.archivedAt),
+            isNotNull(t.events.startTime),
+            // Only rooms that can have a session around now: a running series, or a one-off from the last couple of days.
+            sql`((${t.events.rrule} is not null and (${t.events.untilOn} is null or ${t.events.untilOn} >= ${recent}::date)) or ${t.events.startsOn} >= ${recent}::date)`,
+          ),
+        );
       const rooms: TimedRoom[] = rows.map(({ e }) => ({ ...timingOf(e), title: e.title, endTime: e.endTime }));
       // A 20-minute look-back with a 15-minute schedule: a late run still catches it, the log stops repeats.
       for (const m of meetingsEndedBetween(rooms, new Date(now.getTime() - 20 * 60_000), now)) {
