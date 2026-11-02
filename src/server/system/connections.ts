@@ -10,6 +10,8 @@ export type SyncState = {
   spaceId?: string;
   contacts?: { syncToken?: string | null; deltaLink?: string | null };
   calendars?: Record<string, string>;
+  /** The day (yours) the calendar was last read in full, not just changes; see run-sync. */
+  calendarsFullOn?: string;
   lastSummary?: Record<string, unknown>;
   /** What the last applied fetch looked like (plus the day), to skip re-applying an unchanged calendar link or Outlook feed. */
   feedHash?: string;

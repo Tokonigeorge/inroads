@@ -97,6 +97,19 @@ describe("Google sync", () => {
     expect(n).toBe(4);
   });
 
+  it("once a day the calendar is read in full again, so repeating meetings keep getting logged", async () => {
+    // Pretend the last full read was yesterday: today's first sync reads the whole window, not changes.
+    await sql`update connections set sync_state = sync_state || '{"calendarsFullOn":"2000-01-01"}'::jsonb where id = ${connectionId}`;
+    const jobId = await jobsStore(sys).create(user.id, "sync:google");
+    const r = await runConnectionSync(connectionId, jobId, deps);
+    expect(r.calendar).not.toBeNull();
+    const [c] = await sql`select sync_state ->> 'calendarsFullOn' as full_on from connections where id = ${connectionId}`;
+    expect(c.full_on).toBe(today);
+    // The next sync the same day only asks for changes again.
+    const again = await runConnectionSync(connectionId, await jobsStore(sys).create(user.id, "sync:google"), deps);
+    expect(again.calendar).toBeNull();
+  });
+
   it("an expired contacts sync token reads everything again, without doubling anyone", async () => {
     await sql`update connections set sync_state = sync_state || '{"contacts":{"syncToken":"expired"}}'::jsonb where id = ${connectionId}`;
     const jobId = await jobsStore(sys).create(user.id, "sync:google");
