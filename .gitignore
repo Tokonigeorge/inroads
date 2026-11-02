@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Agent worktrees
 /.claude/worktrees/
+
+# brief eval output (contains your briefs)
+/eval-results/
