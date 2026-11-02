@@ -7,7 +7,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Changed: less waste (needs a migration)
 - **Syncs that find nothing new don't write an import record**, and calendar links and Outlook skip re-applying an unchanged calendar. Old empty sync records are cleaned up daily, so Import history shows only syncs that changed something.
 - **Daily briefs, suggested rooms and attendee prep only run for people who've opened Inroads (or signed in) in the last 30 days.** Briefs used to keep writing themselves, on the most capable model, for accounts nobody was using.
-- Migration: `20261102092210_last_seen` (a `last_seen_on` date on profiles, and an index for the clean-up).
+- Migration: `20261102093124_last_seen` (a `last_seen_on` date on profiles, and an index for the clean-up).
+### Added: Want to meet (needs a migration)
+- **People you're trying to meet have their own place.** Anyone added from a goal, a look-up or event plan, or a research step is marked **Want to meet**; so is anyone you add with "I haven't met them yet" ticked, or mark from their page's More menu.
+- **No "going cold" reminders** for them: you can't drift from someone you haven't met.
+- **People → Want to meet** lists them; their rows say so.
+- **Their page shows the next step**: meet them at an upcoming event you've linked them to, ask a mutual contact for an intro, or reach out directly. "We've met: log it" or any logged touch moves them into your network; "Not trying to meet them" takes them off the list.
+- Migration: `20261102091205_want_to_meet` (adds one column).
 
 ### Changed: you choose how new people are sorted
 - **Sort new people asks how you want them sorted**, with the numbers before you confirm: keep everyone (the default), keep people you've met, keep people with a company or job title, keep people who fit your goals and industries, or set aside anyone without a name. Only rules that make a difference for these people are offered. Contacts you starred in Google or Outlook are always kept.

@@ -74,7 +74,7 @@ export function QuickAddPerson({ onDone }: { onDone: () => void }) {
       data: {
         id,
         identity: { name, emails: isEmail && contact ? [contact] : [], phones: !isEmail && contact ? [contact] : [] },
-        membership: { spaceId: String(f.get("spaceId") ?? defaultSpace), whereMet: String(f.get("whereMet") ?? "") },
+        membership: { spaceId: String(f.get("spaceId") ?? defaultSpace), whereMet: String(f.get("whereMet") ?? ""), wantToMeet: f.get("wantToMeet") === "on" },
       },
     });
     setBusy(false);
@@ -92,6 +92,13 @@ export function QuickAddPerson({ onDone }: { onDone: () => void }) {
       <Field label="Phone or email" hint="Optional." error={error?.field === "contact" ? error.message : undefined}>
         {({ id, describedBy, invalid }) => <Input id={id} name="contact" autoComplete="off" inputMode="email" aria-describedby={describedBy} aria-invalid={invalid} />}
       </Field>
+      <label className="flex items-start gap-2.5 text-[14.5px]">
+        <input type="checkbox" name="wantToMeet" className="mt-1 accent-[var(--accent)]" />
+        <span>
+          <span className="font-[550]">I haven&apos;t met them yet</span>
+          <span className="block text-small text-muted">They go under Want to meet, with no reminders until you&apos;re in touch.</span>
+        </span>
+      </label>
       <Field label="Where you met" hint="Optional.">
         {({ id, describedBy }) => <Input id={id} name="whereMet" autoComplete="off" placeholder="Event, intro, venue…" aria-describedby={describedBy} />}
       </Field>

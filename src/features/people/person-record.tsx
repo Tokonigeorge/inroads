@@ -14,7 +14,7 @@ import { DraftButton } from "@/features/ai/draft-sheet";
 import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
 import { IntroAsk, type IntroSpace } from "@/features/people/intro-ask";
-import { DeleteButton, LogTouchButton, PersonActions, PromiseCheck, RemoveFromSpaceButton, SetAsideNote } from "@/features/people/person-actions";
+import { DeleteButton, LogTouchButton, PersonActions, PromiseCheck, RemoveFromSpaceButton, SetAsideNote, WantToMeetNote } from "@/features/people/person-actions";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
@@ -140,6 +140,16 @@ export function PersonRecord({ data }: { data: RecordData }) {
     const href = v ? socialHref(k, v) : null;
     return v && href ? [{ key: k, label: socialLabels[k], href }] : [];
   });
+  // Want to meet: added to meet (a goal, a plan, a room) and no touch logged yet.
+  const wantToMeet = !p.lastTouchedOn && active.some((m) => m.wantToMeet);
+  const meetAt = rooms.filter((r) => r.next).sort((a, b) => (a.next! < b.next! ? -1 : 1))[0];
+  const introBy = introSpaces.flatMap((s) => s.paths)[0];
+  const firstName = p.name.split(/\s+/)[0];
+  const nextStep = meetAt
+    ? { text: `Meet ${firstName} at ${meetAt.title}, ${formatLongDate(meetAt.next!, today)}`, href: `/rooms/${meetAt.id}` }
+    : introBy
+      ? { text: `Ask ${introBy.name} to introduce you (see Introductions below)` }
+      : { text: `Reach out directly: draft a first message to ${firstName}, or add them to an event you'll both be at.` };
   const needsContext = active.length > 0 && active.every((m) => !m.whereMet && m.interests.length === 0);
 
   return (
@@ -166,6 +176,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
                 #{tag}
               </span>
             ))}
+            {wantToMeet ? <span className="tag goal">Want to meet</span> : null}
             {archived ? <span className="tag">Set aside</span> : null}
           </div>
         </div>
@@ -183,11 +194,13 @@ export function PersonRecord({ data }: { data: RecordData }) {
           </>
         ) : null}
         {" · "}
-        {due ? (due.due ? <strong className="font-[550] text-accent">{due.label}</strong> : `${cadenceLabel(cadence)} · ${due.label.toLowerCase()}`) : "No reminder"}
+        {wantToMeet ? "No reminders until you've met" : due ? (due.due ? <strong className="font-[550] text-accent">{due.label}</strong> : `${cadenceLabel(cadence)} · ${due.label.toLowerCase()}`) : "No reminder"}
       </p>
 
       {archived ? <SetAsideNote personId={p.id} name={p.name} /> : null}
+      {wantToMeet && !archived ? <WantToMeetNote person={picked} next={nextStep} defaultSpaceId={selectedSpaceId ?? undefined} /> : null}
       <PersonActions
+        canWantToMeet={!p.lastTouchedOn && !wantToMeet}
         person={picked}
         archived={archived}
         defaultSpaceId={selectedSpaceId ?? undefined}

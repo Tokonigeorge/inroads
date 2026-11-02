@@ -1,5 +1,5 @@
 {
-  "id": "1269f4a6-68b8-4ef7-988a-4220d2eb0f1f",
+  "id": "73103655-8cce-4d50-b771-dacc008efd09",
   "prevId": "f375a1c1-a2cb-45ff-a0e1-9eb8aae1863b",
   "version": "7",
   "dialect": "postgresql",
@@ -1721,22 +1721,6 @@
           ],
           "isUnique": false,
           "where": "\"events\".\"deleted_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "events_import_idx": {
-          "name": "events_import_idx",
-          "columns": [
-            {
-              "expression": "import_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"events\".\"import_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -4194,6 +4178,13 @@
           "notNull": true,
           "default": false
         },
+        "want_to_meet": {
+          "name": "want_to_meet",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "triage_state": {
           "name": "triage_state",
           "type": "text",
@@ -4510,12 +4501,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'07:30'"
-        },
-        "last_seen_on": {
-          "name": "last_seen_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
         },
         "onboarding_state": {
           "name": "onboarding_state",

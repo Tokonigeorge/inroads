@@ -35,7 +35,7 @@ const ROW = 68;
 /** The prototype's sorts (L855), plus "Last spoken to" and "Strongest first". */
 const sorts: PeopleSort[] = ["priority", "added", "due", "name", "recent", "strength"];
 /** The prototype's chips (L854), then the app's own filters at the end. */
-const chipFilters: PeopleFilter[] = ["all", "starred", "due", "context", "no_dossier", "untouched", "unsorted", "archived"];
+const chipFilters: PeopleFilter[] = ["all", "starred", "want_to_meet", "due", "context", "no_dossier", "untouched", "unsorted", "archived"];
 
 function Row({ p, today, showSpaces }: { p: PersonListItem; today: string; showSpaces: boolean }) {
   const w = warmth(p.lastTouchedOn, today);
@@ -54,7 +54,7 @@ function Row({ p, today, showSpaces }: { p: PersonListItem; today: string; showS
           {p.name}
         </span>
         <span className="row-sub">{role}</span>
-        {p.whereMet ? <span className="row-sub">Met: {p.whereMet}</span> : null}
+        {p.wantToMeet ? <span className="row-sub text-accent">Want to meet</span> : p.whereMet ? <span className="row-sub">Met: {p.whereMet}</span> : null}
         {p.archived ? <span className="row-sub">Set aside · open them to bring them back</span> : null}
       </span>
       <span className="grid justify-items-end gap-1">
@@ -67,7 +67,7 @@ function Row({ p, today, showSpaces }: { p: PersonListItem; today: string; showS
             {p.score}
           </span>
         ) : null}
-        <span className="font-mono text-[12px] leading-none text-faint">{w.days != null ? `${w.days}d` : "new"}</span>
+        <span className="font-mono text-[12px] leading-none text-faint">{w.days != null ? `${w.days}d` : p.wantToMeet ? "to meet" : "new"}</span>
       </span>
     </Link>
   );
