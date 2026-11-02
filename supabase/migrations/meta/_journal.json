@@ -120,6 +120,13 @@
       "when": 1793613226573,
       "tag": "20261102095346_going",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793613458366,
+      "tag": "20261102095738_promise_time",
+      "breakpoints": true
     }
   ]
 }

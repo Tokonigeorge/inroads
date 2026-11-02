@@ -7,6 +7,7 @@ import { roomRoleLabels } from "@/contracts/rooms";
 import { cadenceLabel } from "@/contracts/spaces";
 import { addDays, formatLongDate } from "@/domain/dates";
 import { formatPhone } from "@/domain/normalise";
+import { formatTime } from "@/domain/zoned";
 import { dueOn, dueState, effectiveCadence, personCadence, STRENGTH_WINDOW_DAYS, strength, warmth } from "@/domain/relationship";
 import { ChatImportButton } from "@/features/ai/chat-import";
 import { AiJobButton } from "@/features/ai/ai-job-button";
@@ -337,7 +338,7 @@ export function PersonRecord({ data }: { data: RecordData }) {
                   <b>{x.owner === "them" ? `${first(p.name)} owes you:` : "You owe:"}</b> {x.text}
                   <span className="text-[13px] text-muted">
                     {" · "}
-                    {x.dueOn ? (x.dueOn < today ? <strong className="font-[550] text-danger">Overdue · {formatLongDate(x.dueOn, today)}</strong> : `Due ${formatLongDate(x.dueOn, today)}`) : "No due date"}
+                    {x.dueOn ? (x.dueOn < today ? <strong className="font-[550] text-danger">Overdue · {formatLongDate(x.dueOn, today)}</strong> : `Due ${formatLongDate(x.dueOn, today)}${x.dueTime ? ` at ${formatTime(x.dueTime)}` : ""}`) : "No due date"}
                     {multi ? ` · ${x.spaceName}` : ""}
                   </span>
                 </span>

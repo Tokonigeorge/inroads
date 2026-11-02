@@ -86,6 +86,7 @@ export function NotificationSettings({ configured, publicKey, prefs }: { configu
             <span className="block text-small text-muted">For meetings from your calendar. One tap opens &ldquo;Who did you meet?&rdquo; for it.</span>
           </span>
         </label>
+        <p className="text-small text-muted">Promises you owe with a time set remind you at that time.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Wrap-up" hint="A short nudge with what's on today and a prompt to note anything worth keeping.">
             {({ id, describedBy }) => (

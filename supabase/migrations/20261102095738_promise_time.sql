@@ -1,0 +1,1 @@
+ALTER TABLE "commitments" ADD COLUMN "due_time" time;

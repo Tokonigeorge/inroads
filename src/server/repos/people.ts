@@ -436,7 +436,7 @@ export async function logTouch(tx: Tx, userId: string, raw: TouchInput): Promise
   if (d.promise) {
     await tx
       .insert(t.commitments)
-      .values({ id: d.promise.id, userId, personId: d.personId, spaceId: d.spaceId, text: d.promise.text, owner: d.promise.owner, dueOn: d.promise.dueOn, interactionId: d.id })
+      .values({ id: d.promise.id, userId, personId: d.personId, spaceId: d.spaceId, text: d.promise.text, owner: d.promise.owner, dueOn: d.promise.dueOn, dueTime: d.promise.dueOn ? d.promise.dueTime : null, interactionId: d.id })
       .onConflictDoNothing({ target: t.commitments.id });
   }
   // Logging a touch counts as sorting them, and brings back someone set aside: you're clearly in touch.
@@ -456,7 +456,7 @@ export async function addPromise(tx: Tx, userId: string, raw: PromiseInput): Pro
   if (!parsed.success) return fail(firstIssue(parsed.error, "Check the details."), String(parsed.error.issues[0]?.path.at(-1) ?? ""));
   const d = parsed.data;
   if (!(await assertMember(tx, d.personId, d.spaceId))) return fail("They're not in that Space.", "spaceId");
-  await tx.insert(t.commitments).values({ userId, ...d }).onConflictDoNothing({ target: t.commitments.id });
+  await tx.insert(t.commitments).values({ userId, ...d, dueTime: d.dueOn ? d.dueTime : null }).onConflictDoNothing({ target: t.commitments.id });
   return { ok: true, data: { id: d.id } };
 }
 

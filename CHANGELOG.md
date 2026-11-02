@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: a time on promises, with a reminder (needs a migration)
+- **When you owe something, add a time** next to the due date ("Send the deck, Tuesday at 2:30pm"). A notification arrives then: "Due now: Send the deck. You told Kemi you would." Tap it to open them and tick it off. Nothing is sent once it's done.
+- The person's page shows the time with the due date.
+- Migration: `20261102095738_promise_time` (adds one column).
+
 ### Added: "I'm going" on events (needs a migration)
 - **Tell Inroads you're going**: on the event page, on Today ("Going to ArtX Lagos?"), or with the "I'm going" box when adding an event. Preparing the room, researching who'll be there, Today's agenda and prep cards, "How did it go?" and "Who did you meet?" now only happen for events you're going to.
 - **Saving an idea isn't saying yes**: events added from Suggested rooms or a look-up start as "Saved · not going yet". Calendar meetings count as going unless you declined.
