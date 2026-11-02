@@ -111,7 +111,13 @@ test.describe.serial("AI features (against a fake Claude)", () => {
     const idea = page.getByRole("article", { name: "Fintech Founders Mixer" });
     await expect(idea).toBeVisible({ timeout: 20_000 });
     await idea.getByRole("link", { name: "+ My events" }).click();
-    await expect(page.getByRole("dialog", { name: "Add event" }).getByLabel("Title")).toHaveValue("Fintech Founders Mixer");
+    const sheet = page.getByRole("dialog", { name: "Add event" });
+    await expect(sheet.getByLabel("Title")).toHaveValue("Fintech Founders Mixer");
+    // Once it's saved, the idea says so instead of offering to add it again.
+    await sheet.getByRole("button", { name: "Add event" }).click();
+    await expect(page.getByRole("heading", { name: "Fintech Founders Mixer", level: 1 })).toBeVisible();
+    await page.goto("/rooms#radar");
+    await expect(page.getByRole("article", { name: "Fintech Founders Mixer" }).getByRole("link", { name: "✓ In my events" })).toBeVisible();
   });
 
   test("scoring says what it did and links the strong fits", async ({ page }) => {

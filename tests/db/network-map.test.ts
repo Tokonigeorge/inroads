@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addDays } from "@/domain/dates";
 import type { Tx } from "@/server/db/with-user";
 import { createGoal, linkPeople } from "@/server/repos/goals";
-import { loadNetworkMap } from "@/server/repos/network-map";
+import { loadMapLinks, loadNetworkMap } from "@/server/repos/network-map";
 import { createPerson, logTouch } from "@/server/repos/people";
 import { listSpaces } from "@/server/repos/spaces";
 import { connect, createUser } from "./helpers";
@@ -73,5 +73,19 @@ describe("network map", () => {
     const map = await as((tx) => loadNetworkMap(tx, work, TODAY, 2));
     expect(map.people).toHaveLength(2);
     expect(map.total).toBe(3);
+  });
+
+  it("connects people who know each other, work together or were at the same event", async () => {
+    await sql`insert into person_links (user_id, from_person_id, to_person_id, kind, space_id) values (${user.id}, ${ada}, ${bola}, 'knows', ${work})`;
+    await sql`update people set company = 'Kestrel' where id in (${ada}, ${chidi})`;
+    await sql`update people set company = ' kestrel ' where id = ${dayo}`;
+    const [ev] = await sql`insert into events (user_id, space_id, title, kind, starts_on, tz) values (${user.id}, ${work}, 'Mixer', 'meetup', '2026-10-20', 'Africa/Lagos') returning id`;
+    await sql`insert into event_people (user_id, event_id, person_id, role) values (${user.id}, ${ev.id}, ${bola}, 'attendee'), (${user.id}, ${ev.id}, ${chidi}, 'attendee')`;
+    const links = await as((tx) => loadMapLinks(tx, [ada, bola, chidi]));
+    const pair = (x: string, y: string) => [x, y].sort().join("|");
+    const got = Object.fromEntries(links.map((l) => [pair(l.a, l.b), l.why]));
+    expect(got).toEqual({ [pair(ada, bola)]: "knows", [pair(ada, chidi)]: "company", [pair(bola, chidi)]: "event" });
+    // Only between the people asked about: Dayo also works at Kestrel but isn't in the list.
+    expect(links.some((l) => l.a === dayo || l.b === dayo)).toBe(false);
   });
 });

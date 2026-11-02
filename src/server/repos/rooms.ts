@@ -265,3 +265,16 @@ export async function roomsForPerson(tx: Tx, personId: string, today: IsoDate) {
     return { id: e.id, title: e.title, role: role as RoomRole, next: nextOccurrence(timing, today), first: e.startsOn, repeats: Boolean(e.rrule) };
   });
 }
+
+const sameTitle = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/** Radar ideas you've already added to your events (matched by title), so the card can say so. */
+export async function markSavedIdeas<T extends { title: string }>(tx: Tx, items: T[]): Promise<(T & { addedEventId?: string })[]> {
+  if (!items.length) return items;
+  const rows = await tx.select({ id: t.events.id, title: t.events.title }).from(t.events).where(isNull(t.events.deletedAt));
+  const byTitle = new Map(rows.map((r) => [sameTitle(r.title), r.id]));
+  return items.map((i) => {
+    const id = byTitle.get(sameTitle(i.title));
+    return id ? { ...i, addedEventId: id } : i;
+  });
+}

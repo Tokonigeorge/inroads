@@ -2,6 +2,11 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-02: the map as a graph
+
+186. **The network map is a force-directed graph** (owner: "what's the point… interconnected relationships or clusters… colourful, interactive, zoom"). It supersedes #179 and #182: edges to you are weighted by strength; edges between people come from saved links, same company and shared events (at most 600), and clusters come out of those. Colour is the goal, else the company. `react-force-graph-2d` (canvas, zoom/pan/drag built in), loaded in the browser only; a list underneath is the accessible version. Strength stays "contact you've logged", now said in the subtitle, since a close friend you never logged otherwise looks distant.
+187. **Radar ideas match saved events by title** (case and punctuation ignored) to show "In my events". No link is stored on the event; a renamed event simply shows the idea as new again.
+
 ## 2026-11-01: notifications
 
 184. **Nudges are Web Push, not email or SMS** (owner: notify after meetings and a wrap-up at a chosen frequency; no meeting recording or email reading for now). Push works for the installed app on Android and in desktop browsers; on iPhone only from the Home Screen. A 15-minute Inngest job sends "How did it go?" for sessions that ended in the last 20 minutes (no end time counts as an hour) and the wrap-up in the half hour after the chosen time; `notification_log` keys stop repeats. Devices the push service says are gone are deleted. Email as a fallback can come later if people without push miss it.

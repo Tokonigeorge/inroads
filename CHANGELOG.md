@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed: a live network map; one-tap notifications; radar knows what you've added
+- **Network map** is now a live graph: you in the middle, a line to each person (thicker means more contact logged), and lines between people who know each other, work at the same company or were at the same event, so clusters form on their own. Dots are coloured by goal, else by company. Drag, pinch or scroll to move and zoom; hover or tap to see someone's connections; tap to open them; "See them as a list" for keyboards and screen readers. People on a goal or connected to someone are on it too, not only people you've logged contact with. The "Strong / Good / Fading" rings are gone.
+- **Notifications from Today in one tap**: the card turns them on right there (daily wrap-up at 18:00 by default, changeable in Settings), and shows for everyone, new accounts included.
+- **Radar ideas you've already added** say "✓ In my events" and link to the event, instead of offering to add them again.
+
 ### Added: notifications after meetings and a wrap-up (needs a migration and two keys)
 - **Settings → Notifications:** turn on push for this device (phone or computer). Then:
   - **After a meeting ends, ask how it went:** for meetings from your calendar, a notification when they finish ("How did Pitch with Kemi go?"); one tap opens *Who did you meet?* for that session.

@@ -36,14 +36,18 @@ test.describe("Network map", () => {
     await page.goto("/people");
     await page.getByRole("link", { name: "See your network map" }).click();
     await expect(page.getByRole("heading", { name: "Network map", level: 1 })).toBeVisible();
-    // Only people you've been in touch with are placed; the rest are counted underneath.
-    const map = page.getByRole("group", { name: "Network map, 2 people" });
-    await expect(map.getByRole("link", { name: /^Kemi Adebayo: good \(\d+\/100\)$/ })).toBeAttached();
-    await expect(map.getByRole("link", { name: /^Kofi Mensah: weak \(\d+\/100\)$/ })).toBeAttached();
-    await expect(page.getByText("1 more person isn't on the map: no touches logged yet.")).toBeVisible();
+    // People you've been in touch with (or who are on a goal or connected) are on the map; the rest are counted.
+    await expect(page.getByRole("group", { name: "Network map, 2 people" })).toBeVisible();
+    await expect(page.getByText("1 more person isn't on the map: no contact logged, no goal and no connection yet.")).toBeVisible();
+    await expect(page.locator("canvas").first()).toBeVisible();
     await expectAccessible(page);
 
-    await map.getByRole("link", { name: /^Kemi Adebayo/ }).click();
+    // The same people as a list, for keyboards and screen readers.
+    await page.getByText("See them as a list").click();
+    const list = page.getByRole("list", { name: "People on the map" });
+    await expect(list.getByRole("link", { name: /^Kemi Adebayo: good \(\d+\/100\)$/ })).toBeVisible();
+    await expect(list.getByRole("link", { name: /^Kofi Mensah: weak \(\d+\/100\)$/ })).toBeVisible();
+    await list.getByRole("link", { name: /^Kemi Adebayo/ }).click();
     await expect(page.getByRole("dialog").getByRole("heading", { name: "Kemi Adebayo", level: 1 })).toBeVisible();
   });
 });
