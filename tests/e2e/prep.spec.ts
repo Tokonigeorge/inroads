@@ -103,9 +103,9 @@ test.describe.serial("Proactive: rooms prepare themselves, people get researched
     const suggestions = page.getByRole("list", { name: "Suggestions" });
     await expect(async () => {
       await page.reload();
-      await expect(suggestions.getByRole("article", { name: "Company" })).toBeVisible({ timeout: 2000 });
+      await expect(suggestions.getByRole("checkbox", { name: /^Company:/ })).toBeVisible({ timeout: 2000 });
     }).toPass({ timeout: 20_000 });
-    await suggestions.getByRole("article", { name: "Company" }).getByRole("button", { name: "Accept" }).click();
+    await page.getByRole("button", { name: /^Apply/ }).click();
     await expect(page.getByRole("heading", { name: "Adaeze Okafor", level: 1 }).locator("..")).toContainText("Kestrel Ventures");
   });
 

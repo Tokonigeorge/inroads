@@ -179,6 +179,10 @@ export async function researchPerson(deps: FeatureDeps, userId: string, input: {
           suggestions.push({ kind: "person_field", spaceId: input.spaceId, targetId: input.personId, why: `${MOVED_PREFIX} ${found[field]} (you have ${id[field]})`, sources: sources.slice(0, 3), payload: { personId: input.personId, field, value: found[field], was: id[field] } });
         }
       }
+      // Moved city too (no congratulations for that one, just the update).
+      if (found.city && id.city && changed(id.city, found.city)) {
+        suggestions.push({ kind: "person_field", spaceId: input.spaceId, targetId: input.personId, why: `Research says ${found.city} (you have ${id.city})`, sources: sources.slice(0, 3), payload: { personId: input.personId, field: "city", value: found.city, was: id.city } });
+      }
     }
     for (const [key, value] of Object.entries(profiles)) {
       if (!(id.socials ?? {})[key]) suggestions.push({ kind: "social", spaceId: input.spaceId, targetId: input.personId, why: "Profile found by research", sources: [{ title: key, url: value }], payload: { personId: input.personId, key, value } });

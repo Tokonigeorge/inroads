@@ -1,4 +1,5 @@
 import type { pendingForPerson } from "@/server/repos/suggestions";
+import { socialLabels } from "@/contracts/people";
 import type { SuggestionView } from "./suggestion-list";
 
 type Src = { title: string; url: string };
@@ -10,9 +11,9 @@ export function describeSuggestion(s: Awaited<ReturnType<typeof pendingForPerson
   const base = { id: s.id, kind: s.kind, why: s.why ?? "", sources: (s.sources as Src[]) ?? [] };
   switch (s.kind) {
     case "person_field":
-      return { ...base, title: `${fieldLabel[String(p.field)] ?? "Detail"}`, value: String(p.value), editable: true };
+      return { ...base, title: `${fieldLabel[String(p.field)] ?? "Detail"}`, value: String(p.value), editable: true, ...(p.was ? { was: String(p.was) } : {}) };
     case "social":
-      return { ...base, title: `Profile: ${String(p.key)}`, value: String(p.value), editable: true };
+      return { ...base, title: socialLabels[String(p.key) as keyof typeof socialLabels] ?? String(p.key), value: String(p.value), editable: true };
     case "goal_link":
       return { ...base, title: "Add to a goal", value: String(p.goalText), editable: false };
     case "interaction":
