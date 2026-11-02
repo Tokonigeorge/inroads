@@ -106,6 +106,8 @@ export const profiles = pgTable(
     timezone: text("timezone").notNull().default("Africa/Lagos"),
     defaultRegion: text("default_region").notNull().default("NG"),
     briefTime: time("brief_time").notNull().default("07:30"),
+    /** The last day the app was opened (at most one write a day), so background AI skips people who've stopped. */
+    lastSeenOn: date("last_seen_on"),
     onboardingState: jsonb("onboarding_state").notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -353,6 +355,7 @@ export const events = pgTable(
   (t) => [
     uniqueIndex("events_external_key").on(t.userId, t.source, t.externalId),
     index("events_space_idx").on(t.userId, t.spaceId).where(sql`${t.deletedAt} is null`),
+    index("events_import_idx").on(t.importId).where(sql`${t.importId} is not null`),
     ...ownerPolicies("events"),
   ],
 );
