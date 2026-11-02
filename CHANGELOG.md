@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: repeating meetings from Google stopped being logged
+- Weekly standups and other repeating meetings were only logged when Google first synced; later sessions never arrived, so it looked like the calendar had stopped syncing. Inroads now reads your Google calendar in full once a day, and changes in between.
+
 ### Changed: AI cost tracking is accurate (needs a migration)
 - Usage now counts cached tokens at their real price, records the model that actually answered, and how many requests each call took, so the usage meter and limits match what Anthropic bills.
 - Migration: `20261102100225_ai_usage_cache` (three columns and two indexes on `ai_usage`).

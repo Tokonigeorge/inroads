@@ -110,15 +110,20 @@ export async function runConnectionSync(connectionId: string, jobId: string, dep
         next.contacts = { syncToken: r.nextSyncToken };
         if (grants.calendar) {
           await jobs.progress(jobId, { step: `Reading your ${name} calendar`, summary: { contactsFound: contacts.length } });
+          // Google only sends changes after the first read, and a repeating meeting that hasn't
+          // changed never comes back, so this week's standup would never be logged. Once a day,
+          // read the whole window again; the rest of the day's syncs fetch changes only.
+          const fullRead = state.calendarsFullOn !== ctx.today;
           const ev = await fetchGoogleEvents(f, token, {
             timeMin: `${addDays(ctx.today, -183)}T00:00:00Z`,
             timeMax: `${addDays(ctx.today, 92)}T00:00:00Z`,
-            syncTokens: state.calendars ?? {},
+            syncTokens: fullRead ? {} : (state.calendars ?? {}),
             defaultTz: ctx.timezone,
           });
           events = ev.events;
           cancelled = ev.cancelled;
           next.calendars = ev.nextTokens;
+          if (fullRead) next.calendarsFullOn = ctx.today;
         }
       } else {
         await jobs.progress(jobId, { step: `Reading your ${name} contacts` });
