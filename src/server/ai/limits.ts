@@ -54,7 +54,10 @@ async function isUnlimited(userId: string, emails: string[], sys: Database) {
   return Boolean(email && emails.includes(email));
 }
 
-export async function recordUsage(input: { userId: string; feature: AiFeature; model: string; inputTokens: number; outputTokens: number; webSearches: number; costMicroUsd: number }, sys: Database = getSystemDb()) {
+export async function recordUsage(
+  input: { userId: string; feature: AiFeature; model: string; inputTokens: number; outputTokens: number; cacheReadTokens?: number; cacheWriteTokens?: number; turns?: number; webSearches: number; costMicroUsd: number },
+  sys: Database = getSystemDb(),
+) {
   await sys.insert(t.aiUsage).values(input);
 }
 
