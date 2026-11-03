@@ -128,7 +128,7 @@ export async function applyCalendar(
           connectionId: ctx.connectionId,
           importId: ctx.importId,
         },
-        people: known.filter((pid) => (spacesOf.get(pid) ?? []).includes(ctx.spaceId)),
+        people: known,
         attended: rec.freq !== "none" && (mine?.status === "ACCEPTED" || ev.attendees.some((a) => a.role === "ORGANIZER" && me.has(a.email))) ? past : [],
       });
     }
@@ -167,13 +167,17 @@ export async function applyCalendar(
   // The same meeting can come from two calendars (a shared invite, or Google and a calendar
   // link): one room per calendar event id, whichever calendar brought it first.
   const existing = new Map(
-    (await tx.select({ id: t.events.id, externalId: t.events.externalId, source: t.events.source }).from(t.events).where(and(isNull(t.events.deletedAt), isNotNull(t.events.externalId)))).map((e) => [e.externalId!, e]),
+    (await tx.select({ id: t.events.id, externalId: t.events.externalId, source: t.events.source, spaceId: t.events.spaceId }).from(t.events).where(and(isNull(t.events.deletedAt), isNotNull(t.events.externalId)))).map((e) => [e.externalId!, e]),
   );
+  // Only people in the room's own Space can be linked to it. A room you moved to another Space
+  // keeps its Space when the calendar sends it again (the daily full read sends them all).
+  const inSpace = (people: string[], spaceId: string) => people.filter((pid) => (spacesOf.get(pid) ?? []).includes(spaceId));
   const eventRooms: CalendarEventRoom[] = [];
   for (const r of rooms) {
     const other = existing.get(r.row.externalId!);
     if (other && other.source !== r.row.source) {
-      if (r.people.length) await tx.insert(t.eventPeople).values(r.people.map((personId) => ({ userId: ctx.userId, eventId: other.id, personId, role: "attendee" }))).onConflictDoNothing();
+      const linked = inSpace(r.people, other.spaceId);
+      if (linked.length) await tx.insert(t.eventPeople).values(linked.map((personId) => ({ userId: ctx.userId, eventId: other.id, personId, role: "attendee" }))).onConflictDoNothing();
       continue;
     }
     const [saved] = await tx
@@ -183,10 +187,11 @@ export async function applyCalendar(
         target: [t.events.userId, t.events.source, t.events.externalId],
         set: { title: r.row.title, startsOn: r.row.startsOn, startTime: r.row.startTime, allDay: r.row.allDay, tz: r.row.tz, location: r.row.location, rrule: r.row.rrule, rruleSource: r.row.rruleSource, untilOn: r.row.untilOn, deletedAt: null },
       })
-      .returning({ id: t.events.id, kind: t.events.kind });
-    if (saved.kind !== "meeting") eventRooms.push({ id: saved.id, title: r.row.title, kind: saved.kind, startsOn: r.row.startsOn });
-    if (r.people.length) {
-      await tx.insert(t.eventPeople).values(r.people.map((personId) => ({ userId: ctx.userId, eventId: saved.id, personId, role: "attendee" }))).onConflictDoNothing();
+      .returning({ id: t.events.id, kind: t.events.kind, spaceId: t.events.spaceId });
+    if (saved.kind !== "meeting" && saved.spaceId === ctx.spaceId) eventRooms.push({ id: saved.id, title: r.row.title, kind: saved.kind, startsOn: r.row.startsOn });
+    const linked = inSpace(r.people, saved.spaceId);
+    if (linked.length) {
+      await tx.insert(t.eventPeople).values(linked.map((personId) => ({ userId: ctx.userId, eventId: saved.id, personId, role: "attendee" }))).onConflictDoNothing();
     }
     if (r.attended.length) {
       await tx

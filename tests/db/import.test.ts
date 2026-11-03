@@ -131,6 +131,21 @@ describe("importing contacts and a calendar", () => {
     expect(summary.logged).toBe(0);
   });
 
+  it("a meeting you moved to another Space comes back from the calendar without failing the sync", async () => {
+    // Tunde is only in Work; the weekly meeting now lives in Personal.
+    await sql`update events set space_id = ${personal} where user_id = ${user.id} and external_id = 'weekly'`;
+    const run = () =>
+      as((tx) =>
+        applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source: "google", meEmails: ["me@example.com"], connectionId: null }, [
+          event({ uid: "weekly", summary: "Pricing sync", rrule: "FREQ=WEEKLY", start: { date: "2026-10-01", time: "09:00", tz: "Africa/Lagos" }, attendees: [att("me@example.com"), att("tunde@meridian.example")] }),
+        ]),
+      );
+    await expect(run()).resolves.toMatchObject({ rooms: 1 });
+    const [room] = await sql`select space_id from events where user_id = ${user.id} and external_id = 'weekly'`;
+    expect(room.space_id).toBe(personal);
+    await sql`update events set space_id = ${work} where user_id = ${user.id} and external_id = 'weekly'`;
+  });
+
   it("a meeting cancelled or declined later goes; the same meeting from a second calendar isn't added twice", async () => {
     const run = (source: string, events: ReturnType<typeof event>[], cancelled: string[] = []) =>
       as((tx) => applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source, meEmails: ["me@example.com"], connectionId: null, cancelled }, events));

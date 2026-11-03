@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: Google sync stuck on "didn't finish"
+- If you'd moved a calendar meeting into another Space, the daily full calendar read made every sync fail. Syncs finish again, and the meeting stays in the Space you put it in.
+- When a sync fails, Settings now says which rule it hit, so it can be traced quickly.
+
 ### Added: a research and look-up eval
 - `pnpm eval:research --email you@example.com` compares Opus and Sonnet on your own recent research and look-ups (with web search), grades them blind and stops before $5 (`--dry` shows the cases and estimate first). These features are where the AI spend goes, so this is the eval that decides whether a cheaper model is worth it.
 
