@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-03: sync keeps rooms where you put them
+
+209. **A synced meeting you moved to another Space stays there, and the sync links only people in that Space** (reported: Google sync "didn't finish (db 23514)" since the day #203 shipped). Moving a room to another Space was always allowed, but the daily full read (#203) now sends every meeting again. The sync then tried to link Work people to a room in Personal, the database rule (people on a room must be in its Space) refused, and the whole sync rolled back every 30 minutes. Now people are linked only when they're in the room's own Space, and rooms outside the synced Space aren't prepared. The short failure code in Settings now also names the rule ("db 23514: person is not in this Space", or the constraint name). These are fixed strings, never data.
+
 ## 2026-11-02: nudges that earn their place
 
 208. **The model eval that matters is research and look-ups, not briefs** (the usage log: 9 days, nearly all spend on Opus look-ups, suggested rooms and research with web search, ~$0.20–1.10 a call; briefs ~$0.01–0.07). `pnpm eval:research --email <you>` captures your most recent researched people (4) and look-ups (2) with the app's own code (nothing sent from the app or saved), runs each on the current model and a candidate (Sonnet 5.5 by default) with web search, resuming paused turns like the app, and has the current model grade each pair blind on identity, accuracy, usefulness and coverage. The eval's calls aren't counted against the app's limits; its own spend is capped (default $5) from real usage. Sonnet halves token prices; web searches cost the same, so the expected saving is a little under half.

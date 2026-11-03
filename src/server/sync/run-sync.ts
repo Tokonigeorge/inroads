@@ -41,8 +41,17 @@ class MissingAccess extends Error {
 /** A short reason for the logs ("provider 403", "db 42703"), so a failed sync can be traced. Never data. */
 function failureCode(e: unknown) {
   if (e instanceof ProviderError) return `provider ${e.status}`;
-  const pg = (e as { code?: unknown; cause?: { code?: unknown } })?.code ?? (e as { cause?: { code?: unknown } })?.cause?.code;
-  if (typeof pg === "string" && /^[0-9A-Z]{5}$/.test(pg)) return `db ${pg}`;
+  type PgError = { code?: unknown; constraint_name?: unknown; constraint?: unknown; message?: unknown };
+  const err = e as PgError & { cause?: PgError };
+  const src = typeof err?.code === "string" ? err : err?.cause;
+  const pg = src?.code;
+  if (typeof pg === "string" && /^[0-9A-Z]{5}$/.test(pg)) {
+    // Which rule: a constraint's name, or our own fixed trigger message. Neither carries data.
+    const constraint = src?.constraint_name ?? src?.constraint;
+    const ours = typeof src?.message === "string" ? /^inroads: (.{1,60})/.exec(src.message)?.[1] : undefined;
+    const why = typeof constraint === "string" && constraint ? constraint : ours;
+    return why ? `db ${pg}: ${why}` : `db ${pg}`;
+  }
   return e instanceof Error ? e.name : "unknown";
 }
 
