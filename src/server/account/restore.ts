@@ -209,6 +209,10 @@ async function restoreExport(tx: Tx, userId: string, d: Row): Promise<RestoreRes
         owner: c.owner === "them" ? ("them" as const) : ("me" as const),
         dueOn: date(c.dueOn),
         doneAt: typeof c.doneAt === "string" ? new Date(c.doneAt) : null,
+        updates: arr(c.updates)
+          .filter((u) => str(u.text, 500) && date(u.on))
+          .slice(-50)
+          .map((u) => ({ id: typeof u.id === "string" && /^[0-9a-f-]{36}$/i.test(u.id) ? u.id : randomUUID(), on: date(u.on)!, text: str(u.text, 500)! })),
         source: "restore",
       })),
     );

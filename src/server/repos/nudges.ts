@@ -10,6 +10,7 @@ import { countPendingAiSuggestions } from "./suggestions";
 import { personRollup } from "./people";
 import { listUpcoming, roomsToDebrief, type UpcomingItem } from "./rooms";
 
+const latestUpdate = (u: { on: string; text: string }[] | null) => (u?.length ? { on: u[u.length - 1].on, text: u[u.length - 1].text } : null);
 const detailOf = (position: string | null, company: string | null) => [position, company].filter(Boolean).join(" at ");
 
 type Ctx = { spaceId: string | null; today: IsoDate; tz: string };
@@ -145,7 +146,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
       sql`${rollup} ${select} where deleted_at is null and needs_context and not unsorted and source = 'manual' and not example and created_at >= now() - interval '15 days' order by created_at desc limit 10`,
     ),
     tx
-      .select({ id: t.commitments.id, text: t.commitments.text, dueOn: t.commitments.dueOn, pid: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position })
+      .select({ id: t.commitments.id, text: t.commitments.text, dueOn: t.commitments.dueOn, updates: t.commitments.updates, pid: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position })
       .from(t.commitments)
       .innerJoin(t.people, eq(t.people.id, t.commitments.personId))
       .innerJoin(t.spaces, eq(t.spaces.id, t.commitments.spaceId))
@@ -162,7 +163,7 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
       .orderBy(sql`${t.commitments.dueOn} asc nulls last`)
       .limit(30),
     tx
-      .select({ id: t.commitments.id, text: t.commitments.text, dueOn: t.commitments.dueOn, pid: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position })
+      .select({ id: t.commitments.id, text: t.commitments.text, dueOn: t.commitments.dueOn, updates: t.commitments.updates, pid: t.people.id, name: t.people.name, company: t.people.company, position: t.people.position })
       .from(t.commitments)
       .innerJoin(t.people, eq(t.people.id, t.commitments.personId))
       .innerJoin(t.spaces, eq(t.spaces.id, t.commitments.spaceId))
@@ -187,8 +188,8 @@ export async function loadNudgeSnapshot(tx: Tx, ctx: Ctx): Promise<NudgeSnapshot
     birthdays: [...birthdays].filter((r) => r.birthday).map((r) => ({ ...person(r), birthday: r.birthday! })),
     due: [...due].map((r) => ({ ...person(r), dueOn: r.due_on!, lastTouchedOn: r.last_touched_on, cadenceDays: r.cadence! })),
     needContext: [...context].map((r) => ({ ...person(r), createdOn: r.created_on })),
-    owed: owed.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn, person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
-    owedToMe: owedToMe.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn!, person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
+    owed: owed.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn, latest: latestUpdate(c.updates), person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
+    owedToMe: owedToMe.map((c) => ({ id: c.id, text: c.text, dueOn: c.dueOn!, latest: latestUpdate(c.updates), person: person({ id: c.pid, name: c.name, company: c.company, position: c.position }) })),
     meetings: soon.flatMap((s) =>
       (prep.get(`${s.eventId}:${s.occurrenceOn}`) ?? []).map((p) => ({
         person: { id: p.id, name: p.name, detail: p.detail },

@@ -4,11 +4,11 @@ import { captureSchema } from "@/contracts/people";
 import { autoResearch } from "@/server/ai/auto-research";
 import { apiRoute, unprocessable } from "@/server/api";
 import { db } from "@/server/db/client";
-import { addPromise, createPerson, logTouch, setPromiseDone } from "@/server/repos/people";
+import { addPromise, addPromiseUpdate, createPerson, logTouch, setPromiseDone } from "@/server/repos/people";
 import { userContext } from "@/server/user-context";
 
 /**
- * Quick capture: add a person, log a touch, add a promise, mark a promise done. Every payload
+ * Quick capture: add a person, log a touch, add a promise, mark a promise done, note progress on one. Every payload
  * carries a client-generated id, so the phone can queue these offline and replay them safely.
  */
 export const POST = apiRoute(async (req, user) => {
@@ -26,6 +26,9 @@ export const POST = apiRoute(async (req, user) => {
         return addPromise(tx, user.id, c.data);
       case "promise_done":
         await setPromiseDone(tx, c.data.id, c.data.done);
+        return { ok: true as const, data: { id: c.data.id } };
+      case "promise_update":
+        await addPromiseUpdate(tx, c.data, today);
         return { ok: true as const, data: { id: c.data.id } };
     }
   });

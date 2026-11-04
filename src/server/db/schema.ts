@@ -454,6 +454,8 @@ export const commitments = pgTable(
     kind: text("kind"),
     aboutPersonId: uuid("about_person_id").references((): AnyPgColumn => people.id, { onDelete: "cascade" }),
     goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
+    /** Progress notes while it's not done yet, oldest first: [{ id, on: "YYYY-MM-DD", text }]. */
+    updates: jsonb("updates").$type<{ id: string; on: string; text: string }[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

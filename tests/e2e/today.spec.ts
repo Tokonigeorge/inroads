@@ -23,6 +23,7 @@ async function openPalette(page: Page, isMobile: boolean) {
 // Its own account per project, arranged directly in the database.
 test.describe.serial("Today", () => {
   let user: { id: string; email: string };
+  let chideraId: string;
 
   test.beforeAll(async () => {
     user = { id: randomUUID(), email: `ada.today.${randomUUID().slice(0, 8)}@example.test` };
@@ -33,6 +34,7 @@ test.describe.serial("Today", () => {
     const people = {
       adaeze: { id: randomUUID(), name: "Adaeze Okafor", company: "Kestrel Ventures", position: "Partner" },
       tunde: { id: randomUUID(), name: "Tunde Bakare", company: "Meridian Telecoms", position: null },
+      chidera: { id: randomUUID(), name: "Chidera Ututu", company: "Lumen Bank", position: "Head of People" },
     };
     for (const p of Object.values(people)) {
       await sql`insert into people (id, user_id, name, company, position, created_at) values (${p.id}, ${user.id}, ${p.name}, ${p.company}, ${p.position}, now() - interval '60 days')`;
@@ -44,6 +46,9 @@ test.describe.serial("Today", () => {
     // there'd be nothing to prep).
     await sql`insert into interactions (user_id, person_id, space_id, occurred_on, type, summary) values (${user.id}, ${people.tunde.id}, ${work.id}, ${addDays(today, -20)}, 'call', 'Pricing questions')`;
     await sql`insert into commitments (user_id, person_id, space_id, text, owner, due_on) values (${user.id}, ${people.tunde.id}, ${work.id}, 'Send the pricing deck', 'me', ${addDays(today, -1)})`;
+    // Chidera: a promise in progress, due today.
+    await sql`insert into commitments (user_id, person_id, space_id, text, owner, due_on) values (${user.id}, ${people.chidera.id}, ${work.id}, 'Talk to Favour about extending the appraisals', 'me', ${today})`;
+    chideraId = people.chidera.id;
     const [room] = await sql`insert into events (user_id, space_id, title, kind, starts_on, start_time, tz) values (${user.id}, ${work.id}, 'Pricing review with Meridian', 'meeting', ${today}, '23:30', 'Africa/Lagos') returning id`;
     await sql`insert into event_people (event_id, person_id, user_id, role) values (${room.id}, ${people.tunde.id}, ${user.id}, 'attendee')`;
     await sql`insert into goals (user_id, space_id, text, type) values (${user.id}, ${work.id}, 'Win three enterprise clients', 'clients')`;
@@ -88,6 +93,38 @@ test.describe.serial("Today", () => {
     await page.reload();
     await expect(feed.getByRole("article", { name: "You said you'd send the pricing deck" })).toHaveCount(0);
     await expect(page.getByRole("list", { name: /Who you'll see/ })).not.toContainText("You owe");
+  });
+
+  test("notes progress on a promise that isn't done yet", async ({ page }, info) => {
+    await page.goto("/today");
+    const feed = page.getByRole("list", { name: "Nudges" });
+    const card = feed.getByRole("article", { name: "You said you'd talk to Favour about extending the appraisals" });
+    await card.getByRole("button", { name: "Add update" }).click();
+    const form = card.getByRole("form", { name: /^Update on:/ });
+    await form.getByLabel("What's happened so far?").fill("Spoke to Favour; waiting on HR to confirm.");
+    await form.getByText("Keep it here").click();
+    await page.screenshot({ path: info.outputPath("today-add-update.png") });
+    await form.getByRole("button", { name: "Save update" }).click();
+    await expect(card).toContainText("Update today: Spoke to Favour; waiting on HR to confirm.");
+    await expectAccessible(page);
+    await card.screenshot({ path: info.outputPath("today-promise-with-update.png") });
+
+    // Another update, and not today: the card comes back tomorrow.
+    await card.getByRole("button", { name: "Add update" }).click();
+    await card.getByLabel("What's happened so far?").fill("HR said yes. Drafting the note to Chidera.");
+    await card.getByRole("button", { name: "Save update" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Update saved. Back tomorrow." })).toBeVisible();
+    await expect(card).toHaveCount(0);
+
+    await page.goto(`/people/${chideraId}`);
+    const updates = page.getByRole("list", { name: "Updates" });
+    await expect(updates.getByRole("listitem")).toHaveText([/HR said yes/, /Spoke to Favour/]);
+    await page.getByRole("button", { name: /^Add an update on:/ }).click();
+    await page.getByLabel("What's happened so far?").fill("Sent Chidera the summary.");
+    await page.getByRole("button", { name: "Save update" }).click();
+    await expect(updates.getByRole("listitem").first()).toContainText("Sent Chidera the summary.");
+    await page.getByRole("heading", { name: "Promises" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath("person-promise-updates.png") });
   });
 
   test("opening someone from a prep card", async ({ page }) => {

@@ -1,0 +1,1 @@
+ALTER TABLE "commitments" ADD COLUMN "updates" jsonb DEFAULT '[]'::jsonb NOT NULL;

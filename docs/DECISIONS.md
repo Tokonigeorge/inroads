@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-04: progress on promises
+
+210. **Promises take progress notes** (owner: "add updates to the nudges, especially when there is progress but it's not yet done"). "Add update" on a promise card on Today, and under each open promise on the person's page, adds a dated note. Promises they owe you take them too. The card shows the latest one ("Update yesterday: …"); the person's page lists the last three, with older ones folded. On Today the box also asks when to show the card again (Tomorrow, the default; In 3 days; Next week; Keep it here), because progress usually means "not today". That uses the normal snooze and leaves the due date alone. Notes are stored on the promise (`commitments.updates`, the latest 50), saved offline like other quick captures, kept once per client id so a replay doesn't double them, and included in the export and restore. Reverse by dropping the column; nothing else reads it.
+
 ## 2026-11-03: sync keeps rooms where you put them
 
 209. **A synced meeting you moved to another Space stays there, and the sync links only people in that Space** (reported: Google sync "didn't finish (db 23514)" since the day #203 shipped). Moving a room to another Space was always allowed, but the daily full read (#203) now sends every meeting again. The sync then tried to link Work people to a room in Personal, the database rule (people on a room must be in its Space) refused, and the whole sync rolled back every 30 minutes. Now people are linked only when they're in the room's own Space, and rooms outside the synced Space aren't prepared. The short failure code in Settings now also names the rule ("db 23514: person is not in this Space", or the constraint name). These are fixed strings, never data.
