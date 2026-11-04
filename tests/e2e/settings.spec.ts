@@ -42,6 +42,26 @@ test.describe.serial("Settings", () => {
     await expect(page.getByText("08:15")).toBeVisible();
   });
 
+  test("changing your country sticks, and saving again keeps it", async ({ page }) => {
+    await page.goto("/settings/profile");
+    const country = page.getByLabel("Country for phone numbers");
+    await country.selectOption("GB");
+    await page.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+    await page.reload();
+    await expect(country).toHaveValue("GB");
+
+    await country.selectOption("NG");
+    await page.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+    // Still Nigeria on screen after the save, so a second save doesn't put the old country back.
+    await expect(country).toHaveValue("NG");
+    await page.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+    await page.reload();
+    await expect(country).toHaveValue("NG");
+  });
+
   test("download a backup, as in the prototype's Goals tab", async ({ page }) => {
     await page.goto("/goals");
     const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20_000 }), page.getByRole("button", { name: "Download backup" }).click()]);

@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: country on your profile going back to United Kingdom
+- After you saved a new country (or time zone) on your profile, the picker showed the old one again, and saving the profile once more put it back. It now shows, and keeps, what you chose.
+
 ### Added: updates on promises
 - "Add update" on a promise card on Today: note what's happened so far ("Spoke to Favour; waiting on HR"), and choose when the card comes back (tomorrow by default, in 3 days, next week, or keep it there). The card shows the latest update.
 - On a person's page, each open promise lists its updates, with "Add update" underneath. Works offline; included in exports.

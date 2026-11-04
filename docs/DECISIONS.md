@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-04: country stays as you set it
+
+211. **The country and time-zone pickers start from what was just saved** (reported: "updating my country kept defaulting to United Kingdom"). The save worked, but React resets a form after its action, and a `<select>` goes back to the option it first rendered with (its `defaultValue` only counts on the first render). The screen showed the old country again, and the next save of the profile sent it back. Both pickers are now keyed on the saved value, so they start again from it. The first value came from the phone's language (en-GB gives United Kingdom) on first use; that's unchanged.
+
 ## 2026-11-04: progress on promises
 
 210. **Promises take progress notes** (owner: "add updates to the nudges, especially when there is progress but it's not yet done"). "Add update" on a promise card on Today, and under each open promise on the person's page, adds a dated note. Promises they owe you take them too. The card shows the latest one ("Update yesterday: …"); the person's page lists the last three, with older ones folded. On Today the box also asks when to show the card again (Tomorrow, the default; In 3 days; Next week; Keep it here), because progress usually means "not today". That uses the normal snooze and leaves the due date alone. Notes are stored on the promise (`commitments.updates`, the latest 50), saved offline like other quick captures, kept once per client id so a replay doesn't double them, and included in the export and restore. Reverse by dropping the column; nothing else reads it.
