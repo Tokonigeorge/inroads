@@ -7,6 +7,9 @@
 import { addDays, diffDays, formatLongDate, weekday, type IsoDate } from "./dates";
 import { formatTime } from "./zoned";
 
+/** The latest progress note on a promise that isn't done yet. */
+export type PromiseProgress = { on: IsoDate; text: string };
+
 export type NudgePerson = { id: string; name: string; detail: string };
 
 export type NudgeSnapshot = {
@@ -14,9 +17,9 @@ export type NudgeSnapshot = {
   birthdays: (NudgePerson & { birthday: string })[];
   due: (NudgePerson & { dueOn: IsoDate; lastTouchedOn: IsoDate | null; cadenceDays: number })[];
   /** Open promises you made, due within 3 days or undated. */
-  owed: { id: string; person: NudgePerson; text: string; dueOn: IsoDate | null }[];
+  owed: { id: string; person: NudgePerson; text: string; dueOn: IsoDate | null; latest?: PromiseProgress | null }[];
   /** Open promises they made you, past their date. */
-  owedToMe: { id: string; person: NudgePerson; text: string; dueOn: IsoDate }[];
+  owedToMe: { id: string; person: NudgePerson; text: string; dueOn: IsoDate; latest?: PromiseProgress | null }[];
   /** People you're meeting in the next 3 days, one row per person and session. */
   meetings: {
     person: NudgePerson;
@@ -50,6 +53,7 @@ export type NudgeSnapshot = {
 export type NudgeKind = "moved" | "birthday" | "promise" | "owed_to_me" | "due" | "prep" | "context" | "room" | "after_room" | "triage" | "duplicates" | "suggestions";
 export type NudgeAction =
   | { type: "promise_done"; commitmentId: string; label: string }
+  | { type: "promise_update"; commitmentId: string; label: string }
   | { type: "log_touch"; personId: string; label: string }
   | { type: "open_person"; personId: string; label: string }
   | { type: "edit_person"; personId: string; label: string }
@@ -72,6 +76,8 @@ export type Nudge = {
   label: string;
   title: string;
   body: string;
+  /** The latest progress note on a promise ("Update, 3 Nov: …"). */
+  progress?: string;
   person: { id: string; name: string } | null;
   actions: NudgeAction[];
 };
@@ -116,6 +122,13 @@ export function relativeDay(date: IsoDate, today: IsoDate): string {
 const dueLabel = (date: IsoDate, today: IsoDate) => {
   const n = diffDays(today, date);
   return n < 0 ? (n === -1 ? "was due yesterday" : `was due ${-n} days ago`) : n === 0 ? "due today" : `due ${relativeDay(date, today)}`;
+};
+
+const shortDate = (d: IsoDate) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
+/** "Update today: …", "Update yesterday: …", "Update 3 Nov: …". */
+export const progressLine = (u: PromiseProgress, today: IsoDate) => {
+  const n = diffDays(u.on, today);
+  return `Update ${n === 0 ? "today" : n === 1 ? "yesterday" : shortDate(u.on)}: ${u.text}`;
 };
 
 export function buildNudges(s: NudgeSnapshot): Nudge[] {
@@ -176,9 +189,11 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       label: overdue ? "Overdue promise" : "Promise",
       title: `You said you'd ${lowerFirst(c.text)}`,
       body: `For ${c.person.name}${c.dueOn ? `, ${dueLabel(c.dueOn, t)}` : ""}.`,
+      progress: c.latest ? progressLine(c.latest, t) : undefined,
       person: who(c.person),
       actions: [
         { type: "promise_done", commitmentId: c.id, label: "Mark done" },
+        { type: "promise_update", commitmentId: c.id, label: "Add update" },
         { type: "open_person", personId: c.person.id, label: "Open" },
       ],
     });
@@ -193,9 +208,11 @@ export function buildNudges(s: NudgeSnapshot): Nudge[] {
       label: "They owe you",
       title: `${firstName(c.person.name)} said they'd ${lowerFirst(c.text)}`,
       body: `It ${dueLabel(c.dueOn, t)}. A light nudge usually does it.`,
+      progress: c.latest ? progressLine(c.latest, t) : undefined,
       person: who(c.person),
       actions: [
         { type: "promise_done", commitmentId: c.id, label: "They did it" },
+        { type: "promise_update", commitmentId: c.id, label: "Add update" },
         { type: "draft", personId: c.person.id, purpose: "followup", label: "Draft a nudge" },
         { type: "snooze", days: 7, label: "Snooze a week" },
       ],

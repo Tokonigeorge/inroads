@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: updates on promises
+- "Add update" on a promise card on Today: note what's happened so far ("Spoke to Favour; waiting on HR"), and choose when the card comes back (tomorrow by default, in 3 days, next week, or keep it there). The card shows the latest update.
+- On a person's page, each open promise lists its updates, with "Add update" underneath. Works offline; included in exports.
+
 ### Fixed: Google sync stuck on "didn't finish"
 - If you'd moved a calendar meeting into another Space, the daily full calendar read made every sync fail. Syncs finish again, and the meeting stays in the Space you put it in.
 - When a sync fails, Settings now says which rule it hit, so it can be traced quickly.

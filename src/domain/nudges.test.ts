@@ -59,6 +59,16 @@ describe("buildNudges", () => {
     expect(n[0].body).toBe("For Kemi Adebayo, was due 4 days ago.");
   });
 
+  it("a promise in progress shows its latest update, and you can add another", () => {
+    const [n] = buildNudges({ ...empty(), owed: [{ id: "c1", person: kemi, text: "Talk to Favour about the appraisals", dueOn: today, latest: { on: "2026-10-22", text: "Spoke to Favour; waiting on HR." } }] });
+    expect(n.progress).toBe("Update 22 Oct: Spoke to Favour; waiting on HR.");
+    expect(n.actions.map((a) => a.label)).toEqual(["Mark done", "Add update", "Open"]);
+    const [y] = buildNudges({ ...empty(), owed: [{ id: "c1", person: kemi, text: "x", dueOn: null, latest: { on: "2026-10-23", text: "Halfway" } }] });
+    expect(y.progress).toBe("Update yesterday: Halfway");
+    const [none] = buildNudges({ ...empty(), owed: [{ id: "c1", person: kemi, text: "x", dueOn: null }] });
+    expect(none.progress).toBeUndefined();
+  });
+
   it("promises they owe you show once they're late", () => {
     expect(keys({ owedToMe: [{ id: "t1", person: kemi, text: "Send the term sheet", dueOn: "2026-10-23" }, { id: "t2", person: kemi, text: "x", dueOn: today }] })).toEqual(["them:t1"]);
   });

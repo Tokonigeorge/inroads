@@ -466,6 +466,21 @@ export async function setPromiseDone(tx: Tx, id: string, done: boolean) {
   if (done && c?.kind === "intro") await completeIntro(tx, c.userId, id);
 }
 
+/** Adds a progress note to a promise (once per updateId); keeps the latest 50. */
+export async function addPromiseUpdate(tx: Tx, d: { id: string; updateId: string; text: string }, today: IsoDate) {
+  const entry = JSON.stringify([{ id: d.updateId, on: today, text: d.text }]);
+  const [row] = await tx.execute<{ id: string }>(sql`
+    update commitments set updates = (
+      select coalesce(jsonb_agg(u order by n), '[]'::jsonb) from (
+        select u, n from jsonb_array_elements(updates || ${entry}::jsonb) with ordinality as e(u, n)
+        order by n desc limit 50
+      ) last
+    )
+    where id = ${d.id} and not updates @> ${JSON.stringify([{ id: d.updateId }])}::jsonb
+    returning id`);
+  return Boolean(row);
+}
+
 export async function deletePromise(tx: Tx, id: string) {
   await tx.delete(t.commitments).where(eq(t.commitments.id, id));
 }

@@ -77,8 +77,10 @@ export async function buildExport(tx: Tx, now: Date = new Date()) {
     interactions.filter((i) => live.has(i.personId)).map((i) => [i.occurredOn, personName(i.personId), spaceName.get(i.spaceId), i.type, i.summary]),
   );
   const promisesCsv = toCsv(
-    ["Person", "Space", "Promise", "Who owes it", "Due", "Done"],
-    commitments.filter((c) => live.has(c.personId)).map((c) => [personName(c.personId), spaceName.get(c.spaceId), c.text, c.owner === "me" ? "You" : "Them", c.dueOn, c.doneAt?.toISOString().slice(0, 10)]),
+    ["Person", "Space", "Promise", "Who owes it", "Due", "Done", "Updates"],
+    commitments
+      .filter((c) => live.has(c.personId))
+      .map((c) => [personName(c.personId), spaceName.get(c.spaceId), c.text, c.owner === "me" ? "You" : "Them", c.dueOn, c.doneAt?.toISOString().slice(0, 10), (c.updates ?? []).map((u) => `${u.on}: ${u.text}`).join("\n")]),
   );
   const roomsCsv = toCsv(
     ["Title", "Space", "Starts on", "Start time", "End time", "Time zone", "Repeats (RRULE)", "Location", "Link", "Notes"],

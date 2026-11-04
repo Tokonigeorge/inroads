@@ -6,6 +6,7 @@ import * as t from "@/server/db/schema";
 import type { Tx } from "@/server/db/with-user";
 import {
   addPromise,
+  addPromiseUpdate,
   createPerson,
   deletePerson,
   getPerson,
@@ -225,6 +226,26 @@ describe("touches and promises", () => {
       ["Intro to two angels", false],
       ["Send two engineer CVs", true],
     ]);
+  });
+
+  it("notes progress on a promise; a replayed update isn't added twice", async () => {
+    const pid = await add("Favour Progress");
+    const id = randomUUID();
+    await as((tx) => addPromise(tx, user.id, { id, personId: pid, spaceId: work, text: "Talk to Favour about the appraisals", owner: "me", dueOn: TODAY }));
+    const first = { id, updateId: randomUUID(), text: "Spoke to Favour; waiting on HR." };
+    expect(await as((tx) => addPromiseUpdate(tx, first, "2026-10-22"))).toBe(true);
+    expect(await as((tx) => addPromiseUpdate(tx, first, "2026-10-22"))).toBe(false);
+    await as((tx) => addPromiseUpdate(tx, { id, updateId: randomUUID(), text: "HR said yes; drafting the note." }, TODAY));
+    const d = (await as((tx) => getPerson(tx, pid)))!;
+    expect(d.promises[0].updates.map((u) => [u.on, u.text])).toEqual([
+      ["2026-10-22", "Spoke to Favour; waiting on HR."],
+      [TODAY, "HR said yes; drafting the note."],
+    ]);
+    expect(d.promises[0].doneAt).toBeNull();
+    // Keeps the latest 50.
+    for (let i = 0; i < 52; i++) await as((tx) => addPromiseUpdate(tx, { id, updateId: randomUUID(), text: `step ${i}` }, TODAY));
+    const [row] = await sql`select jsonb_array_length(updates) as n, updates -> -1 ->> 'text' as last from commitments where id = ${id}`;
+    expect(row).toEqual({ n: 50, last: "step 51" });
   });
 
   it("refuses touches in a Space the person isn't in", async () => {

@@ -11,6 +11,7 @@ import { Button } from "@/ui/button";
 import { Avatar } from "@/ui/list-row";
 import { useToast } from "@/ui/toast";
 import { setGoingAction } from "@/features/rooms/actions";
+import { PromiseUpdateForm } from "@/features/people/promise-update";
 import { dismissNudgeAction, snoozeNudgeAction, undoNudgeAction } from "./actions";
 
 /** Kind colours (prototype .k-*, L168): cold cool, birthday fresh, promise warn, context faint, research accent, event good. */
@@ -38,6 +39,8 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
   const [leaving, setLeaving] = useState<Set<string>>(() => new Set());
   const [draft, setDraft] = useState<{ personId: string; name: string; purpose: string } | null>(null);
   const [researching, setResearching] = useState<Set<string>>(() => new Set());
+  // The card whose "Add update" box is open.
+  const [updating, setUpdating] = useState<string | null>(null);
   const [, start] = useTransition();
   const router = useRouter();
   const capture = useCapture();
@@ -117,6 +120,8 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
         });
       case "log_touch":
         return capture.open({ mode: "touch", person: { id: a.personId, name: n.person?.name ?? "", spaces: spaces[a.personId] ?? [] } });
+      case "promise_update":
+        return setUpdating(n.key);
       case "promise_done":
         hide(n.key);
         return start(async () => {
@@ -159,6 +164,34 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
     }
   };
 
+  const updateTarget = (n: Nudge) => {
+    const a = n.actions.find((x) => x.type === "promise_update");
+    return a?.type === "promise_update" ? a.commitmentId : null;
+  };
+  // After an update: keep the card (and show the update), or bring it back in a few days.
+  const updateSaved = (n: Nudge, queued: boolean, days: number) => {
+    setUpdating(null);
+    if (queued) return toast.show("Saved on this device. It will sync when you're back online.");
+    if (!days) {
+      toast.show("Update saved.");
+      return router.refresh();
+    }
+    hide(n.key);
+    start(async () => {
+      await snoozeNudgeAction(n.key, days).catch(() => undefined);
+      toast.show(`Update saved. Back ${days === 1 ? "tomorrow" : days === 7 ? "next week" : `in ${days} days`}.`, {
+        label: "Undo",
+        onClick: () =>
+          start(async () => {
+            await undoNudgeAction(n.key);
+            show(n.key);
+            router.refresh();
+          }),
+      });
+      router.refresh();
+    });
+  };
+
   if (!visible.length) {
     return (
       <p className="rounded-md border border-dashed border-line bg-sunk p-3.5 text-[14.5px] text-muted">
@@ -182,9 +215,13 @@ export function NudgeFeed({ nudges, spaces, aiEnabled = false }: Props) {
                 <div>
                   <h3 id={`n-${n.key}`}>{n.title}</h3>
                   <p className="mt-[3px] text-[14px] text-muted">{n.body}</p>
+                  {n.progress ? <p className="mt-1.5 border-l-2 border-[var(--nk)] pl-2 text-[13.5px]">{n.progress}</p> : null}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              {updating === n.key && updateTarget(n) ? (
+                <PromiseUpdateForm commitmentId={updateTarget(n)!} label={n.title} remind onCancel={() => setUpdating(null)} onSaved={(r, days) => updateSaved(n, r.queued, days)} />
+              ) : null}
+              <div className={updating === n.key ? "hidden" : "flex flex-wrap gap-1.5"}>
                 {n.actions
                   .filter((a) => aiEnabled || (a.type !== "draft" && a.type !== "research" && a.type !== "decode_room"))
                   .map((a, i) => (

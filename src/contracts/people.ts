@@ -151,6 +151,13 @@ export type TouchInput = z.input<typeof touchSchema>;
 
 /* ---------- capture (offline-capable) ---------- */
 
+/** A progress note on a promise that isn't done yet. `updateId` is client-made, so a replay doesn't double it. */
+export const promiseUpdateSchema = z.object({
+  id: z.string().uuid(),
+  updateId: z.string().uuid(),
+  text: z.string().trim().min(1, "Write what's happened so far.").max(500, "Keep it under 500 characters."),
+});
+
 /**
  * Everything the phone can save without a connection. Each carries a client-generated id, so
  * replaying a queued capture twice never creates duplicates.
@@ -160,6 +167,7 @@ export const captureSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("touch"), data: touchSchema }),
   z.object({ kind: z.literal("promise"), data: promiseSchema }),
   z.object({ kind: z.literal("promise_done"), data: z.object({ id: z.string().uuid(), done: z.boolean() }) }),
+  z.object({ kind: z.literal("promise_update"), data: promiseUpdateSchema }),
 ]);
 export type Capture = z.input<typeof captureSchema>;
 

@@ -15,6 +15,7 @@ import { DraftButton } from "@/features/ai/draft-sheet";
 import { PersonAi } from "@/features/ai/person-ai";
 import { PersonGoals, type GoalOption } from "@/features/goals/person-goals";
 import { IntroAsk, type IntroSpace } from "@/features/people/intro-ask";
+import { PromiseUpdateButton, PromiseUpdates } from "@/features/people/promise-update";
 import { DeleteButton, LogTouchButton, PersonActions, PromiseCheck, RemoveFromSpaceButton, SetAsideNote, WantToMeetNote } from "@/features/people/person-actions";
 import { isAiConfigured } from "@/server/ai/config";
 import { requireUser } from "@/server/auth";
@@ -341,6 +342,8 @@ export function PersonRecord({ data }: { data: RecordData }) {
                     {x.dueOn ? (x.dueOn < today ? <strong className="font-[550] text-danger">Overdue · {formatLongDate(x.dueOn, today)}</strong> : `Due ${formatLongDate(x.dueOn, today)}${x.dueTime ? ` at ${formatTime(x.dueTime)}` : ""}`) : "No due date"}
                     {multi ? ` · ${x.spaceName}` : ""}
                   </span>
+                  <PromiseUpdates updates={x.updates} />
+                  <PromiseUpdateButton commitmentId={x.id} label={x.text} />
                 </span>
                 <DeleteButton kind="promise" id={x.id} label={x.text} />
               </li>
