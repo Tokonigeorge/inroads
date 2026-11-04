@@ -7,6 +7,12 @@ import { Field, Select } from "@/ui/field";
 const noop = () => () => {};
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+/*
+ * After a save, React resets the form, and a <select> goes back to the option it started with
+ * (its defaultValue only counts on the first render). Keyed on the saved value, it starts again
+ * from what was just saved, so the screen (and the next save) doesn't bring the old one back.
+ */
+
 /** Time zone picker with a one-tap "use this device's zone". */
 export function TimezoneField({ value, timezones, error }: { value: string; timezones: string[]; error?: string }) {
   const device = useSyncExternalStore(noop, deviceZone, () => "");
@@ -15,7 +21,7 @@ export function TimezoneField({ value, timezones, error }: { value: string; time
     <Field label="Time zone" hint="Reminders, birthdays and your agenda follow this." error={error}>
       {({ id, describedBy, invalid }) => (
         <div className="grid gap-2">
-          <Select ref={ref} id={id} name="timezone" defaultValue={value} aria-describedby={describedBy} aria-invalid={invalid}>
+          <Select key={value} ref={ref} id={id} name="timezone" defaultValue={value} aria-describedby={describedBy} aria-invalid={invalid}>
             {timezones.map((z) => (
               <option key={z} value={z}>
                 {z.replace(/_/g, " ")}
@@ -39,7 +45,7 @@ export function RegionField({ value, countries, error }: { value: string; countr
   return (
     <Field label="Country for phone numbers" hint="Numbers without a country code are read as local to this country." error={error}>
       {({ id, describedBy, invalid }) => (
-        <Select id={id} name="region" defaultValue={value} aria-describedby={describedBy} aria-invalid={invalid}>
+        <Select key={value} id={id} name="region" defaultValue={value} aria-describedby={describedBy} aria-invalid={invalid}>
           {countries.map((c) => (
             <option key={c.code} value={c.code}>
               {c.name}
