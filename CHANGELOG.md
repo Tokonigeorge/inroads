@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: the same meeting showing twice
+- When a repeating meeting was changed "from this one onward" in Google, the old series kept showing next to the new one. The old one now ends where Google ended it; doubled meetings clear up on the next daily sync.
+
+### Changed: voice notes during a call, and the Today / This week toggle
+- If the microphone is in use (on a call), the voice note says so instead of telling you to change permissions; when it really is blocked, the steps match where you opened Inroads.
+- Today / This week is bigger and switches the moment you tap.
+
 ### Fixed: country on your profile going back to United Kingdom
 - After you saved a new country (or time zone) on your profile, the picker showed the old one again, and saving the profile once more put it back. It now shows, and keeps, what you chose.
 

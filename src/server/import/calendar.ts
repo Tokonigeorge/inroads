@@ -1,8 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { roomKindFromTitle } from "@/domain/room-kind";
-import { addDays } from "@/domain/dates";
+import { addDays, type IsoDate } from "@/domain/dates";
 import { nameKey } from "@/domain/normalise";
 import { fromRRule, occurrences, toRRule } from "@/domain/recurrence";
 import type { IcsEvent } from "@/importers/ics";
@@ -56,6 +56,7 @@ export async function applyCalendar(
   let skipped = 0;
   // Meetings cancelled or declined since they were imported: their rooms (and prep) go.
   const gone = new Set(ctx.cancelled ?? []);
+  const ended: { uid: string; until: IsoDate }[] = [];
 
   for (const ev of events) {
     if (ev.status === "CANCELLED" || ev.isException) {
@@ -73,6 +74,9 @@ export async function applyCalendar(
     const series = { start: ev.start.date, ...rec };
     const past = occurrences(series, from, addDays(ctx.today, -1));
     const next = occurrences(series, ctx.today, to);
+    // A series with nothing left to come: it ended (often split by "this and following events"),
+    // so end the room saved for it, or it keeps showing next to the new series.
+    if (!next.length && rec.freq !== "none" && ev.uid && rec.until && rec.until < ctx.today) ended.push({ uid: ev.uid, until: rec.until });
     if (!past.length && !next.length) {
       skipped++;
       continue;
@@ -162,6 +166,13 @@ export async function applyCalendar(
       .update(t.events)
       .set({ deletedAt: new Date() })
       .where(and(inArray(t.events.externalId, [...gone]), eq(t.events.source, ctx.source), isNull(t.events.deletedAt)));
+  }
+
+  for (const e of ended) {
+    await tx
+      .update(t.events)
+      .set({ untilOn: e.until })
+      .where(and(eq(t.events.externalId, e.uid), eq(t.events.source, ctx.source), isNull(t.events.deletedAt), or(isNull(t.events.untilOn), gt(t.events.untilOn, e.until))));
   }
 
   // The same meeting can come from two calendars (a shared invite, or Google and a calendar

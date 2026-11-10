@@ -127,6 +127,21 @@ test.describe.serial("Today", () => {
     await page.screenshot({ path: info.outputPath("person-promise-updates.png") });
   });
 
+  test("switching between Today and This week", async ({ page }, info) => {
+    await page.goto("/today");
+    const brief = page.getByRole("navigation", { name: "Brief" });
+    await brief.getByRole("link", { name: "This week" }).click();
+    await expect(brief.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
+    await expect(page).toHaveURL(/view=week/);
+    await expect(page.getByText(/Weekly brief/i)).toBeVisible();
+    const box = await brief.getByRole("link", { name: "Today" }).boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    await brief.screenshot({ path: info.outputPath("brief-toggle.png") });
+    await brief.getByRole("link", { name: "Today" }).click();
+    await expect(page).not.toHaveURL(/view=week/);
+    await expect(page.getByText(/Daily brief/i)).toBeVisible();
+  });
+
   test("opening someone from a prep card", async ({ page }) => {
     await page.goto("/today");
     const prep = page.getByRole("article", { name: /^You meet Tunde today/ });

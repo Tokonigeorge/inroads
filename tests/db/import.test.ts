@@ -131,6 +131,19 @@ describe("importing contacts and a calendar", () => {
     expect(summary.logged).toBe(0);
   });
 
+  it("a series that was split ends, so the old one doesn't show next to the new one", async () => {
+    const run = (evs: IcsEvent[]) => as((tx) => applyCalendar(tx, { userId: user.id, importId, spaceId: work, today: TODAY, source: "google", meEmails: ["me@example.com"], connectionId: null }, evs));
+    const standup = (uid: string, rrule: string, date: string) => event({ uid, summary: "BI weekly", rrule, start: { date, time: "18:00", tz: "Africa/Lagos" }, attendees: [att("me@example.com"), att("tunde@meridian.example")] });
+    await run([standup("bi-1", "FREQ=WEEKLY", "2026-09-06")]);
+    // Changed "this and following": the old series now ends on 18 Oct, a new one starts on 25 Oct.
+    await run([standup("bi-1", "FREQ=WEEKLY;UNTIL=20261018T225959Z", "2026-09-06"), standup("bi-2", "FREQ=WEEKLY", "2026-10-25")]);
+    const rows = await sql`select external_id, until_on::text from events where user_id = ${user.id} and external_id in ('bi-1', 'bi-2') order by external_id`;
+    expect(rows).toEqual([
+      { external_id: "bi-1", until_on: "2026-10-18" },
+      { external_id: "bi-2", until_on: null },
+    ]);
+  });
+
   it("a meeting you moved to another Space comes back from the calendar without failing the sync", async () => {
     // Tunde is only in Work; the weekly meeting now lives in Personal.
     await sql`update events set space_id = ${personal} where user_id = ${user.id} and external_id = 'weekly'`;

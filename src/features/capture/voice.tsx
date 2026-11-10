@@ -35,13 +35,35 @@ export const useVoiceSupported = () => useSyncExternalStore(noSubscribe, () => B
 
 const MAX_MS = 90_000;
 const errors: Record<string, string> = {
-  "not-allowed":
-    "The microphone is blocked for Inroads. In Chrome, tap the icon left of the address, then Permissions → Microphone → Allow (in the installed app: long-press its icon, App info → Permissions). Then try again.",
+  "not-allowed": "The microphone is blocked for Inroads.",
+  busy: "The microphone is busy: a call or another app is using it. Try again when that's finished, or type it instead.",
   "service-not-allowed": "This browser won't do speech-to-text here. Chrome on Android or a computer works; or type instead.",
   "no-speech": "Didn't catch anything. Try again a little closer to the microphone.",
   "audio-capture": "No microphone was found. Type instead.",
   network: "Voice needs a connection in this browser. Type instead, or try again when you're online.",
 };
+
+const installed = () => typeof window !== "undefined" && window.matchMedia?.("(display-mode: standalone)").matches;
+/** How to allow it again, for where Inroads is open. */
+const howToAllow = () =>
+  installed()
+    ? "To allow it: long-press the Inroads icon, then App info → Permissions → Microphone → Allow. Or type it instead."
+    : "To allow it: tap the icon left of the address bar, then Permissions → Microphone → Allow. Or type it instead.";
+
+/**
+ * "Blocked" from the browser doesn't always mean you said no: during a phone call the microphone is
+ * in use, and Chrome reports that the same way. Ask the browser whether permission was given.
+ */
+async function blockedOrBusy(): Promise<string> {
+  try {
+    const p = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+    if (p?.state === "granted") return errors.busy;
+  } catch {
+    // No Permissions API for the microphone (Safari): say both.
+    return `The microphone isn't available. If you're on a call, try again after it. ${howToAllow()}`;
+  }
+  return `${errors["not-allowed"]} ${howToAllow()}`;
+}
 
 /** Record → live transcript → `onDone(text)` when you stop. */
 export function VoiceButton({ onText, onDone, disabled }: { onText: (text: string) => void; onDone: (text: string) => void; disabled?: boolean }) {
@@ -63,8 +85,9 @@ export function VoiceButton({ onText, onDone, disabled }: { onText: (text: strin
       stream?.getTracks().forEach((t) => t.stop());
     } catch (e) {
       const name = (e as { name?: string }).name;
-      // Blocked: say how to allow it. Anything else (no device found, no API): let speech recognition try and report.
-      if (name === "NotAllowedError" || name === "SecurityError") return setError(errors["not-allowed"]);
+      // In use (a call): say so. Blocked: say how to allow it. Anything else: let speech recognition try and report.
+      if (name === "NotReadableError" || name === "AbortError") return setError(errors.busy);
+      if (name === "NotAllowedError" || name === "SecurityError") return setError(await blockedOrBusy());
     }
     start();
   }
@@ -88,7 +111,9 @@ export function VoiceButton({ onText, onDone, disabled }: { onText: (text: strin
       onText(`${finalText.current} ${interim}`.trim());
     };
     r.onerror = (e) => {
-      if (e.error !== "aborted") setError(errors[e.error] ?? "Voice didn't work this time. Type instead.");
+      if (e.error === "aborted") return;
+      if (e.error === "not-allowed") return void blockedOrBusy().then(setError);
+      setError(errors[e.error] ?? "Voice didn't work this time. Type instead.");
     };
     r.onend = () => {
       setListening(false);
