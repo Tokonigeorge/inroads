@@ -1,3 +1,4 @@
+import { BriefToggle } from "@/features/today/brief-toggle";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -125,21 +126,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/today">["sear
         title={`${greet}${first ? `, ${first}` : ""}`}
         subtitle={summary}
         actions={
-          <nav aria-label="Brief" className="inline-flex max-w-full gap-0.5 rounded-full border border-line bg-sunk p-[3px]">
-            {[
-              { href: "/today", label: "Today", on: !weekly },
-              { href: "/today?view=week", label: "This week", on: weekly },
-            ].map((x) => (
-              <Link
-                key={x.href}
-                href={x.href}
-                aria-current={x.on ? "page" : undefined}
-                className={`rounded-full px-3.5 py-[7px] text-[13.5px] font-semibold whitespace-nowrap ${x.on ? "bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.1)]" : "text-muted hover:text-ink"}`}
-              >
-                {x.label}
-              </Link>
-            ))}
-          </nav>
+          <BriefToggle weekly={weekly} />
         }
       />
       {data.reconnect.length ? (

@@ -2,6 +2,12 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-10: split meetings, a busy microphone, an easier toggle
+
+212. **A repeating meeting that ended stops showing** (reported: the same weekly meeting twice on Today and in Events). Changing a series "this and following" in Google ends the old series (UNTIL) and starts a new one. The sync skipped a series with nothing left to come, so the room saved for the old one never got its end date and showed next to the new one. Now a series that has ended sets its room's end date (only ever earlier). Rooms already doubled correct themselves on the next daily full read.
+213. **"The microphone is blocked" only when it is** (reported from a phone call). During a call Android Chrome refuses the microphone the same way as a denied permission. Inroads now asks the browser whether permission was given: if it was, it says the microphone is busy (a call or another app) and to try after or type. If not, it gives the steps for where Inroads is open: the installed app or the browser. Safari, which can't tell, gets both.
+214. **Today / This week is a 44px toggle that switches the moment you tap** (reported: "hard to move between"). The tabs were 32px and stayed put until the new brief arrived from the server, so taps felt ignored. The tapped tab is chosen straight away while the brief loads.
+
 ## 2026-11-04: country stays as you set it
 
 211. **The country and time-zone pickers start from what was just saved** (reported: "updating my country kept defaulting to United Kingdom"). The save worked, but React resets a form after its action, and a `<select>` goes back to the option it first rendered with (its `defaultValue` only counts on the first render). The screen showed the old country again, and the next save of the profile sent it back. Both pickers are now keyed on the saved value, so they start again from it. The first value came from the phone's language (en-GB gives United Kingdom) on first use; that's unchanged.
