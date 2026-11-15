@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: the Brief in Inroads 2
+- Inroads opens with what matters most today: who you're meeting and what you promised, overdue things first.
+- Today lists your meetings and the promises you owe, and This week shows people you were in touch with, promises kept and promises still open.
+- If your calendar stops syncing, Inroads tells you there, with a link to reconnect.
+
 ### Fixed: voice notes couldn't use the microphone
 - The browser now asks for the microphone the first time you record, like Zoom does. Before, a setting on our side blocked it for the whole site, so voice notes always said the microphone was blocked.
 

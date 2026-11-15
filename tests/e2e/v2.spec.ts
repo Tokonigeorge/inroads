@@ -30,6 +30,13 @@ test.describe.serial("Inroads 2", () => {
     await expect(page).toHaveURL(/\/v2$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/(Morning|Afternoon|Evening),\s*Azeez\./);
     await expect(page.getByRole("link", { name: /^\d+ things? needs? you today/ })).toHaveAttribute("href", "/today");
+    // Inroads leads with what matters, then today's rows and the week.
+    await expect(page.locator(".ir-bubble").first()).toContainText("One thing matters most today: what you promised Tunde.");
+    const today = page.getByRole("region", { name: "Today" });
+    await expect(today.getByRole("link", { name: /You said you'd send the pricing deck/ })).toHaveAttribute("href", /\/people\//);
+    const week = page.getByRole("region", { name: "This week" });
+    await expect(week.getByRole("definition").last()).toHaveText("1");
+    await expect(week).toContainText("promise still open");
     await expect(page.getByRole("navigation", { name: "Inroads 2" }).getByRole("link", { name: "Brief" })).toHaveAttribute("aria-current", "page");
     await expectAccessible(page);
     await page.emulateMedia({ colorScheme: "light" });

@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-15: Inroads 2, step 2: the Brief
+
+219. **The Brief shows your day from real data, and Inroads' first line is written without AI.** The Brief now has three parts. First, Inroads' message: the meeting with someone you know and the most urgent promise, with the overdue one first ("Two things matter today: Tunde at 6pm, and what you promised Chidera"). Second, Today: your meetings (time, who, a talking point or what you owe them) and the promises you owe, each linking to the event or person in the current app. Third, This week: people you were in touch with, promises you kept, and promises still open, counted Monday to today across every Space. The message is built from the same data as the rows. It costs nothing and is always right, and it waits for the agent loop to become a real summary. A calendar that needs reconnecting shows as a second message from Inroads. The blue banner still counts every card on Today and opens it until the Inbox moves in (step 3). No database changes. Avatars in the dark theme now use dark initials (white failed contrast on the lighter dark-theme colours), in the design system too.
+
 ## 2026-11-15: the microphone, and Inroads 2's artwork
 
 216. **The site lets its own pages ask for the microphone** (reported by Azeez: "the app needs to request audio permission like Zoom would"). Our security headers sent `Permissions-Policy: microphone=()`, which turns the microphone off for every page. So the browser never asked, and voice notes always failed as "blocked", whatever the phone's settings said. It's now `microphone=(self)`: only Inroads' own pages may ask, and the browser shows its normal prompt the first time. Camera stays `(self)` and location stays off. A unit test holds the header. Reverse by setting it back, which turns voice notes off.
