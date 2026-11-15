@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Scene } from "@/features/v2/scene";
+import { CalendarDays, Inbox, Target, Users } from "lucide-react";
 
 /** The tabs Inroads 2 hasn't moved into yet: what's coming, and a way to the same thing in the current app. */
 const SECTIONS = {
-  inbox: { title: "Inbox", soon: "Your Inbox is coming next: everything Inroads has ready for you, to approve in a tap.", classic: { href: "/today", label: "Open Today" } },
-  people: { title: "People", soon: "People moves here soon, with each person's page told as a story.", classic: { href: "/people", label: "Open People" } },
-  events: { title: "Events", soon: "Events move here after People.", classic: { href: "/rooms", label: "Open Events" } },
-  goals: { title: "Goals", soon: "Goals become campaigns here later on.", classic: { href: "/goals", label: "Open Goals" } },
+  inbox: { Icon: Inbox, title: "Inbox", soon: "Your Inbox is coming next: everything Inroads has ready for you, to approve in a tap.", classic: { href: "/today", label: "Open Today" } },
+  people: { Icon: Users, title: "People", soon: "People moves here soon, with each person's page told as a story.", classic: { href: "/people", label: "Open People" } },
+  events: { Icon: CalendarDays, title: "Events", soon: "Events move here after People.", classic: { href: "/rooms", label: "Open Events" } },
+  goals: { Icon: Target, title: "Goals", soon: "Goals become campaigns here later on.", classic: { href: "/goals", label: "Open Goals" } },
 } as const;
 
 type Section = keyof typeof SECTIONS;
@@ -37,7 +37,7 @@ export default async function ComingSoon({ params }: PageProps<"/v2/[section]">)
         <h1 className="v2-title">{s.title}</h1>
       </header>
       <section className="v2-soon" aria-label="Coming soon">
-        <Scene id={section} />
+        <span className="v2-soon__icon"><s.Icon aria-hidden strokeWidth={1.75} /></span>
         <h2>Coming soon</h2>
         <p>{s.soon}</p>
         <Link href={s.classic.href} className="ir-btn ir-btn--primary">{s.classic.label} in the current app</Link>

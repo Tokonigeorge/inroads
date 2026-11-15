@@ -34,8 +34,8 @@ Sign in with Google, then go to **Settings → Load example data** to see the ap
    - Paste the client ID and secret into Supabase → Authentication → Sign In / Providers → Google.
    - This sign-in only asks for name and email. Contacts and Calendar access is a separate step (milestone 5).
 3. **Redirect URLs.** In Supabase → Authentication → URL Configuration:
-   - Set *Site URL* to your deployed URL, e.g. `https://inroads.vercel.app`.
-   - Add these to *Redirect URLs*: `http://localhost:3000/**` and `https://inroads.vercel.app/**`.
+   - Set *Site URL* to your deployed URL, e.g. `https://inroads-app.vercel.app`.
+   - Add these to *Redirect URLs*: `http://localhost:3000/**` and `https://inroads-app.vercel.app/**`.
 4. **Keys and database.**
    - Project URL and anon (publishable) key: Supabase → Project Settings → API.
    - Database URL: Connect → *Transaction pooler* (port 6543) for the app.
@@ -77,7 +77,7 @@ Email magic links are built but switched off (`NEXT_PUBLIC_MAGIC_LINK_ENABLED=fa
 3. OAuth consent screen: User type *External*, publishing status *Testing*. Add the scopes `contacts.readonly`, `calendar.events.readonly` and `calendar.calendarlist.readonly`. Under *Test users*, add the Google accounts that will use it (up to 100).
 4. Credentials → Create credentials → OAuth client ID → *Web application*. Authorised redirect URIs:
    - `http://localhost:3000/api/oauth/google/callback`
-   - `https://inroads.vercel.app/api/oauth/google/callback`
+   - `https://inroads-app.vercel.app/api/oauth/google/callback`
 5. Put the client id and secret in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
 While the app is in Testing, Google expires the connection after 7 days; Inroads then shows "Needs reconnecting". Publishing the app (and Google's verification for these scopes) needs a domain with a privacy policy; see `docs/TECH_PLAN.md` §12.
@@ -85,7 +85,7 @@ While the app is in Testing, Google expires the connection after 7 days; Inroads
 ### Connect Outlook (Microsoft 365 and Outlook.com)
 
 1. In the [Azure portal](https://portal.azure.com/) → Microsoft Entra ID → App registrations → New registration. Supported account types: *Accounts in any organizational directory and personal Microsoft accounts*.
-2. Redirect URI (Web): `https://inroads.vercel.app/api/oauth/microsoft/callback` (add the localhost one too).
+2. Redirect URI (Web): `https://inroads-app.vercel.app/api/oauth/microsoft/callback` (add the localhost one too).
 3. API permissions → Microsoft Graph → Delegated: `User.Read`, `Contacts.Read`, `Calendars.Read`, `offline_access`.
 4. Certificates & secrets → New client secret. Put the Application (client) ID and the secret value in `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`.
 
@@ -93,7 +93,7 @@ While the app is in Testing, Google expires the connection after 7 days; Inroads
 
 1. Create a free account at [inngest.com](https://www.inngest.com/) and an app.
 2. Copy the Event key and Signing key into `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` on Vercel.
-3. After deploying, sync the app in Inngest with the URL `https://inroads.vercel.app/api/inngest`. That registers the sync, the 30-minute re-sync schedule and the daily clean-up.
+3. After deploying, sync the app in Inngest with the URL `https://inroads-app.vercel.app/api/inngest`. That registers the sync, the 30-minute re-sync schedule and the daily clean-up.
 
 Locally, `npx inngest-cli@latest dev` runs the dev server; or leave the keys unset and syncs run inline.
 

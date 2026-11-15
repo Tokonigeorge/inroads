@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { expectAccessible } from "./support/a11y";
+import { expectAccessible, settled } from "./support/a11y";
 import { sessionCookie } from "./support/auth";
 import { e2eDb } from "./support/db";
 
@@ -33,20 +33,29 @@ test.describe.serial("Inroads 2", () => {
     await expect(page.getByRole("navigation", { name: "Inroads 2" }).getByRole("link", { name: "Brief" })).toHaveAttribute("aria-current", "page");
     await expectAccessible(page);
     await page.emulateMedia({ colorScheme: "light" });
+    await settled(page);
     await page.screenshot({ path: info.outputPath("v2-brief.png") });
     await page.emulateMedia({ colorScheme: "dark" });
+    await settled(page);
     await page.screenshot({ path: info.outputPath("v2-brief-dark.png") });
     await page.emulateMedia({ colorScheme: "light" });
     await page.getByRole("link", { name: "Back to the current app" }).click();
     await expect(page).toHaveURL(/\/today$/);
   });
 
-  test("tabs not moved yet say so and link to the same place in the current app", async ({ page }) => {
+  test("tabs not moved yet say so and link to the same place in the current app", async ({ page }, info) => {
     await page.goto("/v2");
     await page.getByRole("navigation", { name: "Inroads 2" }).getByRole("link", { name: "Inbox" }).click();
     await expect(page.getByRole("heading", { name: "Inbox", level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Today in the current app" })).toHaveAttribute("href", "/today");
     await expectAccessible(page);
+    await page.goto("/v2/people");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await settled(page);
+    await page.screenshot({ path: info.outputPath("v2-people-dark.png") });
+    await page.emulateMedia({ colorScheme: "light" });
+    await settled(page);
+    await page.screenshot({ path: info.outputPath("v2-people.png") });
     // Unknown sections are not found (streamed, so the status stays 200; the page says so).
     await page.goto("/v2/nope");
     await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
