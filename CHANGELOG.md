@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed: voice notes couldn't use the microphone
+- The browser now asks for the microphone the first time you record, like Zoom does. Before, a setting on our side blocked it for the whole site, so voice notes always said the microphone was blocked.
+
+### Changed: Inroads 2 looks cleaner
+- The drawn hills-and-sun pictures are gone. Empty pages show the section's icon instead.
+- The colour wash at the top fades out softly, with no square seams on wide screens, and is calmer in the dark theme.
+- With reduced motion on, colours no longer fade when the theme changes.
+
 ### Added: a first look at Inroads 2
 - Settings → "Try Inroads 2" opens the new Inroads at `/v2`: warm paper, a watercolour header, Inroads speaking in bubbles, and a big count of what needs you today. It's the first piece; the rest moves in step by step, and "Back to the current app" is on every screen.
 - The one input at the bottom takes anything you type to quick capture, as today.

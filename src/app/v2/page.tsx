@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { hourIn } from "@/domain/greeting";
-import { Scene } from "@/features/v2/scene";
+import { Sun } from "lucide-react";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db/client";
 import * as t from "@/server/db/schema";
@@ -60,7 +60,6 @@ async function Brief() {
     <main className="v2-page">
       <header className="v2-head">
         <div className="ir-wash ir-wash--fade" />
-        <Scene id="brief" backdrop />
         <Top />
         <p className="v2-date">{dateLine(data.tz)} · Daily brief</p>
         <h1 className="v2-hello">
@@ -92,7 +91,7 @@ async function Brief() {
         </Link>
       ) : (
         <div className="v2-soon">
-          <Scene id="clear" />
+          <span className="v2-soon__icon"><Sun aria-hidden strokeWidth={1.75} /></span>
           <h2>All clear.</h2>
           <p>Nothing needs you today. I&apos;ll keep an eye out.</p>
         </div>
