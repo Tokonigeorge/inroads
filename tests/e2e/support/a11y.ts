@@ -11,6 +11,8 @@ export async function settled(page: Page) {
         .map((a) => a.finished.catch(() => undefined)),
     ),
   );
+  // And two frames, so the new colours are painted, not just computed.
+  await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
 }
 
 /** WCAG 2.1 AA in both themes. Any violation fails the test. */
