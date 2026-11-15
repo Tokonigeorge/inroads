@@ -2,6 +2,10 @@
 
 Product and engineering calls made where the brief or prompt left room. Newest first. Each entry: decision, why, and how to reverse it.
 
+## 2026-11-15: Inroads 2 starts
+
+215. **Inroads 2 is built alongside the current app, at `/v2`, on the same data** (owner: chose the Dex × Boardy look after three rounds; "they should still be able to do much of what they do today"). Step 1 is the foundation only: the design system lives in `docs/design/inroads-2` (tokens, components, motion, the prototype and product map); `pnpm build:v2-css` turns it into `src/features/v2/v2.css`, with every token scoped to `.v2` (the current app uses some of the same names, and Next keeps global stylesheets loaded across navigation, so nothing may sit on `:root`). Geist comes from the root layout's `next/font`. The v2 frame has the painted header, the one input (hands what you type to the existing quick capture) and five tabs; the Brief shows the greeting and how many things need you, linking to Today until the Inbox exists; tabs not moved yet say so and link to the same page in the current app. It's reached from Settings ("Try Inroads 2"), with "Back to the current app" on every screen. No database changes, no new permissions, no new AI cost. Steps: Brief with real data, Inbox from nudges, one input wired to capture and Ask, person page, then the agent loop.
+
 ## 2026-11-10: split meetings, a busy microphone, an easier toggle
 
 212. **A repeating meeting that ended stops showing** (reported: the same weekly meeting twice on Today and in Events). Changing a series "this and following" in Google ends the old series (UNTIL) and starts a new one. The sync skipped a series with nothing left to come, so the room saved for the old one never got its end date and showed next to the new one. Now a series that has ended sets its room's end date (only ever earlier). Rooms already doubled correct themselves on the next daily full read.

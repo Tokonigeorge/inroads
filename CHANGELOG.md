@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added: a first look at Inroads 2
+- Settings → "Try Inroads 2" opens the new Inroads at `/v2`: warm paper, a watercolour header, Inroads speaking in bubbles, and a big count of what needs you today. It's the first piece; the rest moves in step by step, and "Back to the current app" is on every screen.
+- The one input at the bottom takes anything you type to quick capture, as today.
+
 ### Fixed: the same meeting showing twice
 - When a repeating meeting was changed "from this one onward" in Google, the old series kept showing next to the new one. The old one now ends where Google ended it; doubled meetings clear up on the next daily sync.
 

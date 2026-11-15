@@ -1,0 +1,307 @@
+<title>Inroads 2 Product Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a product spec. Reading column for prose; full-width bands for the flow tables and diagrams; status chips encode keep / change / new. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #16191f; --muted: #5b6270; --line: #e1e4ea;
+  --accent: #2f45c4; --accent-soft: #e8ebfb;
+  --keep: #1f7a4d; --keep-bg: #e3f3ea; --change: #8a5300; --change-bg: #fbefd9; --new: #2f45c4; --new-bg: #e8ebfb; --later: #6b4fa3; --later-bg: #efe9fa;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1116; --surface: #171a21; --ink: #e8eaf0; --muted: #a0a7b5; --line: #2a2f3a; --accent: #8d9cff; --accent-soft: #1f2440;
+    --keep: #6fd39f; --keep-bg: #12291d; --change: #f0b45a; --change-bg: #2c2210; --new: #9dabff; --new-bg: #1f2440; --later: #c3a8f5; --later-bg: #261d38; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1116; --surface: #171a21; --ink: #e8eaf0; --muted: #a0a7b5; --line: #2a2f3a; --accent: #8d9cff; --accent-soft: #1f2440;
+  --keep: #6fd39f; --keep-bg: #12291d; --change: #f0b45a; --change-bg: #2c2210; --new: #9dabff; --new-bg: #1f2440; --later: #c3a8f5; --later-bg: #261d38; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--f-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+.prose { max-width: 70ch; display: grid; gap: 12px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 600; letter-spacing: -0.02em; }
+h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 18px; font-weight: 600; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.2em; display: grid; gap: 6px; }
+.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 19px; color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); }
+section { display: grid; gap: 20px; }
+a { color: var(--accent); }
+code { font: 13px var(--f-mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.box p, .box li { font-size: 14.5px; }
+.box .sub { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; color: var(--muted); align-items: center; }
+.chip { display: inline-block; font: 500 11px/1 var(--f-mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 7px; border-radius: 5px; white-space: nowrap; }
+.keep { color: var(--keep); background: var(--keep-bg); } .change { color: var(--change); background: var(--change-bg); } .new { color: var(--new); background: var(--new-bg); } .later { color: var(--later); background: var(--later-bg); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 13px; border-bottom: 1px solid var(--line); }
+th { font: 500 11.5px/1.3 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+tr.group td { background: var(--bg); font: 600 13px/1.3 var(--f-body); color: var(--ink); padding-top: 14px; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+td .chip { margin-bottom: 4px; }
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; }
+.journeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.journey ol { font-size: 14.5px; }
+.journey .when { font: 500 12px/1 var(--f-mono); color: var(--accent); letter-spacing: 0.04em; text-transform: uppercase; }
+.phases { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.phase { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 16px; padding: 16px; border-bottom: 1px solid var(--line); }
+.phase:last-child { border-bottom: 0; }
+.phase .n { font: 600 13px/1.3 var(--f-mono); color: var(--accent); }
+.phase .body { display: grid; gap: 6px; }
+.phase p, .phase li { font-size: 14.5px; }
+@media (max-width: 560px) { .phase { grid-template-columns: 1fr; gap: 4px; } }
+.decide { border: 2px solid var(--accent); border-radius: 12px; padding: 20px; background: var(--surface); display: grid; gap: 12px; }
+.decide ol { gap: 10px; }
+.levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+.level { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); display: grid; gap: 4px; }
+.level b { font-size: 15px; }
+.level span { font-size: 13.5px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+
+<header class="prose">
+  <p class="eyebrow">Product map · 12 November 2026 · for discussion</p>
+  <h1>Inroads 2 product map</h1>
+  <p class="lede">Every flow in today's app, merged with the agent ideas, as one product. What carries over unchanged, what changes shape, what's new, and how we build it alongside the current app without breaking it.</p>
+  <p class="note">The current app has 35 screens, 10 AI features, 7 background jobs and 30 tables. All of that is accounted for below. Companion page: <a href="https://claude.ai/artifact/CJ8Ru439C9LBZQ5h5s5nds">Inroads redesign directions</a>.</p>
+</header>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">The idea in one line</p>
+    <h2>Inroads stops reminding you and starts doing it, with your say-so</h2>
+  </div>
+  <div class="grid">
+    <div class="box"><h3>Four surfaces, not thirty screens</h3><p><b>Brief</b>: what matters today, in Inroads' own words. <b>Inbox</b>: what Inroads wants to do for you, to approve. <b>People, Events and Goals</b>: the record, for when you want to look. <b>One input everywhere</b>: type or speak anything.</p></div>
+    <div class="box"><h3>Every nudge becomes an action</h3><p>"40 days since you spoke with Adaeze" becomes a ready congratulations note on WhatsApp. Today's nudge logic stays; it now proposes an action with the work already done.</p></div>
+    <div class="box"><h3>You set how much it does alone</h3><p>Per person and per kind of action: suggest, draft for approval, or just do it. Everything it does is logged and can be undone.</p></div>
+    <div class="box"><h3>You can still do it all yourself</h3><p>Every manual action in today's app stays: add a person, log a touch, add a promise or event, edit anything, research or look up on demand, sort, merge, draft a message. The agent adds a faster path; it never removes one. Turn it off and Inroads 2 works like a better-looking Inroads 1.</p></div>
+    <div class="box"><h3>Built on what works</h3><p>The data, sync, research, prompts, scoring, nudges and jobs all carry over. The new parts are the agent loop, the inbox, the trust controls and a new interface.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">Navigation</p>
+    <h2>How the app is organised</h2>
+    <p>Five tabs today (Today, People, Discover, Events, Goals) plus a dozen side pages. In v2 the tabs become Brief, Inbox, People, Events and Goals. Discover and Ask are reached from the one input, and also keep their own pages. Suggestions, Duplicates and Sort show up as Inbox items when there's something to do, and keep their full review pages for when you want to go through everything yourself.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  IN(["One input: type or speak<br/>add · log · ask · look up"]) --> BR
+  subgraph Main["Tabs"]
+    BR["Brief<br/>today and this week"]
+    IB["Inbox<br/>actions to approve"]
+    PE["People<br/>list · person record"]
+    EV["Events<br/>rooms · prep · after"]
+    GO["Goals<br/>campaigns"]
+  end
+  BR --> IB
+  IB --> PE
+  PE --> EV
+  EV --> GO
+  subgraph Settings
+    TR["Trust and autonomy"]
+    CO["Connections and imports"]
+    SP["Spaces and profile"]
+    US["Usage, export, account"]
+    LOG["Activity log and undo"]
+  end
+  GO -.-> Settings
+</pre>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">The engine</p>
+    <h2>The agent loop</h2>
+    <p>Everything the app already notices (a sync, a job change, a promise falling due, an event ending) becomes a signal. The agent turns signals into proposed actions with the work done, and your trust settings decide which go to the Inbox and which just happen.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph S["Signals (exist today)"]
+    s1[Calendar and contact sync]
+    s2[Research refresh: job change, news]
+    s3[Promise due, going cold, birthday]
+    s4[Event coming up or just ended]
+    s5[Your captures and voice notes]
+    s6[Replies and outcomes]
+  end
+  S --> P["Planner<br/>which action, for whom, why<br/>goals and history as context"]
+  P --> W["Prepare the work<br/>draft · research · find a time · pick the intro path"]
+  W --> T{"Your trust setting<br/>for this person and action"}
+  T -- "Ask me" --> I["Inbox: approve · edit · skip · later"]
+  T -- "Just do it" --> X
+  I --> X["Do it<br/>WhatsApp · email · calendar · record"]
+  X --> R["Record it<br/>touch · promise · intro · goal stage"]
+  R --> L["Activity log with undo"]
+  R --> s6
+</pre>
+  </div>
+  <div class="levels">
+    <div class="level"><b>Off</b><span>Never act for this person or action. Nothing proposed.</span></div>
+    <div class="level"><b>Suggest</b><span>Show it in the Brief. You do it yourself.</span></div>
+    <div class="level"><b>Draft and ask</b><span>The default. Work is ready in the Inbox; one tap sends.</span></div>
+    <div class="level"><b>Just do it</b><span>For low-stakes actions you choose, like birthday notes or logging a meeting. Logged with undo.</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">Flow by flow</p>
+    <h2>Every current flow, and what it becomes</h2>
+  </div>
+  <p class="note" style="max-width:70ch">Rule for every row: what you can do by hand today, you can still do by hand in v2, in about the same number of taps. "Change" means the same task also gets a faster, agent-driven path.</p>
+  <div class="legend"><span class="chip keep">Keep</span> logic and data carry over as they are <span class="chip change">Change</span> same logic, new shape or agent-driven <span class="chip new">New</span> doesn't exist today <span class="chip later">Later</span> needs users or approvals first</div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th style="width:18%">Flow</th><th style="width:27%">Today</th><th style="width:33%">In Inroads 2</th><th>Carries over from today's code</th></tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="4">Getting started</td></tr>
+        <tr><td>Sign-in</td><td>Google sign-in, identity only.</td><td><span class="chip keep">Keep</span><br>Same.</td><td>Auth, sessions, profiles.</td></tr>
+        <tr><td>Onboarding</td><td>Profile and goals sheet, then connect Google, then sort.</td><td><span class="chip change">Change</span><br>A conversation: Inroads asks what you're working on and who you need, in text or voice, then fills profile and first goal. Optional: "ask ChatGPT or Claude to tell Inroads about you". The profile and goal forms stay for anyone who prefers them.</td><td>Profile and goal schemas, locale detection, starter-goal logic.</td></tr>
+        <tr><td>Connect accounts</td><td>Google, Outlook, calendar link. Read-only sync every 30 minutes, full read daily.</td><td><span class="chip keep">Keep</span> plus <span class="chip new">New</span><br>Same sync. New, optional: permission to add events to your calendar (to book meetings) and to send email as you. Each asked for only when first needed.</td><td>All of <code>sync/</code>, <code>integrations/</code>, token encryption, jobs.</td></tr>
+        <tr><td>Imports</td><td>File (vCard, CSV, LinkedIn zip), phone contacts, share sheet, card scan, chat import.</td><td><span class="chip keep">Keep</span><br>Same, reached from the one input ("import my LinkedIn") and the share sheet.</td><td>Parsers, staged review, dedupe planner, chat and card AI.</td></tr>
+        <tr><td>Sort new people</td><td>Pick a rule with counts; set aside the rest.</td><td><span class="chip change">Change</span><br>Also appears as one Inbox item after each big import: "2,617 new people. Keep the 340 you've met?" The sort screen with every rule and count stays.</td><td><code>sort-rules</code>, triage, suggestions.</td></tr>
+        <tr><td>Duplicates</td><td>Separate review page.</td><td><span class="chip change">Change</span><br>Also shown as Inbox items ("Same person? Merge"), with undo. The review page stays.</td><td>Merge and undo.</td></tr>
+
+        <tr class="group"><td colspan="4">Every day</td></tr>
+        <tr><td>Today</td><td>Daily or weekly brief, agenda, nudge cards (promises, going cold, birthdays, prep, after events, moves).</td><td><span class="chip change">Change</span><br>The <b>Brief</b>: a short message from Inroads and the 3 to 5 things that matter, each with its action ready. Weekly view keeps the review and progress. Nudges you'd rather handle yourself keep Done, Snooze and Open, as today.</td><td>Nudge rules, brief prompts, weekly review, greeting, celebrations.</td></tr>
+        <tr><td>Approvals</td><td>None: every nudge is a reminder.</td><td><span class="chip new">New</span><br>The <b>Inbox</b>: proposed actions with the draft, the reason and the person. Approve, edit, skip, or "not now". Swipe on phone, keyboard on desktop.</td><td>Draft prompts, WhatsApp link builder, snooze and dismiss states.</td></tr>
+        <tr><td>Quick capture and voice</td><td>Capture bar, voice debrief, review then save. Works offline.</td><td><span class="chip change">Change</span><br>The <b>one input</b>, on every screen. Talk or type; Inroads saves what's clear and asks about what isn't, in the same thread. The Add person, Log a touch, Add a promise and Add event forms stay one tap away.</td><td>Capture extraction, offline outbox, voice button.</td></tr>
+        <tr><td>Ask your network</td><td>Separate Ask page.</td><td><span class="chip change">Change</span><br>Same input: "who do I know at Paystack?" answers inline, with people you can act on. The Ask page stays.</td><td>Ask prompts and search.</td></tr>
+        <tr><td>Look up and Discover</td><td>Discover tab: research a person, company, event or place.</td><td><span class="chip change">Change</span><br>Same input ("look up Lagos Startup Week"). Results open as a card you can save to People or Events. Discover keeps its page and history.</td><td>Look-up prompts, sources, searches.</td></tr>
+        <tr><td>Notifications</td><td>Push for promises, after events, prep.</td><td><span class="chip change">Change</span><br>Push for things that need you: "3 actions ready", "how did the mixer go?". Fewer, each opening the right Inbox item.</td><td>Push, notify windows, batching.</td></tr>
+
+        <tr class="group"><td colspan="4">People</td></tr>
+        <tr><td>People list</td><td>Filters (priority, want to meet, going cold, set aside), strength sort, Spaces.</td><td><span class="chip keep">Keep</span><br>Same data, redrawn in the chosen direction.</td><td>People repo, keyset paging, filters, strength.</td></tr>
+        <tr><td>Person record</td><td>Dossier, research, update checklist, strength, timeline, promises with updates, intros, goals, WhatsApp draft.</td><td><span class="chip keep">Keep</span> plus <span class="chip new">New</span><br>Same content and every action on it today (edit, research, draft, WhatsApp, log, promise, intro, goals). New: this person's trust setting, and what Inroads has done or plans to do for them.</td><td>Dossier, research, suggestions, strength, promises, intros.</td></tr>
+        <tr><td>Promises</td><td>Track who owes what, with a time and progress updates.</td><td><span class="chip change">Change</span><br>You still add, tick, update and set times by hand. New: Inroads drafts the follow-through, the message or the nudge to them when they owe you.</td><td>Commitments, updates, reminders.</td></tr>
+        <tr><td>Keeping in touch</td><td>Cadence per person, going-cold nudges, want to meet.</td><td><span class="chip change">Change</span><br>Cadences and Want to meet work as today. New: going cold can come with a ready, reason-led message ("saw Kestrel's new fund, congrats").</td><td>Cadence, strength, want-to-meet.</td></tr>
+        <tr><td>Monthly refresh</td><td>Re-research priority people, flag job changes.</td><td><span class="chip keep">Keep</span><br>Same, now feeding the planner as signals.</td><td>Batch refresh.</td></tr>
+
+        <tr class="group"><td colspan="4">Events (rooms)</td></tr>
+        <tr><td>Events list and form</td><td>Add, repeat, Find details, I'm going, synced meetings.</td><td><span class="chip keep">Keep</span><br>Same.</td><td>Rooms repo, recurrence, find-details.</td></tr>
+        <tr><td>Before an event</td><td>Prep plan, attendee research, look-up linked to the event.</td><td><span class="chip change">Change</span><br>Paste the event page; Inroads reads the attendee list where public, ranks who matters for your goals, and proposes side meetings. Prepare, I'm going and attendee linking stay manual too.</td><td>Prep, auto-research, radar.</td></tr>
+        <tr><td>Practice</td><td>None.</td><td><span class="chip new">New</span><br>Rehearse a hard conversation by voice, with Inroads playing that person from their research.</td><td>Dossiers as context.</td></tr>
+        <tr><td>After an event</td><td>"Who did you meet?" debrief page, room ROI.</td><td><span class="chip change">Change</span><br>Inroads asks within the hour (push or WhatsApp), you answer by voice, and follow-ups are ready in the Inbox the same day. The "who did you meet" page stays.</td><td>Debrief, attendance, ROI.</td></tr>
+
+        <tr class="group"><td colspan="4">Goals</td></tr>
+        <tr><td>Goals</td><td>Goal with pipeline stages, steps, stakeholders, research steps, fit scores, weekly target.</td><td><span class="chip change">Change</span><br>A goal becomes a <b>campaign</b>: Inroads plans each week (who, through whom, which events), carries out the steps it can, and reports what moved. The pipeline, steps and stakeholders stay fully editable; the campaign is optional per goal.</td><td>Goals, steps, pipeline, scores, research steps.</td></tr>
+        <tr><td>Intros</td><td>Find warm paths, ask for an intro, track asked, made, met.</td><td><span class="chip change">Change</span><br>Warm paths and "ask for an intro" stay. New: Inroads can write the ask to the connector, follow up, and book the meeting when the intro lands.</td><td>Warm paths, intro outcomes.</td></tr>
+        <tr><td>Matchmaking</td><td>None.</td><td><span class="chip new">New</span><br>Finds intros you could <i>make</i> between people you know (hiring founder and job-seeking engineer). Proposed weekly, double opt-in.</td><td>People, dossiers, strength, goals as inputs.</td></tr>
+        <tr><td>Network map</td><td>Map page.</td><td><span class="chip keep">Keep</span><br>Same, inside People.</td><td>Network-map repo.</td></tr>
+
+        <tr class="group"><td colspan="4">Trust and settings</td></tr>
+        <tr><td>Trust and autonomy</td><td>None.</td><td><span class="chip new">New</span><br>Defaults per action, overrides per person, a never-contact list, quiet hours, tone samples.</td><td>Spaces' research guardrails as a model.</td></tr>
+        <tr><td>Activity log</td><td>Usage page (AI cost) only.</td><td><span class="chip new">New</span><br>Everything Inroads did, when and why, with undo where possible.</td><td>AI usage records.</td></tr>
+        <tr><td>Spaces, profile, usage, export, delete</td><td>As today.</td><td><span class="chip keep">Keep</span><br>Same. Export includes the activity log.</td><td>All of <code>account/</code>, spaces.</td></tr>
+
+        <tr class="group"><td colspan="4">Further out</td></tr>
+        <tr><td>Inroads on WhatsApp</td><td>None.</td><td><span class="chip later">Later</span><br>An Inroads number you message or forward chats to, and that asks how meetings went. Needs WhatsApp Business approval.</td><td>Capture and chat-import extraction.</td></tr>
+        <tr><td>Agent-to-agent intros</td><td>None.</td><td><span class="chip later">Later</span><br>Two users' agents find a fit and broker a double opt-in intro, sharing only what each owner allows.</td><td>Intro model; needs many users.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">Journeys</p>
+    <h2>Four moments, end to end</h2>
+  </div>
+  <div class="journeys">
+    <div class="box journey"><p class="when">Monday, 8am</p><h3>The weekly brief</h3><ol>
+      <li>Push: "Your week: 4 meetings, 2 promises due, 6 actions ready."</li>
+      <li>The Brief opens with a short message and this week's goal progress.</li>
+      <li>Inbox: approve 4 drafts in a minute (congrats to Adaeze, follow-up to Tunde, a nudge to Kemi who owes you, an intro ask to Dayo).</li>
+      <li>Each sends through WhatsApp or email and is logged as a touch.</li>
+    </ol></div>
+    <div class="box journey"><p class="when">Thursday, after a mixer</p><h3>Follow-up the same night</h3><ol>
+      <li>Inroads knows the event ended and asks: "How was Lagos Fintech Mixer? Who did you meet?"</li>
+      <li>You answer with a 40-second voice note.</li>
+      <li>It adds 3 people, logs the touches, records "intro Ada to Tola by Friday", and starts research.</li>
+      <li>By morning: three follow-ups and the intro opt-in to Tola wait in the Inbox.</li>
+    </ol></div>
+    <div class="box journey"><p class="when">Over 10 weeks</p><h3>Raising a seed round</h3><ol>
+      <li>You say "raise $1.5M by March". Inroads maps funds that fit, who you know at each, and warm paths.</li>
+      <li>Every Monday it proposes this week's moves: three intro asks, two events, one follow-up.</li>
+      <li>Replies move people through the pipeline automatically.</li>
+      <li>The weekly brief reports progress and what to change.</li>
+    </ol></div>
+    <div class="box journey"><p class="when">Any day</p><h3>Being the connector</h3><ol>
+      <li>Inroads notices Chidera is hiring a head of people and Ife is looking.</li>
+      <li>Inbox: "You could introduce them. Ask both?"</li>
+      <li>One tap sends each a short opt-in. When both say yes, the intro goes out.</li>
+      <li>Both relationships warm up, and it shows in your weekly progress.</li>
+    </ol></div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">Building it</p>
+    <h2>A separate version, same foundations</h2>
+    <p>Inroads 2 lives in the same codebase and database, at its own address (for example <code>/v2</code>, or later <code>next.inroads…</code>). You and Azeez switch between the two from Settings. The current app keeps working and keeps getting fixes until v2 replaces it.</p>
+  </div>
+  <div class="grid">
+    <div class="box"><h3>Reused as is</h3><ul><li>Database, sign-in, Spaces and security rules</li><li>Sync, imports, dedupe, merge</li><li>All AI features, prompts, cost limits, batch refresh</li><li>Nudge, strength, recurrence, goal and intro logic (<code>src/domain</code>)</li><li>Background jobs and push</li></ul></div>
+    <div class="box"><h3>New underneath</h3><ul><li>Proposed actions (what, for whom, why, the draft, status)</li><li>Trust settings (per action, per person)</li><li>Activity log with undo</li><li>The planner job that turns signals into actions</li><li>Sending and booking, behind your approval</li></ul></div>
+    <div class="box"><h3>New on top</h3><ul><li>A design system for the chosen direction</li><li>The v2 shell: Brief, Inbox, People, Events, Goals</li><li>The one input (text and voice)</li><li>Trust and activity screens</li></ul></div>
+    <div class="box"><h3>Rules for the build</h3><ul><li>Database changes only add things, so the current app is never broken</li><li>Every v2 screen is tested like today's (unit, database, browser)</li><li>A checklist of every manual action in v1; v2 isn't done until each one works</li><li>Nothing sends without approval until trust settings ship</li><li>Same PR-per-change, merge-when-green rhythm</li></ul></div>
+  </div>
+
+  <div class="phases">
+    <div class="phase"><span class="n">Phase 0</span><div class="body"><h3>Direction and design system</h3><p>You pick the direction. I build its design system page (colours, type, components) and three key screens as clickable mocks. You and Azeez react before any build.</p></div></div>
+    <div class="phase"><span class="n">Phase 1</span><div class="body"><h3>Shell, Brief and Inbox, read-only</h3><p>v2 shell and navigation. The Brief and Inbox built from today's nudges, with drafts ready. "Send" opens WhatsApp or email with the text, exactly as today, and logs the touch. No new permissions.</p></div></div>
+    <div class="phase"><span class="n">Phase 2</span><div class="body"><h3>Records and the one input</h3><p>People, person record, Events, Goals and Settings redrawn in v2, with every manual action from v1 (checked off against the list). The one input sits alongside capture, Ask and Discover. At this point v2 does everything v1 does, by hand.</p></div></div>
+    <div class="phase"><span class="n">Phase 3</span><div class="body"><h3>The agent loop and trust</h3><p>The planner job, trust settings and activity log. After-event follow-ups, promise follow-through, intro asks, reason-led check-ins. Optional calendar booking and email sending, each asked for when first needed.</p></div></div>
+    <div class="phase"><span class="n">Phase 4</span><div class="body"><h3>Campaigns and matchmaking</h3><p>Goals run as weekly campaigns. Intros you could make, proposed weekly. Voice rehearsal before key meetings.</p></div></div>
+    <div class="phase"><span class="n">Later</span><div class="body"><h3>WhatsApp number and agent-to-agent</h3><p>An Inroads WhatsApp number (needs Meta approval), then agent-to-agent intros once there are enough users. We design the permissions for this in Phase 3 so we don't have to redo them.</p></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <p class="eyebrow">Costs and risks</p>
+    <h2>What to watch</h2>
+  </div>
+  <div class="grid">
+    <div class="box"><h3>AI cost</h3><p class="sub">An agent planning all day costs more than reminders. The planner runs on events (a sync, an event ending), uses the cheaper model for routine drafts and the half-price batch service overnight. We set a monthly budget per user before Phase 3.</p></div>
+    <div class="box"><h3>Sending as you</h3><p class="sub">A wrong message to an investor costs more than a missed reminder. Default is "draft and ask"; "just do it" only for actions you choose; never LinkedIn automation; every send logged.</p></div>
+    <div class="box"><h3>Other people's data</h3><p class="sub">Researching people and recording voice notes about them falls under Nigeria's data protection law (NDPA 2023) and GDPR for others. We keep research to public professional info, as today, and add clear notes in Settings.</p></div>
+    <div class="box"><h3>Two apps at once</h3><p class="sub">Running v1 and v2 side by side doubles some UI work for a while. Fixes go into the shared server code so both get them; v1 gets UI fixes only until v2 covers everything (end of Phase 2).</p></div>
+  </div>
+</section>
+
+<section class="decide">
+  <p class="eyebrow">Decisions for you and Azeez</p>
+  <h2>What I need to start Phase 0</h2>
+  <ol>
+    <li><b>Direction.</b> A (Notebook), B (Console), C (Concierge), or the mix I recommended: C for Brief, Inbox and input; B for lists; A's warmth for person pages.</li>
+    <li><b>Default trust level.</b> I suggest "draft and ask" for everything, with birthday notes and meeting logging as the only "just do it" options at first.</li>
+    <li><b>New permissions, later.</b> Are you open to asking users for calendar write and email send in Phase 3? Without them, Inroads drafts and you send, as now.</li>
+    <li><b>Where v2 lives.</b> <code>/v2</code> on the same site (simplest) or its own subdomain.</li>
+    <li><b>Testers.</b> You and Azeez first, then who?</li>
+  </ol>
+</section>
+
+</div>

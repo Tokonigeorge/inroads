@@ -1,0 +1,24 @@
+/* Inroads 2's frame (layout only; colours, type and motion come from v2.css). Everything is under .v2. */
+.v2 { min-height: 100dvh; font-family: var(--font-body); }
+.v2-page { max-width: 640px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left, 0px)) calc(190px + env(safe-area-inset-bottom, 0px)); display: grid; gap: var(--space-4); }
+.v2-head { position: relative; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: calc(20px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-left, 0px)) 70px; margin-bottom: -40px; overflow: hidden; }
+.v2-head .ir-wash { bottom: -60px; }
+.v2-head > :not(.ir-wash):not(.ir-scene) { position: relative; z-index: 1; }
+.v2-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); }
+.v2-top a { font: 600 13px/1 var(--font-body); color: var(--ink-muted); text-decoration: none; padding: 8px 0; }
+.v2-top a:hover { color: var(--ink); }
+.v2-brand { display: inline-flex; align-items: center; gap: 8px; font: 700 17px/1 var(--font-display); letter-spacing: -0.03em; color: var(--ink); }
+.v2-date { margin: 0 0 6px; font: 500 11px/14px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
+.v2-hello { margin: 0; font: 700 40px/40px var(--font-display); letter-spacing: -0.055em; color: var(--ink); }
+.v2-hello span { color: var(--blue); }
+.v2-title { margin: 0; font: 700 34px/1 var(--font-display); letter-spacing: -0.05em; color: var(--ink); }
+.v2-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; gap: 10px; padding: 22px max(12px, env(safe-area-inset-left, 0px)) 0; background: linear-gradient(to top, var(--paper) 72%, transparent); }
+.v2-dock > .ir-input { width: 100%; max-width: 640px; margin: 0 auto; }
+.v2-tabs { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0 calc(-1 * max(12px, env(safe-area-inset-left, 0px))); padding: 6px 4px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--surface); box-shadow: 0 -1px 0 var(--line); }
+.v2-tab { display: grid; justify-items: center; gap: 4px; padding: 6px 0; font: 600 11px/14px var(--font-body); color: var(--ink-muted); text-decoration: none; }
+.v2-tab svg { width: 22px; height: 22px; }
+.v2-tab[aria-current="page"] { color: var(--blue); }
+.v2-soon { display: grid; gap: var(--space-3); justify-items: center; text-align: center; background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-4) var(--space-6); box-shadow: var(--shadow-card); }
+.v2-soon h2 { margin: 0; font: 700 24px/1.1 var(--font-display); letter-spacing: -0.04em; }
+.v2-soon p { margin: 0; color: var(--ink-muted); max-width: 32em; }
+.v2 a.ir-btn, .v2 a.ir-ready { text-decoration: none; }

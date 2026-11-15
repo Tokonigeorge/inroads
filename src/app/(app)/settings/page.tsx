@@ -39,6 +39,16 @@ async function Settings() {
   return (
     <>
       <Section
+        title="Inroads 2 (preview)"
+        action={
+          <Button asChild size="sm">
+            <Link href="/v2">Try Inroads 2</Link>
+          </Button>
+        }
+      >
+        <p className="text-muted">The new Inroads, arriving a piece at a time on the same data. Switch back any time; nothing here changes.</p>
+      </Section>
+      <Section
         title="Profile"
         action={
           <Button asChild size="sm">
